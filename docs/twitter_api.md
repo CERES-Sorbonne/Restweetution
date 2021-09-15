@@ -35,7 +35,7 @@ L'API Rest offre différentes façons d'effectuer une collecte. Comme vu précé
 
 La search API est la manière la plus classique de récupérer des tweets, elle permet d'aller chercher tous les résultats correspondant à certains critères mais uniquement dans les 15 derniers jours. 
 
-#### Lesdits critères sont les suivants: 
+#### Lesdits critères sont les suivants: [🔗](https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query) 
 - chercher tous les tweets contenant un ou plusieurs mots clés
 - préciser si le tweet doit avoir des media attachés ou non et si oui spécifier le type de media
 - filtrer en fonction d'un ou plusieurs auteurs
