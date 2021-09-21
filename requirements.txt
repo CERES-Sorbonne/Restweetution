@@ -1,2 +1,5 @@
-uvicorn[standard]
-fastapi
+imagehash
+yaml
+smart-open
+pydantic
+requests
