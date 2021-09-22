@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Union
 
 from restweetution.collectors.collector import Collector
@@ -55,17 +56,24 @@ class Streamer(Collector):
                              f"the rule: {res.json()['errors'][0]['errors']['message']}")
 
     def handle_tweet(self, tweet: Tweet):
+        # save media if there are some
+        self._handle_media(Tweet)
         # get all tags associated to the tweet
         tags = list(set([r.tag for r in tweet.matching_rules]))
+        # save collected tweet in every tag folder
+        for tag in tags:
+            path = os.path.join(tag, f"{tweet.data.id}.json")
+            self._tweet_storage.put(tweet.json(exlude_none=True, ensure_ascii=False), path)
 
     def collect(self, sub_process=False, fetch_minutes=False):
+        super(Streamer, self).collect()
         # check if some rules are configured
         if len(self.get_rules()) == 0:
             self.__logger.warning("Stream started but no rules are configured currently, use add_rule to add a new_rule")
         with self._client.get("tweets/search/stream", params=self._create_params_from_config(), stream=True, timeout=5000) as resp:
             for line in resp.iter_lines():
                 if line and self._has_free_space():
-                    data = json.loads(line.decode("utf-8"))
+                    data = Tweet(**json.loads(line.decode("utf-8")))
                     self.handle_tweet(data)
                 else:
                     self.__logger.info("waiting for new tweets")

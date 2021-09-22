@@ -23,6 +23,6 @@ class SSHFileStorageConfig(StorageConfig):
 
 class Config(BaseModel):
     token: str
-    tweetStorage: Optional[Union[FileStorageConfig, SSHFileStorageConfig]] = FileStorageConfig()
-    mediaStorage: Optional[Union[FileStorageConfig, SSHFileStorageConfig]] = FileStorageConfig(root_directory="/home/outputTweets/media")
-    tweetConfig: Optional[TweetConfig] = BASIC_CONFIG
+    tweet_storage: Optional[Union[FileStorageConfig, SSHFileStorageConfig]] = FileStorageConfig()
+    media_storage: Optional[Union[FileStorageConfig, SSHFileStorageConfig]] = FileStorageConfig(root_directory="/home/outputTweets/media")
+    tweet_config: Optional[TweetConfig] = BASIC_CONFIG

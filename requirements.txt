@@ -1,5 +1,5 @@
 imagehash
-yaml
+PyYAML
 smart-open
 pydantic
 requests

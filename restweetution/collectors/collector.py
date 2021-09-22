@@ -6,6 +6,7 @@ import yaml
 
 from restweetution.collectors.client import Client
 from restweetution.models.config import Config
+from restweetution.models.tweet import Tweet
 from restweetution.storage.storage_provider import storage_provider
 
 
@@ -20,9 +21,9 @@ class Collector:
         """
         self.tweets_count = 0
         self._config = self.resolve_config(config)
-        self._tweet_storage = storage_provider(self._config.tweetStorage)
-        self._media_storage = storage_provider(self._config.mediaStorage)
-        self._client = Client(config=self._config, url_base="https://api.twitter.com/2/")
+        self._tweet_storage = storage_provider(self._config.tweet_storage)
+        self._media_storage = storage_provider(self._config.media_storage)
+        self._client = Client(config=self._config, base_url="https://api.twitter.com/2/")
         self.__logger = logging.getLogger("Collector")
 
     @staticmethod
@@ -51,7 +52,7 @@ class Collector:
 
     def _create_params_from_config(self):
         params = {}
-        params_config = self._config.tweetConfig
+        params_config = self._config.tweet_config
         if params_config.expansions:
             params['expansions'] = params_config.expansions
         if params_config.tweetFields:
@@ -64,6 +65,9 @@ class Collector:
 
     def _has_free_space(self):
         return self._tweet_storage.has_free_space() and self._media_storage.has_free_space()
+
+    def _handle_media(self, tweet: Tweet):
+        pass
 
     def collect(self):
         self.__logger.info(f"""

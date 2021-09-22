@@ -37,6 +37,8 @@ class FileStorage(Storage):
         pass
 
     def has_free_space(self) -> bool:
+        if self.max_size is None:
+            return True
         if self._get_folder_size() < self.max_size * 1000000:
             return True
         raise OSError("The maxsize of the storage directory has been reached")

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class Attachments(BaseModel):
-    media_keys: [str]
+    media_keys: list[str]
 
 
 class Entity(BaseModel):
@@ -46,9 +46,9 @@ class UrlEntity(Url):
 
 
 class Entities(BaseModel):
-    annotations: [Annotation]
-    hashtags: [Hashtag]
-    urls: [UrlEntity]
+    annotations: list[Annotation]
+    hashtags: list[Hashtag]
+    urls: list[UrlEntity]
 
 
 class Metrics(BaseModel):
@@ -74,7 +74,7 @@ class ContextAnnotation(BaseModel):
     entity: ContextEntity
 
 
-class MediaMetrics:
+class MediaMetrics(BaseModel):
     view_count: int
 
 
@@ -149,6 +149,6 @@ class Rules(BaseModel):
 
 
 class Tweet(BaseModel):
-    data: list[TweetData]
+    data: TweetData
     includes: TweetIncludes
     matching_rules: Optional[list[Rules]]
