@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class Attachments(BaseModel):
-    media_keys: list[str]
+    media_keys: Optional[list[str]]
 
 
 class Entity(BaseModel):
@@ -98,7 +98,7 @@ class Media(BaseModel):
     duration_ms: Optional[int]
     media_key: str
     type: str
-    preview_image_url = Optional[str]
+    preview_image_url: Optional[str]
     public_metrics: Optional[MediaMetrics]
 
 
@@ -150,5 +150,5 @@ class Rules(BaseModel):
 
 class Tweet(BaseModel):
     data: TweetData
-    includes: TweetIncludes
+    includes: Optional[TweetIncludes]
     matching_rules: Optional[list[Rules]]

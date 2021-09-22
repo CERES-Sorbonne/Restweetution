@@ -26,3 +26,4 @@ class Config(BaseModel):
     tweet_storage: Optional[Union[FileStorageConfig, SSHFileStorageConfig]] = FileStorageConfig()
     media_storage: Optional[Union[FileStorageConfig, SSHFileStorageConfig]] = FileStorageConfig(root_directory="/home/outputTweets/media")
     tweet_config: Optional[TweetConfig] = BASIC_CONFIG
+    verbose: Optional[bool] = False

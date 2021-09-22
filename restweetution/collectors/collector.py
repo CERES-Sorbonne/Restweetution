@@ -24,7 +24,7 @@ class Collector:
         self._tweet_storage = storage_provider(self._config.tweet_storage)
         self._media_storage = storage_provider(self._config.media_storage)
         self._client = Client(config=self._config, base_url="https://api.twitter.com/2/")
-        self.__logger = logging.getLogger("Collector")
+        self._logger = logging.getLogger("Collector")
 
     @staticmethod
     def resolve_config(config_param) -> Config:
@@ -54,13 +54,13 @@ class Collector:
         params = {}
         params_config = self._config.tweet_config
         if params_config.expansions:
-            params['expansions'] = params_config.expansions
+            params['expansions'] = ",".join(params_config.expansions)
         if params_config.tweetFields:
-            params['tweet.fields'] = params_config.tweetFields
+            params['tweet.fields'] = ",".join(params_config.tweetFields)
         if params_config.userFields:
-            params['user.fields'] = params_config.userFields
+            params['user.fields'] = ",".join(params_config.userFields)
         if params_config.mediaFields:
-            params['media.fields'] = params_config.mediaFields
+            params['media.fields'] = ",".join(params_config.mediaFields)
         return params
 
     def _has_free_space(self):
@@ -70,9 +70,10 @@ class Collector:
         pass
 
     def collect(self):
-        self.__logger.info(f"""
+        self._logger.info(f"""
             Starting to collect tweets
             Tweets stored at: {self._tweet_storage.root_directory}
             Media stored at: {self._media_storage.root_directory}
+            Log tweets: {self._config.verbose}
         """)
 

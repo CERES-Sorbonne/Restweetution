@@ -23,11 +23,11 @@ class FileStorage(Storage):
         directory.mkdir(parents=True, exist_ok=True)
 
         if isinstance(buffer, str):
-            with open(os.path.join(self.root_directory, key), 'w') as f:
+            with open(os.path.join(self.root_directory, key), 'w', encoding='utf-8') as f:
                 f.write(buffer)
         elif isinstance(buffer, io.BufferedIOBase):
             buffer.seek(0)
-            with open(os.path.join(self.root_directory, key), 'wb') as f:
+            with open(os.path.join(self.root_directory, key), 'wb', encoding='utf-8') as f:
                 f.write(buffer.read())
 
     def delete(self, key: str):
