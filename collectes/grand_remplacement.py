@@ -11,9 +11,6 @@ if __name__ == "__main__":
         'token': token,
         'tweet_storage': {
             "root_directory": r"C:\Users\Orion\Documents\OutputTweets",
-            "host": "localhost",
-            "user": "test",
-            "password": "lol",
             "max_size": 1000
         },
         'media_storage': {

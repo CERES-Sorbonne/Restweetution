@@ -7,7 +7,7 @@ from restweetution.models.tweet_config import TweetConfig
 
 class StorageConfig(BaseModel):
     root_directory: Optional[str]
-    max_size: Optional[int] = 1000
+    max_size: Optional[int] = None
 
 
 class FileStorageConfig(StorageConfig):
@@ -26,4 +26,5 @@ class Config(BaseModel):
     tweet_storage: Optional[Union[FileStorageConfig, SSHFileStorageConfig]] = FileStorageConfig()
     media_storage: Optional[Union[FileStorageConfig, SSHFileStorageConfig]] = FileStorageConfig(root_directory="/home/outputTweets/media")
     tweet_config: Optional[TweetConfig] = BASIC_CONFIG
+    max_retries: Optional[int] = 3
     verbose: Optional[bool] = False

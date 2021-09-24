@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from typing import Union
 
 import yaml
@@ -20,10 +21,11 @@ class Collector:
         the restweetution.models.examples_config.BASIC_CONFIG will be used
         """
         self.tweets_count = 0
+        self._retry_count = 0
         self._config = self.resolve_config(config)
         self._tweet_storage = storage_provider(self._config.tweet_storage)
         self._media_storage = storage_provider(self._config.media_storage)
-        self._client = Client(config=self._config, base_url="https://api.twitter.com/2/")
+        self._client = Client(config=self._config, base_url="https://api.twitter.com/2/", error_handler=self._error_handler)
         self._logger = logging.getLogger("Collector")
 
     @staticmethod
@@ -68,6 +70,16 @@ class Collector:
 
     def _handle_media(self, tweet: Tweet):
         pass
+
+    def _error_handler(self, error: str, status_code: int):
+        self._logger.error(f"A new http error occurred with status: {status_code}, {error}")
+        self._retry_count += 1
+        if self._retry_count < self._config.max_retries:
+            self._logger.warning("Retrying collect in 5s")
+            time.sleep(5)
+            self.collect()
+        else:
+            self._logger.warning("Max Retries exceeded, stopping collect")
 
     def collect(self):
         self._logger.info(f"""

@@ -1,14 +1,16 @@
 import json
 import os
-from typing import Union
+import time
+from typing import Union, List
 
 from restweetution.collectors.collector import Collector
-from restweetution.models.tweet import Tweet
+from restweetution.models.tweet import Tweet, Rules
 
 
 class Streamer(Collector):
     def __init__(self, config: Union[dict, str]):
         super(Streamer, self).__init__(config)
+        self._fetch_minutes = False
 
     def get_rules(self) -> list[dict]:
         """
@@ -62,10 +64,27 @@ class Streamer(Collector):
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
+    def _handle_rules(self, rules: List[Rules]) -> None:
+        """
+        Persist a list of rules if not existing
+        :param rules: list of rules
+        :return: none
+        """
+        for rule in rules:
+            path = os.path.join('rules', f"{rule.id}.json")
+            if self._tweet_storage.exists(path):
+                pass
+            else:
+                self._tweet_storage.put(rule.json(), path)
+
     def handle_tweet(self, tweet: Tweet):
         self._log_tweets(tweet)
+        # make sure rules are already saved
+        self._handle_rules(tweet.matching_rules)
+        # save user info if there are some:
+        self._handle_user(tweet)
         # save media if there are some
-        self._handle_media(Tweet)
+        self._handle_media(tweet)
         # get all tags associated to the tweet
         tags = list(set([r.tag for r in tweet.matching_rules]))
         # save collected tweet in every tag folder
@@ -73,15 +92,45 @@ class Streamer(Collector):
             path = os.path.join(tag, f"{tweet.data.id}.json")
             self._tweet_storage.put(tweet.json(exclude_none=True, ensure_ascii=False), path)
 
-    def collect(self, sub_process=False, fetch_minutes=False):
+    def _handle_errors(self, errors: List[dict], *args) -> None:
+        """
+        Some errors might still be wrapped in a 200 response
+        So they need to be handle manually and not in Collector._error_handler
+        which will only be triggered for responses > 299
+        :param errors: a list of errors dictionnary
+        :param args: the arguments to pass to collect when retrying
+        :return: none
+        """
+        for error in errors:
+            self._logger.error(f"""The following error was encountered: {error}""")
+        if self._retry_count < self._config.max_retries:
+            self._logger.error("""The collect will try to start again in 30s""")
+            time.sleep(30)
+            self.collect(*args)
+
+    def collect(self, sub_process: bool = False, fetch_minutes: int = False):
+        """
+        Main method to collect tweets in a stream
+        :param sub_process: should the collect be run in a subprocess ?
+        :param fetch_minutes: if you have a pro or an academic account, you can specify
+        an int between 1 and 5 to tell the stream to fetch tweets from the past minutes.
+        :return:
+        """
         super(Streamer, self).collect()
+        self._fetch_minutes = fetch_minutes
         # check if some rules are configured
         if len(self.get_rules()) == 0:
             self._logger.warning("Stream started but no rules are configured currently, use add_rule to add a new_rule")
-        with self._client.get("tweets/search/stream", params=self._create_params_from_config(), stream=True, timeout=5000) as resp:
+        params = self._create_params_from_config()
+        if self._fetch_minutes:
+            params = {**params, 'backfill_minutes': self._fetch_minutes}
+        with self._client.get("tweets/search/stream", params=params, stream=True, timeout=5000) as resp:
             for line in resp.iter_lines():
                 if line and self._has_free_space():
-                    data = Tweet(**json.loads(line.decode("utf-8")))
-                    self.handle_tweet(data)
+                    data = json.loads(line.decode("utf-8"))
+                    if "errors" in data:
+                        self._handle_errors(data['errors'], sub_process, fetch_minutes)
+                    tweet = Tweet(**data)
+                    self.handle_tweet(tweet)
                 else:
                     self._logger.info("waiting for new tweets")

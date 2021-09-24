@@ -48,6 +48,13 @@ class Storage(ABC):
         """
         pass
 
+    def exists(self, key: str) -> bool:
+        """
+        Return whether a key exists or not
+        :param key: the key to check
+        :return: a bool
+        """
+
     def has_free_space(self) -> bool:
         """
         Is there still enough space in the storage to store data ?

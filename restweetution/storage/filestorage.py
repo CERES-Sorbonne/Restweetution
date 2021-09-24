@@ -43,6 +43,9 @@ class FileStorage(Storage):
             return True
         raise OSError("The maxsize of the storage directory has been reached")
 
+    def exists(self, key: str) -> bool:
+        return os.path.exists(key)
+
     def _get_folder_size(self):
         """
         Utility function to find the size of a folder
