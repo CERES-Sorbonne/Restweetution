@@ -3,3 +3,4 @@ PyYAML
 smart-open
 pydantic
 requests
+pillow

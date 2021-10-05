@@ -1,0 +1,14 @@
+TODO:
+- stockage media
+- handle asynchrone
+- récupérer les vidéos
+- ajout des callbakcs
+- multi storage
+- logger custom (elk ? )
+- searcher
+- cli
+- api
+- ui
+- gérer le partial hash avec paramètre
+- prévenir si y a un media storage et que y a aps les medias dans la configs de récupération des tweets
+- si on a deux images identiques en partial hash -> garder la plus haute res

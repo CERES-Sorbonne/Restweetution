@@ -4,7 +4,7 @@ import time
 from typing import Union, List
 
 from restweetution.collectors.collector import Collector
-from restweetution.models.tweet import Tweet, Rules
+from restweetution.models.tweet import Tweet, Rule
 
 
 class Streamer(Collector):
@@ -64,18 +64,9 @@ class Streamer(Collector):
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
-    def _handle_rules(self, rules: List[Rules]) -> None:
-        """
-        Persist a list of rules if not existing
-        :param rules: list of rules
-        :return: none
-        """
+    def _handle_rules(self, rules: List[Rule]) -> None:
         for rule in rules:
-            path = os.path.join('rules', f"{rule.id}.json")
-            if self._tweet_storage.exists(path):
-                pass
-            else:
-                self._tweet_storage.put(rule.json(), path)
+            self.get_rules()
 
     def handle_tweet(self, tweet: Tweet):
         self._log_tweets(tweet)
@@ -87,10 +78,7 @@ class Streamer(Collector):
         self._handle_media(tweet)
         # get all tags associated to the tweet
         tags = list(set([r.tag for r in tweet.matching_rules]))
-        # save collected tweet in every tag folder
-        for tag in tags:
-            path = os.path.join(tag, f"{tweet.data.id}.json")
-            self._tweet_storage.put(tweet.json(exclude_none=True, ensure_ascii=False), path)
+        self._storage_manager.save_tweets([tweet], tags)
 
     def _handle_errors(self, errors: List[dict], *args) -> None:
         """

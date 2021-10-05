@@ -143,7 +143,7 @@ class TweetIncludes(BaseModel):
     users: list[User]
 
 
-class Rules(BaseModel):
+class Rule(BaseModel):
     id: str
     tag: str
 
@@ -151,4 +151,4 @@ class Rules(BaseModel):
 class Tweet(BaseModel):
     data: TweetData
     includes: Optional[TweetIncludes]
-    matching_rules: Optional[list[Rules]]
+    matching_rules: Optional[list[Rule]]

@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from enum import Enum
 from typing import Union
 
 import yaml
@@ -8,7 +9,7 @@ import yaml
 from restweetution.collectors.client import Client
 from restweetution.models.config import Config
 from restweetution.models.tweet import Tweet
-from restweetution.storage.storage_provider import storage_provider
+from restweetution.storage.storage_manager import StorageManager
 
 
 class Collector:
@@ -23,8 +24,7 @@ class Collector:
         self.tweets_count = 0
         self._retry_count = 0
         self._config = self.resolve_config(config)
-        self._tweet_storage = storage_provider(self._config.tweet_storage)
-        self._media_storage = storage_provider(self._config.media_storage)
+        self._storage_manager = StorageManager(tweets_storages=self._config.tweet_config, media_storages=self._config.media_storage)
         self._client = Client(config=self._config, base_url="https://api.twitter.com/2/", error_handler=self._error_handler)
         self._logger = logging.getLogger("Collector")
 
@@ -69,7 +69,14 @@ class Collector:
         return self._tweet_storage.has_free_space() and self._media_storage.has_free_space()
 
     def _handle_media(self, tweet: Tweet):
-        pass
+        class Media(Enum):
+            PHOTO = 1
+            VIDEO = 2
+            GIF = 3
+
+            def __eq__(self, other):
+                if isinstance(other, str):
+                    return self.name.lower() == other
 
     def _error_handler(self, error: str, status_code: int):
         self._logger.error(f"A new http error occurred with status: {status_code}, {error}")

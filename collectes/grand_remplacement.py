@@ -9,14 +9,14 @@ if __name__ == "__main__":
         token = json.load(f).get('token')
     config = {
         'token': token,
-        'tweet_storage': {
+        'tweet_storages': [{
             "root_directory": r"C:\Users\Orion\Documents\OutputTweets",
             "max_size": 1000
-        },
-        'media_storage': {
-            "root_directory": r"C:\Users\Orion\Documents\OutputTweets\media",
-            "max_size": 1000
-        },
+        }],
+        # 'media_storages': {
+        #     "root_directory": r"C:\Users\Orion\Documents\OutputTweets\media",
+        #     "max_size": 1000
+        # },
         'verbose': True
     }
     s = Streamer(config)
