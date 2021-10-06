@@ -152,3 +152,8 @@ class Tweet(BaseModel):
     data: TweetData
     includes: Optional[TweetIncludes]
     matching_rules: Optional[list[Rule]]
+
+
+class StreamRule(Rule):
+    value: str
+

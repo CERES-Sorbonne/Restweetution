@@ -1,1 +1,1 @@
-from restweetution.storage import storage_provider
+from restweetution.storage.storage_manager import StorageManager

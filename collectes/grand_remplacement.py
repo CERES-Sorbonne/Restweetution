@@ -9,7 +9,7 @@ if __name__ == "__main__":
         token = json.load(f).get('token')
     config = {
         'token': token,
-        'tweet_storages': [{
+        'tweets_storages': [{
             "root_directory": r"C:\Users\Orion\Documents\OutputTweets",
             "max_size": 1000
         }],

@@ -1,10 +1,9 @@
 import json
-import os
 import time
 from typing import Union, List
 
 from restweetution.collectors.collector import Collector
-from restweetution.models.tweet import Tweet, Rule
+from restweetution.models.tweet import Tweet, Rule, StreamRule
 
 
 class Streamer(Collector):
@@ -12,13 +11,17 @@ class Streamer(Collector):
         super(Streamer, self).__init__(config)
         self._fetch_minutes = False
 
-    def get_rules(self) -> list[dict]:
+    def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
         """
         Return the list of rules defined to collect tweets during a stream
+        :param ids: an optional list of ids to fetch only specific rules
         :return: the list of rules
         """
-        res = self._client.get("tweets/search/stream/rules")
-        return res.json().get('data', [])
+        uri = "tweets/search/stream/rules"
+        if ids:
+            uri += f"?ids={','.join(ids)}"
+        res = self._client.get(uri)
+        return [StreamRule(**r) for r in res.json().get('data', [])]
 
     def add_rule(self, rule: str, tag: str) -> str:
         """
@@ -45,7 +48,6 @@ class Streamer(Collector):
         """
         Remove a rule
         :param id_to_remove: the id of the rule to remove
-        :return: None
         """
         res = self._client.post("tweets/search/stream/rules", json={
             "delete": {
@@ -65,8 +67,31 @@ class Streamer(Collector):
             self._logger.info(f'{self.tweets_count} tweets collected')
 
     def _handle_rules(self, rules: List[Rule]) -> None:
-        for rule in rules:
-            self.get_rules()
+        """
+        Get every stored rule, and if some rules of the current tweets
+        are not stored currently, get full rule and store it
+        Since rules are Streamer specific this method cannot be fully in the storage manager
+        :param rules: the matching rules of the collected tweet
+        """
+        existing_rules = self._storage_manager.get_rules_ids()
+        rules_to_store = []
+        for r in rules:
+            if r.id not in existing_rules:
+                rules_to_store.append(r.id)
+        if rules_to_store:
+            if self._config.verbose:
+                self._logger.info(f"Storing new rules: {rules_to_store}")
+            self._storage_manager.save_rules(self.get_rules(ids=rules_to_store))
+
+    def _handle_user(self, tweet):
+        """
+        get users in tweet
+        check if users in tweet have all their data stored in storage
+        if new user then save it, question => save only currently available data or do a get /user to get all data
+        :param tweet:
+        :return:
+        """
+        pass
 
     def handle_tweet(self, tweet: Tweet):
         self._log_tweets(tweet)
@@ -87,7 +112,6 @@ class Streamer(Collector):
         which will only be triggered for responses > 299
         :param errors: a list of errors dictionnary
         :param args: the arguments to pass to collect when retrying
-        :return: none
         """
         for error in errors:
             self._logger.error(f"""The following error was encountered: {error}""")
@@ -114,7 +138,7 @@ class Streamer(Collector):
             params = {**params, 'backfill_minutes': self._fetch_minutes}
         with self._client.get("tweets/search/stream", params=params, stream=True, timeout=5000) as resp:
             for line in resp.iter_lines():
-                if line and self._has_free_space():
+                if line:
                     data = json.loads(line.decode("utf-8"))
                     if "errors" in data:
                         self._handle_errors(data['errors'], sub_process, fetch_minutes)
@@ -122,3 +146,4 @@ class Streamer(Collector):
                     self.handle_tweet(tweet)
                 else:
                     self._logger.info("waiting for new tweets")
+

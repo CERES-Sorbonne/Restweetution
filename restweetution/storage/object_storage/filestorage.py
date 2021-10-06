@@ -33,15 +33,20 @@ class FileStorage(Storage):
     def delete(self, key: str):
         pass
 
-    def list(self, prefix=None, recursive=False):
-        pass
+    def list(self, prefix: str = None, recursive: bool = False):
+        if not recursive:
+            path = os.path.join(self.root_directory, prefix or "")
+            return os.listdir(path)
+        else:
+            raise NotImplemented("Liste récursive pas encore implémentée")
 
+    @property
     def has_free_space(self) -> bool:
         if self.max_size is None:
             return True
         if self._get_folder_size() < self.max_size * 1000000:
             return True
-        raise OSError("The maxsize of the storage directory has been reached")
+        return False
 
     def exists(self, key: str) -> bool:
         return os.path.exists(key)
