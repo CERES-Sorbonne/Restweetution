@@ -93,14 +93,15 @@ class Streamer(Collector):
         """
         pass
 
-    def handle_tweet(self, tweet: Tweet):
+    def _handle_tweet(self, tweet: Tweet):
         self._log_tweets(tweet)
         # make sure rules are already saved
         self._handle_rules(tweet.matching_rules)
         # save user info if there are some:
         self._handle_user(tweet)
         # save media if there are some
-        self._handle_media(tweet)
+        if tweet.includes and tweet.includes.media:
+            self._storage_manager.save_media(tweet.includes.media, tweet.data.id)
         # get all tags associated to the tweet
         tags = list(set([r.tag for r in tweet.matching_rules]))
         self._storage_manager.save_tweets([tweet], tags)
@@ -118,6 +119,7 @@ class Streamer(Collector):
         if self._retry_count < self._config.max_retries:
             self._logger.error("""The collect will try to start again in 30s""")
             time.sleep(30)
+            self._retry_count += 1
             self.collect(*args)
 
     def collect(self, sub_process: bool = False, fetch_minutes: int = False):
@@ -143,7 +145,7 @@ class Streamer(Collector):
                     if "errors" in data:
                         self._handle_errors(data['errors'], sub_process, fetch_minutes)
                     tweet = Tweet(**data)
-                    self.handle_tweet(tweet)
+                    self._handle_tweet(tweet)
                 else:
                     self._logger.info("waiting for new tweets")
 

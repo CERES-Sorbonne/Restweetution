@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel
 
@@ -95,9 +95,10 @@ class TweetData(BaseModel):
 class Media(BaseModel):
     height: Optional[int]
     width: Optional[int]
+    url: Optional[str]
     duration_ms: Optional[int]
     media_key: str
-    type: str
+    type: Literal["video", "gif", "photo"]
     preview_image_url: Optional[str]
     public_metrics: Optional[MediaMetrics]
 

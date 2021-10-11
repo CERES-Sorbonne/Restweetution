@@ -15,6 +15,7 @@ class ObjectStorageWrapper(StorageWrapper):
         """
         Wrapper to Object Storages like FileStorage or SSHFileStorage
         Provide a simple interface to manipulate tweets and media for all kind of Object Storages
+        Note: all undocumented methods are documented in parent class
         :param storage: the storage to wrap
         """
         super(ObjectStorageWrapper, self).__init__(storage)
@@ -23,7 +24,7 @@ class ObjectStorageWrapper(StorageWrapper):
         self.rules_storage = self._generate_sub_storage('rules')
 
     def __str__(self):
-        return f"{type(self.storage).__name__} : {self.storage.root_directory}"
+        return f"{type(self.storage).__name__} - {self.name}: {self.storage.root_directory}"
 
     @property
     def has_free_space(self):
@@ -45,11 +46,6 @@ class ObjectStorageWrapper(StorageWrapper):
                 yield Tweet(**json.load(self.tweet_storage.get(f)))
 
     def save_rules(self, rules: List[StreamRule]):
-        """
-        Persist a list of rules if not existing
-        :param rules: list of rules
-        :return: none
-        """
         for rule in rules:
             path = f"{rule.id}.json"
             if self.rules_storage.exists(path):
@@ -70,7 +66,7 @@ class ObjectStorageWrapper(StorageWrapper):
     def save_users(self, users: List[User]):
         pass
 
-    def save_media(self, media_key: str, buffer: io.BufferedIOBase) -> str:
+    def save_media(self, file_name: str, buffer: io.BufferedIOBase, signature: str) -> str:
         pass
 
     def get_media(self, media_key) -> io.BufferedIOBase:

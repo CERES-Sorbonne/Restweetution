@@ -1,13 +1,15 @@
 import hashlib
+import io
 import logging
 from io import BytesIO
-from typing import List, Iterator
+from typing import List, Iterator, Dict
 
 import imagehash
+import requests
 from PIL import Image
 
 from restweetution.models.config import StorageConfig, FileStorageConfig, SSHFileStorageConfig
-from restweetution.models.tweet import Tweet, Rule, StreamRule
+from restweetution.models.tweet import Tweet, Rule, StreamRule, Media
 from restweetution.storage.object_storage.filestorage import FileStorage, SSHFileStorage
 from restweetution.storage.object_storage.object_storage_wrapper import ObjectStorageWrapper
 from restweetution.storage.storage_wrapper import StorageWrapper
@@ -80,17 +82,55 @@ class StorageManager:
     def save_users(self):
         pass
 
-    def save_media(self):
+    def save_media(self, media_list: List[Media], tweet_id: str) -> Dict[str, Dict[str, str]]:
+        stored_media = self.media_storages[0].list_media()
+        uris = {}
+        for media in media_list:
+            full_name = f"{media.media_key}.{self._get_file_type(media.type)}"
+            # check if it was already downloaded:
+            if full_name in stored_media:
+                logging.info("This image was already downloaded")
+            # if it's an image
+            if media.url:
+                try:
+                    res = requests.get(media.url)
+                    buffer: bytes = res.content
+                    signature = self._compute_signature(buffer)
+                except requests.HTTPError as e:
+                    self.logger.warning(f"There was an error downloading image {media.url}: " + str(e))
+                    continue
+            # TODO: change this when v2 api supports url for video and gifs
+            else:  # then it's a video
+                buffer: bytes = self._save_video(media, tweet_id)
+                signature = self._compute_signature(buffer=buffer, image=False)
+
+            uris[media.media_key] = {}
+
+            for s in self.media_storages:
+                uri = s.save_media(full_name, io.BytesIO(buffer), signature)
+                # save the returned uri in a dict
+                uris[media.media_key][s.name] = uri
+            # add the newly stored image to the list of media
+            stored_media.append(full_name)
+        return uris
+
+    @staticmethod
+    def _get_file_type(file_type: str) -> str:
+        if file_type == "video":
+            return "mp4"
+        elif file_type == "photo":
+            return "jpeg"
+        else:
+            return "gif"
+
+    def get_media(self, tweet: Tweet):
         pass
 
-    def get_media(self):
+    def _save_video(self, media: Media, tweet_id: str) -> bytes:
         pass
 
-    def _save_video(self):
-        pass
-
-    def _compute_signature(self, buffer: bytes):
-        if self.partial_hash:
+    def _compute_signature(self, buffer: bytes, image: bool = True):
+        if self.partial_hash and image:
             img = Image.open(BytesIO(buffer))
             return str(imagehash.average_hash(img))
         else:
