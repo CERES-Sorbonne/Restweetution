@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import os
 from typing import List, Union, Iterator
 from copy import deepcopy
@@ -11,17 +12,21 @@ from restweetution.storage.storage_wrapper import StorageWrapper
 
 
 class ObjectStorageWrapper(StorageWrapper):
-    def __init__(self, storage: Union[FileStorage, SSHFileStorage]):
+    def __init__(self, storage: Union[FileStorage, SSHFileStorage], media: bool = False):
         """
         Wrapper to Object Storages like FileStorage or SSHFileStorage
         Provide a simple interface to manipulate tweets and media for all kind of Object Storages
         Note: all undocumented methods are documented in parent class
         :param storage: the storage to wrap
+        :param media: will this be a media storage ? hack to avoid creating the substorages when its a media storage
+        TODO: find a proper way to do that
         """
         super(ObjectStorageWrapper, self).__init__(storage)
-        self.tweet_storage = self._generate_sub_storage('tweets')
-        self.users_storage = self._generate_sub_storage('users')
-        self.rules_storage = self._generate_sub_storage('rules')
+        if not media:
+            self.tweet_storage = self._generate_sub_storage('tweets')
+            self.users_storage = self._generate_sub_storage('users')
+            self.rules_storage = self._generate_sub_storage('rules')
+        self.logger = logging.getLogger("Collector.Storage.ObjectStorage")
 
     def __str__(self):
         return f"{type(self.storage).__name__} - {self.name}: {self.storage.root_directory}"
@@ -67,10 +72,25 @@ class ObjectStorageWrapper(StorageWrapper):
         pass
 
     def save_media(self, file_name: str, buffer: io.BufferedIOBase, signature: str) -> str:
-        pass
+        if signature in self.storage.list():
+            # lets find the name of the identical file, already saved as an empty file under media/<signature>/id
+            identical_file = self.storage.list(signature)[0]
+            self.logger.info(f"a media with the same signature already exists: {identical_file}")
+            # we need to save an empty file to know how to find the existing image from the media_key
+            path = f"{file_name.split('.')[0]}.{identical_file}"
+            return self.storage.put("", path)
+        else:
+            # create an empty file named with the id so we know this signature = this id
+            # this allow to find the "original" image from the signature
+            self.storage.put("", os.path.join(signature, file_name))
+            # then save the medium
+            return self.storage.put(buffer, file_name)
 
     def get_media(self, media_key) -> io.BufferedIOBase:
         pass
+
+    def list_dir(self) -> List[str]:
+        return self.storage.list()
 
     def _generate_sub_storage(self, sub_folder: str) -> Storage:
         """
@@ -80,5 +100,5 @@ class ObjectStorageWrapper(StorageWrapper):
         :return: a Storage
         """
         storage = deepcopy(self.storage)
-        storage.root_directory = os.path.join(storage.root_directory, sub_folder)
+        storage._root_directory = os.path.join(storage.root_directory, sub_folder)
         return storage

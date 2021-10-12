@@ -24,7 +24,7 @@ class StorageManager:
         :param partial_hash:
         """
         self.tweets_storages = [self._resolve_storage(s) for s in tweets_storages]
-        self.media_storages = [self._resolve_storage(s) for s in media_storages]
+        self.media_storages = [self._resolve_storage(s, media=True) for s in media_storages]
         self.partial_hash = partial_hash
         self.logger = logging.getLogger("Collector.Storage")
 
@@ -83,16 +83,18 @@ class StorageManager:
         pass
 
     def save_media(self, media_list: List[Media], tweet_id: str) -> Dict[str, Dict[str, str]]:
-        stored_media = self.media_storages[0].list_media()
+        stored_media = self.media_storages[0].list_dir()
         uris = {}
         for media in media_list:
-            full_name = f"{media.media_key}.{self._get_file_type(media.type)}"
+            media_type = media.url.split('.')[-1] if media.url else self._get_file_type(media.type)
+            full_name = f"{media.media_key}.{media_type}"
             # check if it was already downloaded:
             if full_name in stored_media:
                 logging.info("This image was already downloaded")
             # if it's an image
             if media.url:
                 try:
+                    logging.info(f"Downloading {media.url} with id: {media.media_key} and tweet_id: {tweet_id}")
                     res = requests.get(media.url)
                     buffer: bytes = res.content
                     signature = self._compute_signature(buffer)
@@ -101,8 +103,9 @@ class StorageManager:
                     continue
             # TODO: change this when v2 api supports url for video and gifs
             else:  # then it's a video
-                buffer: bytes = self._save_video(media, tweet_id)
-                signature = self._compute_signature(buffer=buffer, image=False)
+                continue
+                # buffer: bytes = self._save_video(media, tweet_id)
+                # signature = self._compute_signature(buffer=buffer, image=False)
 
             uris[media.media_key] = {}
 
@@ -127,7 +130,7 @@ class StorageManager:
         pass
 
     def _save_video(self, media: Media, tweet_id: str) -> bytes:
-        pass
+        return b""
 
     def _compute_signature(self, buffer: bytes, image: bool = True):
         if self.partial_hash and image:
@@ -137,16 +140,16 @@ class StorageManager:
             return hashlib.sha1(buffer).hexdigest()
 
     @staticmethod
-    def _resolve_storage(config: StorageConfig) -> StorageWrapper:
+    def _resolve_storage(config: StorageConfig, media: bool = False) -> StorageWrapper:
         """
         Utility method that takes a StorageConfig as input and returns a wrapped storage
         :param config: the storage config
         :return: a storage wrapper, which means a storage that exposes all methods to save or get data
         """
         if isinstance(config, FileStorageConfig):
-            return ObjectStorageWrapper(FileStorage(config))
+            return ObjectStorageWrapper(FileStorage(config), media)
         elif isinstance(config, SSHFileStorageConfig):
-            return ObjectStorageWrapper(SSHFileStorage(config))
+            return ObjectStorageWrapper(SSHFileStorage(config), media)
         else:
             raise ValueError(f"Unhandled type of storage: {type(config)}")
 

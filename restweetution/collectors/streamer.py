@@ -116,6 +116,9 @@ class Streamer(Collector):
         """
         for error in errors:
             self._logger.error(f"""The following error was encountered: {error}""")
+        # if errors[0]['title'] in ['Authorization Error', 'Forbidden']:
+        #     # this tweet might be private then we juste pass
+        #     return
         if self._retry_count < self._config.max_retries:
             self._logger.error("""The collect will try to start again in 30s""")
             time.sleep(30)
@@ -138,14 +141,17 @@ class Streamer(Collector):
         params = self._create_params_from_config()
         if self._fetch_minutes:
             params = {**params, 'backfill_minutes': self._fetch_minutes}
-        with self._client.get("tweets/search/stream", params=params, stream=True, timeout=5000) as resp:
-            for line in resp.iter_lines():
-                if line:
-                    data = json.loads(line.decode("utf-8"))
-                    if "errors" in data:
-                        self._handle_errors(data['errors'], sub_process, fetch_minutes)
-                    tweet = Tweet(**data)
-                    self._handle_tweet(tweet)
-                else:
-                    self._logger.info("waiting for new tweets")
+        try:
+            with self._client.get("tweets/search/stream", params=params, stream=True, timeout=5000) as resp:
+                for line in resp.iter_lines():
+                    if line:
+                        data = json.loads(line.decode("utf-8"))
+                        if "errors" in data:
+                            raise ValueError(data)
+                        tweet = Tweet(**data)
+                        self._handle_tweet(tweet)
+                    else:
+                        self._logger.info("waiting for new tweets")
+        except ValueError as e:
+            self._handle_errors(e, sub_process, fetch_minutes)
 

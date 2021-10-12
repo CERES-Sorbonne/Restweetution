@@ -13,7 +13,7 @@ TweetField = Literal["attachments", "author_id", "context_annotations", "convers
 UserField = Literal["created_at", "description", "entities", "location", "pinned_tweet_id", "profile_image_url",
                     "protected", "public_metrics", "url", "verified", "withheld"]
 
-MediaField = Literal["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text"]
+MediaField = Literal["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url"]
 
 
 class TweetConfig(BaseModel):

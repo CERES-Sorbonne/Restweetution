@@ -52,7 +52,7 @@ class StorageWrapper(ABC):
     def get_media(self, media_key) -> io.BufferedIOBase:
         pass
 
-    def list_media(self) -> List[str]:
+    def list_dir(self) -> List[str]:
         pass
 
     def has_free_space(self) -> bool:

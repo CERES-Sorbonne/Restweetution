@@ -12,7 +12,7 @@ MEDIUM_CONFIG: TweetConfig = TweetConfig(**{
                     "public_metrics", "referenced_tweets", "reply_settings"],
     "userFields": ["created_at", "description", "entities", "location", "pinned_tweet_id", "profile_image_url",
                    "protected", "public_metrics", "url", "verified"],
-    "mediaFields": ["preview_image_url", "public_metrics", "alt_text"]
+    "mediaFields": ["preview_image_url", "public_metrics", "alt_text", "url"]
 })
 
 ALL_CONFIG: TweetConfig = TweetConfig(**{
@@ -24,5 +24,5 @@ ALL_CONFIG: TweetConfig = TweetConfig(**{
                     "public_metrics", "referenced_tweets", "reply_settings", "source", "withheld"],
     "userFields": ["created_at", "description", "entities", "location", "pinned_tweet_id", "profile_image_url",
                    "protected", "public_metrics", "url", "verified", "withheld"],
-    "mediaFields": ["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text"]
+    "mediaFields": ["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url"]
 })

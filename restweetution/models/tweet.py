@@ -46,9 +46,9 @@ class UrlEntity(Url):
 
 
 class Entities(BaseModel):
-    annotations: list[Annotation]
-    hashtags: list[Hashtag]
-    urls: list[UrlEntity]
+    annotations: Optional[list[Annotation]]
+    hashtags: Optional[list[Hashtag]]
+    urls: Optional[list[UrlEntity]]
 
 
 class Metrics(BaseModel):
@@ -75,7 +75,7 @@ class ContextAnnotation(BaseModel):
 
 
 class MediaMetrics(BaseModel):
-    view_count: int
+    view_count: Optional[int]
 
 
 class TweetData(BaseModel):
@@ -98,7 +98,7 @@ class Media(BaseModel):
     url: Optional[str]
     duration_ms: Optional[int]
     media_key: str
-    type: Literal["video", "gif", "photo"]
+    type: Literal["video", "animated_gif", "photo"]
     preview_image_url: Optional[str]
     public_metrics: Optional[MediaMetrics]
 
@@ -108,12 +108,12 @@ class UserUrls(BaseModel):
 
 
 class UserHashtags(BaseModel):
-    hashtags: list[Hashtag]
+    hashtags: Optional[list[Hashtag]]
 
 
 class UserEntity(BaseModel):
-    url: UserUrls
-    description: UserHashtags
+    url: Optional[UserUrls]
+    description: Optional[UserHashtags]
 
 
 class UserMetrics(BaseModel):
@@ -129,7 +129,7 @@ class User(BaseModel):
     protected: Optional[bool]
     username: Optional[str]
     verified: Optional[bool]
-    entities: Optional[list[UserEntity]]
+    entities: Optional[UserEntity]
     description: Optional[str]
     pinned_tweet_id: Optional[str]
     public_metrics: Optional[UserMetrics]
@@ -140,8 +140,8 @@ class User(BaseModel):
 
 
 class TweetIncludes(BaseModel):
-    media: list[Media]
-    users: list[User]
+    media: Optional[list[Media]]
+    users: Optional[list[User]]
 
 
 class Rule(BaseModel):

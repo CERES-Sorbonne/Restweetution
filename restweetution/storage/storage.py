@@ -10,9 +10,13 @@ class Storage(ABC):
     Meta class to define some generic storage methods that will be implemented in every type of storage
     """
     def __init__(self, config: StorageConfig, *args, **kwargs):
-        self.root_directory = config.root_directory
+        self._root_directory = config.root_directory
         self.max_size = config.max_size
-        
+
+    @property
+    def root_directory(self):
+        return self._root_directory
+
     def get(self, key: str) -> io.BufferedIOBase:
         """
         Return the specified object from the storage
@@ -21,12 +25,12 @@ class Storage(ABC):
         """
         pass
 
-    def put(self, buffer: Union[io.BufferedIOBase, str], key: str) -> None:
+    def put(self, buffer: Union[io.BufferedIOBase, str], key: str) -> str:
         """
         Save to storage the object
         :param buffer: the buffer of the object to save, can be an io.BufferedIOBase kind or a string
         :param key: the key that will be used to retrieve the object later
-        :return: None
+        :return: absolute uri to the created resource
         """
         pass
 
