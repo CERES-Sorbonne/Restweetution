@@ -2,6 +2,8 @@ import json
 import time
 from typing import Union, List
 
+import requests
+
 from restweetution.collectors.collector import Collector
 from restweetution.models.tweet import Tweet, Rule, StreamRule
 
@@ -116,14 +118,13 @@ class Streamer(Collector):
         """
         for error in errors:
             self._logger.error(f"""The following error was encountered: {error}""")
-        # if errors[0]['title'] in ['Authorization Error', 'Forbidden']:
-        #     # this tweet might be private then we juste pass
-        #     return
-        if self._retry_count < self._config.max_retries:
-            self._logger.error("""The collect will try to start again in 30s""")
-            time.sleep(30)
-            self._retry_count += 1
-            self.collect(*args)
+        if errors[0]['title'] in ['Authorization Error', 'Forbidden']:
+            # Authorization Error: the tweet is private
+            # Forbidden: the user is probably suspended
+            # in all those cases we continue to collect, it's not a twitter blocking the connection
+            return
+        else:
+            raise requests.RequestException()
 
     def collect(self, sub_process: bool = False, fetch_minutes: int = False):
         """
@@ -147,11 +148,15 @@ class Streamer(Collector):
                     if line:
                         data = json.loads(line.decode("utf-8"))
                         if "errors" in data:
-                            raise ValueError(data)
+                            self._handle_errors(data['errors'])
                         tweet = Tweet(**data)
                         self._handle_tweet(tweet)
                     else:
                         self._logger.info("waiting for new tweets")
-        except ValueError as e:
-            self._handle_errors(e, sub_process, fetch_minutes)
+        except requests.RequestException:
+            self._retry_count += 1
+            if self._retry_count < self._config.max_retries:
+                self._logger.error("""The collect will try to start again in 30s""")
+                time.sleep(30)
+                self.collect(sub_process, fetch_minutes)
 

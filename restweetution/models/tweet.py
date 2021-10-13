@@ -29,9 +29,9 @@ class Image(BaseModel):
 
 
 class Url(Entity):
-    url: str
-    expanded_url: str
-    display_url: str
+    url: Optional[str]
+    expanded_url: Optional[str]
+    display_url: Optional[str]
 
 
 class UrlEntity(Url):
@@ -153,6 +153,7 @@ class Tweet(BaseModel):
     data: TweetData
     includes: Optional[TweetIncludes]
     matching_rules: Optional[list[Rule]]
+    errors: Optional[list[dict]]
 
 
 class StreamRule(Rule):

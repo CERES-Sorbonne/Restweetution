@@ -1,5 +1,4 @@
 TODO:
-- stockage media
 - handle asynchrone
 - récupérer les vidéos
 - ajout des callbakcs variés (autre que Callable)
@@ -18,3 +17,4 @@ TODO:
 - backend IIIF pour les images -> demander à Thomas 
 - écrire les extractors: csv, zip, drop sql, gephi, txm, iramuteq, statistiques, clusters, graphs, skelettons?
 - tester si partialhash ça fait la différence entre les parodies ou non
+- que faire avec les erreurs ? 

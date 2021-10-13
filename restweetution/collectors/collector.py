@@ -80,8 +80,8 @@ class Collector:
         self._logger.error(f"A new http error occurred with status: {status_code}, {error}")
         self._retry_count += 1
         if self._retry_count < self._config.max_retries:
-            self._logger.warning("Retrying collect in 5s")
-            time.sleep(5)
+            self._logger.warning("Retrying collect in 30s")
+            time.sleep(30)
             self.collect()
         else:
             self._logger.warning("Max Retries exceeded, stopping collect")
