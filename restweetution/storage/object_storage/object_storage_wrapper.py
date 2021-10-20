@@ -9,6 +9,7 @@ from restweetution.models.tweet import Tweet, User, StreamRule
 from restweetution.storage.object_storage.filestorage import SSHFileStorage, FileStorage
 from restweetution.storage.storage import Storage
 from restweetution.storage.storage_wrapper import StorageWrapper
+from restweetution.utils import TwitterDownloader
 
 
 class ObjectStorageWrapper(StorageWrapper):

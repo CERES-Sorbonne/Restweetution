@@ -1,74 +1,38 @@
-#!/usr/bin/env python
+import logging
+import sys
+import tempfile
 
 import requests
-import json
 import urllib.parse
 import m3u8
 from pathlib import Path
 import re
 import ffmpeg
 import shutil
-import copy
+
+from restweetution.models.tweet import MediaType
+
 
 class TwitterDownloader:
     """
-    tw-dl offers the ability to download videos from Twitter feeds.
-
-    **Disclaimer** I wrote this to recover a video for which the original was lost. Consider copyright before downloading
-    content you do not own.
+    Utility class that allows to download videos and gifs
     """
     video_player_prefix = 'https://twitter.com/i/videos/tweet/'
     video_api = 'https://api.twitter.com/1.1/videos/tweet/config/'
     tweet_data = {}
 
-    def __init__(self, tweet_url, output_dir='./output', target_width=0, debug=0):
-        self.tweet_url = tweet_url
-        self.output_dir = output_dir
-        self.target_width = int(target_width)
-        self.debug = debug
-
-        if debug > 2:
-            self.debug = 2
-
-        """
-        We split on ? to clean up the URL. Sharing tweets, for example, 
-        will add ? with data about which device shared it.
-        The rest is just getting the user and ID to work with.
-        """
-        self.tweet_data['tweet_url'] = tweet_url.split('?', 1)[0]
-        self.tweet_data['user'] = self.tweet_data['tweet_url'].split('/')[3]
-        self.tweet_data['id'] = self.tweet_data['tweet_url'].split('/')[5]
-
-        output_path = Path(output_dir)
-        storage_dir = output_path / self.tweet_data['user'] / self.tweet_data['id']
-        Path.mkdir(storage_dir, parents=True, exist_ok=True)
-        self.storage = str(storage_dir)
-
+    def __init__(self):
         self.requests = requests.Session()
+        self.tweet_id = None
+        self.logger = logging.getLogger("Storage")
 
-    def download(self):
-        self.__debug('Tweet URL', self.tweet_data['tweet_url'])
+    def _download_mp4(self):
+        video_host, playlist = self.__get_playlist()
 
-        # Get the bearer token
-        token = self.__get_bearer_token()
+        plist = playlist.playlists[0]
 
-        # Get the M3u8 file - this is where rate limiting has been happening
-        video_host, playlist = self.__get_playlist(token)
-
-        if playlist.is_variant:
-            if self.target_width == 0:
-                print('[+] Multiple resolutions found. Slurping all resolutions.')
-            else:
-                print('[+] Multiple resolutions found. Selecting the one closest to target width of ' + str(
-                    self.target_width))
-                playlist = self.__filter_playlist(playlist)
-
-            plist = playlist.playlists[0]
-
-            resolution = str(plist.stream_info.resolution[0]) + 'x' + str(plist.stream_info.resolution[1])
-            resolution_file = Path(self.storage) / Path(resolution + '.mp4')
-
-            print('[+] Downloading ' + resolution)
+        with tempfile.TemporaryDirectory() as storage:
+            resolution_file = str(Path(storage) / Path('output.mp4'))
 
             playlist_url = video_host + plist.uri
 
@@ -76,25 +40,20 @@ class TwitterDownloader:
             ts_m3u8_parse = m3u8.loads(ts_m3u8_response.text)
 
             ts_list = []
-            ts_full_file_list = []
 
             ts_file = requests.get(video_host + ts_m3u8_parse.segment_map['uri'])
-            ts_path = Path(self.storage) / Path(f"init.mp4")
+            ts_path = Path(storage) / Path(f"init.mp4")
             ts_list.append(ts_path)
             ts_path.write_bytes(ts_file.content)
 
             for index, ts_uri in enumerate(ts_m3u8_parse.segments.uri):
-                # ts_list.append(video_host + ts_uri)
-
                 ts_file = requests.get(video_host + ts_uri)
-                ts_path = Path(self.storage) / Path(f"segment-{index + 1}.m4s")
+                ts_path = Path(storage) / Path(f"segment-{index + 1}.m4s")
                 ts_list.append(ts_path)
 
                 ts_path.write_bytes(ts_file.content)
 
-            ts_full_file = Path(self.storage) / Path(resolution + '.ts')
-            ts_full_file = str(ts_full_file)
-            ts_full_file_list.append(ts_full_file)
+            ts_full_file = str(Path(storage) / Path('ts_file.ts'))
 
             # Shamelessly taken from https://stackoverflow.com/questions/13613336/python-concatenate-text-files/27077437#27077437
             with open(str(ts_full_file), 'wb') as wfd:
@@ -102,112 +61,86 @@ class TwitterDownloader:
                     with open(f, 'rb') as fd:
                         shutil.copyfileobj(fd, wfd, 1024 * 1024 * 10)
 
-            for ts in ts_full_file_list:
-                print('\t[*] Doing the magic ...')
-                print(str(resolution_file.resolve()))
-                print(ts)
-                ffmpeg \
-                    .input(ts) \
-                    .output(str(resolution_file.resolve()), acodec='copy', vcodec='libx264', format='mp4',
-                            loglevel='error') \
-                    .overwrite_output() \
-                    .run()
+            ffmpeg \
+                .input(ts_full_file) \
+                .output(resolution_file, acodec='copy', vcodec='libx264', format='mp4',
+                        loglevel='error') \
+                .overwrite_output() \
+                .run()
 
-            print('\t[+] Doing cleanup')
+            with open(resolution_file, 'rb') as f:
+                return f.read()
 
-            for ts in ts_list:
-                p = Path(ts)
-                p.unlink()
+    def _download_gif(self):
+        video_file = self.__get_playlist(video=False)
+        with tempfile.TemporaryDirectory() as storage:
+            input = str(Path(storage) / Path('input.mp4'))
+            output = str(Path(storage) / Path('output.mp4'))
+            with open(input, 'wb') as f:
+                f.write(video_file.content)
+            ffmpeg.input(input).filter('scale', 350, -1).output(output, format='mp4', vcodec='libx264', crf=18, preset='slow').overwrite_output().run()
+            with open(output, 'rb') as f:
+                return f.read()
 
-            for ts in ts_full_file_list:
-                p = Path(ts)
-                p.unlink()
+    def download(self, tweet_id: str, media_type: MediaType = 'video') -> bytes:
+        self.tweet_id = tweet_id
+        # Get the bearer token
+        self.__get_bearer_token()
 
-        else:
-            print(
-                '[-] Sorry, single resolution video download is not yet implemented. Please submit a bug report with the link to the tweet.')
+        try:
+            if media_type == 'animated_gif':
+                return self._download_gif()
+            else:
+                return self._download_mp4()
+        except:
+            self.logger.warning("There was an error downloading media for tweet: " + tweet_id)
 
     def __get_bearer_token(self):
-        video_player_url = self.video_player_prefix + self.tweet_data['id']
+        video_player_url = self.video_player_prefix + self.tweet_id
         video_player_response = self.requests.get(video_player_url).text
-        self.__debug('Video Player Body', '', video_player_response)
 
         js_file_url = re.findall('src="(.*js)', video_player_response)[0]
         js_file_response = self.requests.get(js_file_url).text
-        self.__debug('JS File Body', '', js_file_response)
 
         bearer_token_pattern = re.compile('Bearer ([a-zA-Z0-9%-])+')
         bearer_token = bearer_token_pattern.search(js_file_response)
         bearer_token = bearer_token.group(0)
         self.requests.headers.update({'Authorization': bearer_token})
-        self.__debug('Bearer Token', bearer_token)
         self.__get_guest_token()
 
         return bearer_token
 
-    def __get_playlist(self, token):
-        player_config_req = self.requests.get(self.video_api + self.tweet_data['id'] + '.json')
-
-        player_config = json.loads(player_config_req.text)
+    def __get_playlist(self, video: bool = True):
+        player_config = self.requests.get(self.video_api + self.tweet_id + '.json').json()
 
         if 'errors' not in player_config:
-            self.__debug('Player Config JSON', '', json.dumps(player_config))
-            m3u8_url = player_config['track']['playbackUrl']
+            resource_url = player_config['track']['playbackUrl']
 
         else:
-            self.__debug('Player Config JSON - Error', json.dumps(player_config['errors']))
             print('[-] Rate limit exceeded. Could not recover. Try again later.')
             sys.exit(1)
 
-        # Get m3u8
-        m3u8_response = self.requests.get(m3u8_url)
-        self.__debug('M3U8 Response', '', m3u8_response.text)
+        resource = self.requests.get(resource_url)
 
-        m3u8_url_parse = urllib.parse.urlparse(m3u8_url)
-        video_host = m3u8_url_parse.scheme + '://' + m3u8_url_parse.hostname
+        # if it's a gif then there is no m3u8 and it's only a mp4 file
+        if not video:
+            return resource
+        else:
+            m3u8_url_parse = urllib.parse.urlparse(resource_url)
+            video_host = m3u8_url_parse.scheme + '://' + m3u8_url_parse.hostname
 
-        m3u8_parse = m3u8.loads(m3u8_response.text)
+            m3u8_parse = m3u8.loads(resource.text)
 
-        return [video_host, m3u8_parse]
-
-    """
-    Thanks to @devkarim for this fix: https://github.com/h4ckninja/twitter-video-downloader/issues/2#issuecomment-538773026
-    """
+            return [video_host, m3u8_parse]
 
     def __get_guest_token(self):
-        res = self.requests.post("https://api.twitter.com/1.1/guest/activate.json")
-        res_json = json.loads(res.text)
-        self.requests.headers.update({'x-guest-token': res_json.get('guest_token')})
+        res = self.requests.post("https://api.twitter.com/1.1/guest/activate.json").json()
+        self.requests.headers.update({'x-guest-token': res.get('guest_token')})
 
-    def __filter_playlist(self, playlist):
-        # Make a copy of the playlist object and reset 'playlists' member
-        new_playlist = copy.deepcopy(playlist)
-        new_playlist.playlists = []
-
-        # Arbitrary high number that any resolution will beat
-        min_dist_2_target = 100000
-
-        for instance in playlist.playlists:
-            # Calculate how far the width of considered resolution is from our target
-            dist_2_target = abs(instance.stream_info.resolution[0] - self.target_width)
-            if dist_2_target < min_dist_2_target:
-                min_dist_2_target = dist_2_target
-                # Replace the only item of new_playlist with this one
-                new_playlist.playlists = []
-                new_playlist.playlists.append(instance)
-
-        return new_playlist
-
-    def __debug(self, msg_prefix, msg_body, msg_body_full=''):
-        if self.debug == 0:
-            return
-
-        if self.debug == 1:
-            print('[Debug] ' + '[' + msg_prefix + ']' + ' ' + msg_body)
-
-        if self.debug == 2:
-            print('[Debug+] ' + '[' + msg_prefix + ']' + ' ' + msg_body + ' - ' + msg_body_full)
 
 if __name__ == "__main__":
-    td = TwitterDownloader("https://twitter.com/gregcooperrr/status/1450348613729591299")
-    td.download()
+    td = TwitterDownloader()
+    res = td.download("1450730417879912449", media_type='animated_gif')
+    # res = td.download("1450769351238369281")
+    with open('output.mp4', 'wb') as f:
+        f.write(res)

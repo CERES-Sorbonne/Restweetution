@@ -13,6 +13,7 @@ from restweetution.models.tweet import Tweet, Rule, StreamRule, Media
 from restweetution.storage.object_storage.filestorage import FileStorage, SSHFileStorage
 from restweetution.storage.object_storage.object_storage_wrapper import ObjectStorageWrapper
 from restweetution.storage.storage_wrapper import StorageWrapper
+from restweetution.utils import TwitterDownloader
 
 
 class StorageManager:
@@ -26,7 +27,8 @@ class StorageManager:
         self.tweets_storages = [self._resolve_storage(s) for s in tweets_storages]
         self.media_storages = [self._resolve_storage(s, media=True) for s in media_storages]
         self.partial_hash = partial_hash
-        self.logger = logging.getLogger("Collector.Storage")
+        self.media_downloader = TwitterDownloader()
+        self.logger = logging.getLogger("Storage")
 
     def __str__(self):
         s = "    Tweets, Users and Rules stored at: \n                "
@@ -102,10 +104,9 @@ class StorageManager:
                     self.logger.warning(f"There was an error downloading image {media.url}: " + str(e))
                     continue
             # TODO: change this when v2 api supports url for video and gifs
-            else:  # then it's a video
-                continue
-                # buffer: bytes = self._save_video(media, tweet_id)
-                # signature = self._compute_signature(buffer=buffer, image=False)
+            else:  # then it's a video or a gif
+                buffer: bytes = self.media_downloader.download(tweet_id=tweet_id, media_type=media.type)
+                signature = self._compute_signature(buffer=buffer, image=False)
 
             uris[media.media_key] = {}
 

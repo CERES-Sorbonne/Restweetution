@@ -92,13 +92,16 @@ class TweetData(BaseModel):
     created_at: Optional[str]
 
 
+MediaType = Literal["video", "animated_gif", "photo"]
+
+
 class Media(BaseModel):
     height: Optional[int]
     width: Optional[int]
     url: Optional[str]
     duration_ms: Optional[int]
     media_key: str
-    type: Literal["video", "animated_gif", "photo"]
+    type: MediaType
     preview_image_url: Optional[str]
     public_metrics: Optional[MediaMetrics]
 
