@@ -7,17 +7,28 @@ from restweetution.storage.storage import Storage
 
 
 class StorageWrapper(ABC):
-    def __init__(self, storage: Storage):
+    def __init__(self, storage: Storage, tags: List[str] = None):
         """
         Abstract Class that provides the template for every other storage wrapper
         :param storage: the storage to wrap
+        :param tags: the list of tags that will be saved by this storage
         """
         self.storage = storage
+        self.tags_to_save = tags
         self.id = uuid.uuid4()
 
     @property
     def name(self):
         return f"{type(self.storage).__name__}-{self.id}"
+
+    def valid_tags(self, tags: List[str] = None):
+        # if the storage was not tagged, then it accepts everything
+        if not self.tags_to_save:
+            return True
+        # if the tweet matched a least one tag of the tags to save
+        if tags and len(set(tags) - set(self.tags_to_save)) < len(set(tags)):
+            return True
+        return False
 
     def save_tweets(self, tweets: List[Tweet], tags: List[str] = None):
         pass
@@ -39,12 +50,11 @@ class StorageWrapper(ABC):
     def save_users(self, users: List[User]):
         pass
 
-    def save_media(self, file_name: str, buffer: io.BufferedIOBase, signature: str) -> str:
+    def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
         """
         Save a buffer to the storage and returns an uri to the stored file
-        :param file_name: the unique identifier to the media with the file_type
+        :param file_name: the signature of the media with the file_type
         :param buffer: the buffer to store
-        :param signature: the hash of the file, used to find duplicate
         :return: an uri to the resource created
         """
         pass
@@ -56,4 +66,10 @@ class StorageWrapper(ABC):
         pass
 
     def has_free_space(self) -> bool:
+        pass
+
+    def save_media_link(self, media_key, signature, average_signature):
+        """
+        Save the match between the media_key and the computed signature of the media
+        """
         pass

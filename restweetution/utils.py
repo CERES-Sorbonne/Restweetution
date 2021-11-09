@@ -78,7 +78,7 @@ class TwitterDownloader:
             output = str(Path(storage) / Path('output.mp4'))
             with open(input, 'wb') as f:
                 f.write(video_file.content)
-            ffmpeg.input(input).filter('scale', 350, -1).output(output, format='mp4', vcodec='libx264', crf=18, preset='slow').overwrite_output().run()
+            ffmpeg.input(input).filter('scale', 350, -2).output(output, format='mp4', vcodec='libx264', crf=18, preset='slow').overwrite_output().run()
             with open(output, 'rb') as f:
                 return f.read()
 

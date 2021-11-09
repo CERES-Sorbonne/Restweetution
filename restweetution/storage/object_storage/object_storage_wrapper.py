@@ -9,11 +9,10 @@ from restweetution.models.tweet import Tweet, User, StreamRule
 from restweetution.storage.object_storage.filestorage import SSHFileStorage, FileStorage
 from restweetution.storage.storage import Storage
 from restweetution.storage.storage_wrapper import StorageWrapper
-from restweetution.utils import TwitterDownloader
 
 
 class ObjectStorageWrapper(StorageWrapper):
-    def __init__(self, storage: Union[FileStorage, SSHFileStorage], media: bool = False):
+    def __init__(self, storage: Union[FileStorage, SSHFileStorage], tags: List[str] = None, media: bool = False):
         """
         Wrapper to Object Storages like FileStorage or SSHFileStorage
         Provide a simple interface to manipulate tweets and media for all kind of Object Storages
@@ -22,28 +21,30 @@ class ObjectStorageWrapper(StorageWrapper):
         :param media: will this be a media storage ? hack to avoid creating the substorages when its a media storage
         TODO: find a proper way to do that
         """
-        super(ObjectStorageWrapper, self).__init__(storage)
+        super(ObjectStorageWrapper, self).__init__(storage, tags=tags)
         if not media:
             self.tweet_storage = self._generate_sub_storage('tweets')
             self.users_storage = self._generate_sub_storage('users')
             self.rules_storage = self._generate_sub_storage('rules')
+            self.media_link_storage = self._generate_sub_storage('media_link_storage')
+
         self.logger = logging.getLogger("Collector.Storage.ObjectStorage")
 
     def __str__(self):
-        return f"{type(self.storage).__name__} - {self.name}: {self.storage.root_directory}"
+        return f"{type(self.storage).__name__} - {self.name}: {self.storage.root}"
 
     @property
     def has_free_space(self):
         return self.storage.has_free_space
 
     def save_tweets(self, tweets: List[Tweet], tags: List[str] = None):
-        if not tags:
-            tags = ["default"]
+        """
+        :param tweets: a list of tweets to save
+        :param tags: the list of tags of the rules that were triggered to collect this tweet
+        """
+        # TODO: make this concurrent
         for tweet in tweets:
-            # save collected tweet in every tag folder
-            for tag in tags:
-                path = os.path.join(tag, f"{tweet.data.id}.json")
-                self.tweet_storage.put(tweet.json(exclude_none=True, ensure_ascii=False), path)
+            self.tweet_storage.put(tweet.json(exclude_none=True, ensure_ascii=False), f"{tweet.data.id}.json")
 
     def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> Iterator[Tweet]:
         valid_tags = tags or self.tweet_storage.list()
@@ -72,26 +73,35 @@ class ObjectStorageWrapper(StorageWrapper):
     def save_users(self, users: List[User]):
         pass
 
-    def save_media(self, file_name: str, buffer: io.BufferedIOBase, signature: str) -> str:
-        if signature in self.storage.list():
-            # lets find the name of the identical file, already saved as an empty file under media/<signature>/id
-            identical_file = self.storage.list(signature)[0]
-            self.logger.info(f"a media with the same signature already exists: {identical_file}")
-            # we need to save an empty file to know how to find the existing image from the media_key
-            path = f"{file_name.split('.')[0]}.{identical_file}"
-            return self.storage.put("", path)
-        else:
-            # create an empty file named with the id so we know this signature = this id
-            # this allow to find the "original" image from the signature
-            self.storage.put("", os.path.join(signature, file_name))
-            # then save the medium
-            return self.storage.put(buffer, file_name)
+    def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
+        return self.storage.put(buffer, file_name)
 
     def get_media(self, media_key) -> io.BufferedIOBase:
         pass
 
     def list_dir(self) -> List[str]:
         return self.storage.list()
+
+    def save_media_link(self, media_key, signature, average=None):
+        """
+        Save the links between a media key, and it's computed signature,
+         and eventually an average signature to find similar images
+        """
+        # first save a media_key -> signature file to be able to quickly find the signature from the media_key
+        self.media_link_storage.put(signature, media_key)
+        # then save the signature -> media_key link in a file to be able to count easily identical images
+        self.save_signature_file(media_key, signature)
+        # if we also have a average hash, save it the same way
+        if average:
+            self.save_signature_file(media_key, average)
+
+    def save_signature_file(self, media_key, signature):
+        if not self.media_link_storage.exists(signature):
+            self.media_link_storage.put(media_key, signature)
+        else:
+            content = self.media_link_storage.get(signature).read().decode()
+            content += "\n" + media_key
+            self.media_link_storage.put(content, signature)
 
     def _generate_sub_storage(self, sub_folder: str) -> Storage:
         """
@@ -101,5 +111,5 @@ class ObjectStorageWrapper(StorageWrapper):
         :return: a Storage
         """
         storage = deepcopy(self.storage)
-        storage._root_directory = os.path.join(storage.root_directory, sub_folder)
+        storage.root = os.path.join(storage.root, sub_folder)
         return storage

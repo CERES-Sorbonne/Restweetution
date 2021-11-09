@@ -2,20 +2,13 @@ import io
 from abc import ABC
 from typing import Union
 
-from restweetution.models.config import StorageConfig
-
 
 class Storage(ABC):
     """
     Meta class to define some generic storage methods that will be implemented in every type of storage
     """
-    def __init__(self, config: StorageConfig, *args, **kwargs):
-        self._root_directory = config.root_directory
-        self.max_size = config.max_size
-
-    @property
-    def root_directory(self):
-        return self._root_directory
+    def __init__(self, *args, **kwargs):
+        self.root = None
 
     def get(self, key: str) -> io.BufferedIOBase:
         """

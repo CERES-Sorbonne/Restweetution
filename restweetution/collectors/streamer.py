@@ -75,7 +75,7 @@ class Streamer(Collector):
         Since rules are Streamer specific this method cannot be fully in the storage manager
         :param rules: the matching rules of the collected tweet
         """
-        existing_rules = self._storage_manager.get_rules_ids()
+        existing_rules = self._storages_manager.get_rules_ids()
         rules_to_store = []
         for r in rules:
             if r.id not in existing_rules:
@@ -83,7 +83,7 @@ class Streamer(Collector):
         if rules_to_store:
             if self._config.verbose:
                 self._logger.info(f"Storing new rules: {rules_to_store}")
-            self._storage_manager.save_rules(self.get_rules(ids=rules_to_store))
+            self._storages_manager.save_rules(self.get_rules(ids=rules_to_store))
 
     def _handle_user(self, tweet):
         """
@@ -101,12 +101,12 @@ class Streamer(Collector):
         self._handle_rules(tweet.matching_rules)
         # save user info if there are some:
         self._handle_user(tweet)
-        # save media if there are some
-        if tweet.includes and tweet.includes.media:
-            self._storage_manager.save_media(tweet.includes.media, tweet.data.id)
         # get all tags associated to the tweet
         tags = list(set([r.tag for r in tweet.matching_rules]))
-        self._storage_manager.save_tweets([tweet], tags)
+        # save media if there are some
+        if tweet.includes and tweet.includes.media:
+            self._storages_manager.save_media(tweet.includes.media, tweet.data.id, tags)
+        self._storages_manager.save_tweets([tweet], tags)
 
     def _handle_errors(self, errors: List[dict], *args) -> None:
         """

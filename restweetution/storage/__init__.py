@@ -1,1 +1,1 @@
-from restweetution.storage.storage_manager import StorageManager
+from restweetution.storage.object_storage import FileStorage, SSHFileStorage

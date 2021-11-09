@@ -9,7 +9,7 @@ import yaml
 from restweetution.collectors.client import Client
 from restweetution.models.config import Config
 from restweetution.models.tweet import Tweet
-from restweetution.storage import StorageManager
+from restweetution.storage.storages_manager import StoragesManager
 
 
 class Collector:
@@ -24,8 +24,11 @@ class Collector:
         self.tweets_count = 0
         self._retry_count = 0
         self._config = self.resolve_config(config)
-        self._storage_manager = StorageManager(tweets_storages=self._config.tweets_storage,
-                                               media_storages=self._config.media_storage)
+        self._storages_manager = StoragesManager(tweets_storages=self._config.tweets_storages,
+                                                 media_storages=self._config.media_storages,
+                                                 download_media=self._config.download_media,
+                                                 average_hash=self._config.average_hash
+                                                 )
         self._client = Client(config=self._config, base_url="https://api.twitter.com/2/", error_handler=self._error_handler)
         self._logger = logging.getLogger("Collector")
 
@@ -90,7 +93,7 @@ class Collector:
         self._logger.info(f"""
             Starting to collect tweets
             Storages:
-            {str(self._storage_manager)}
+            {str(self._storages_manager)}
             Log tweets: {self._config.verbose}
         """)
 
