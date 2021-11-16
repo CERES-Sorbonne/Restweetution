@@ -27,7 +27,7 @@ class StoragesManager:
         :param download_media: should we download images and videos ?
         """
         self.tweets_storages = [self._resolve_storage(s) for s in tweets_storages]
-        self.media_storages = [self._resolve_storage(s, media=True) for s in media_storages]
+        self.media_storages = [self._resolve_storage(s) for s in media_storages]
         self.average_hash = average_hash
         self.download_media = download_media
         self.media_downloader = TwitterDownloader()
@@ -72,23 +72,41 @@ class StoragesManager:
        :param rules: list of rules
        :return: none
         """
+        tags = [r.tag for r in rules]
         for s in self.tweets_storages:
-            s.save_rules(rules)
+            if s.valid_tags(tags):
+                s.save_rules(rules)
 
-    def get_rules(self, ids: List[str] = None, duplicate: bool = False) -> Iterator[StreamRule]:
+    def get_non_existing_rules(self, ids: List[str], tags: List[str] = None):
+        """
+        Return the ids of the rules that are not saved in concerned storages
+        :param ids: ids of the rules to filter
+        :param tags: tags of the rules to filer
+        :return: the filtered list of ids
+        """
+        all_ids = []
+        for s in self.tweets_storages:
+            # if the rules should be saved for this storage
+            if s.valid_tags(tags):
+                # keep only ids that were not saved already
+                already_saved = [r.id for r in s.get_rules()]
+                all_ids = [*all_ids, *[_id for _id in ids if _id not in already_saved]]
+        return all_ids
+
+    def get_rules(self, ids: List[str] = None, tags: List[str] = None) -> Iterator[StreamRule]:
         """
         Returns an iterator on the rules of the stream
-        :param ids:
-        :param duplicate:
+        :param ids: get some specific rules
+        :param tags: get some specific tags
         :return:
         """
-        storages = [self.tweets_storages[0]] if not duplicate else self.tweets_storages
-        for s in storages:
-            for r in s.get_rules(ids):
-                yield r
+        for s in self.tweets_storages:
+            if s.valid_tags(tags):
+                for r in s.get_rules(ids):
+                    yield r
 
-    def get_rules_ids(self) -> List[str]:
-        return [r.id for r in self.get_rules()]
+    def get_rules_ids(self, tags: List[str] = None) -> List[str]:
+        return [r.id for r in self.get_rules(tags=tags)]
 
     def save_users(self):
         pass
@@ -162,11 +180,10 @@ class StoragesManager:
         else:
             raise ValueError(f"Unhandled type of storage: {type(config)}")
 
-    def _resolve_storage(self, storage_or_config: ConfigStorage, media: bool = False) -> StorageWrapper:
+    def _resolve_storage(self, storage_or_config: ConfigStorage) -> StorageWrapper:
         """
         Utility method to initialize a storage wrapper from a Storage Object or a StorageConfig
         :param storage_or_config: a Object containing a Storage or a StorageConfig, and a list of tags associated
-        :param media: is the storage a media storage or not
         :return: a storage wrapper, which means a storage that exposes all methods to save or get data
         """
         tags = storage_or_config.tags
@@ -175,4 +192,4 @@ class StoragesManager:
         else:
             storage = storage_or_config.storage
         if isinstance(storage_or_config.storage, (FileStorage, SSHFileStorage)):
-            return ObjectStorageWrapper(storage, tags, media)
+            return ObjectStorageWrapper(storage, tags)

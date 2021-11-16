@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Union
 
 from restweetution.storage.storage import Storage
-from smart_open import open
 
 
 class FileStorage(Storage):
@@ -12,7 +11,10 @@ class FileStorage(Storage):
         super().__init__()
         self._root = root
         self.max_size = max_size
-        self.safe_create(self._root)
+        # use this so we can override it in the ssh client
+        self._open = open
+        # same for join
+        self._join_path = os.path.join
 
     @property
     def root(self):
@@ -25,20 +27,20 @@ class FileStorage(Storage):
         self._root = value
 
     def get(self, key: str) -> io.BufferedIOBase:
-        with open(os.path.join(self.root, key), 'rb') as f:
+        with self._open(self._join_path(self.root, key), 'rb') as f:
             return io.BytesIO(f.read())
 
     def put(self, buffer: Union[io.BufferedIOBase, str], key: str) -> str:
         # create directory if it does not exist
         dir_name = os.path.dirname(key)
-        self.safe_create(os.path.join(self.root, dir_name))
-        path = os.path.join(self.root, key)
+        self.safe_create(dir_name)
+        path = self._join_path(self.root, key)
         if isinstance(buffer, str):
-            with open(path, 'w', encoding='utf-8') as f:
+            with self._open(path, 'w', encoding='utf-8') as f:
                 f.write(buffer)
         elif isinstance(buffer, io.BufferedIOBase):
             buffer.seek(0)
-            with open(path, 'wb') as f:
+            with self._open(path, 'wb') as f:
                 f.write(buffer.read())
         return path
 
@@ -47,7 +49,7 @@ class FileStorage(Storage):
 
     def list(self, prefix: str = None, recursive: bool = False):
         if not recursive:
-            path = os.path.join(self.root, prefix or "")
+            path = self._join_path(self.root, prefix or "")
             return os.listdir(path)
         else:
             raise NotImplemented("Recursive List not implemented yet")
@@ -61,7 +63,7 @@ class FileStorage(Storage):
         return False
 
     def exists(self, key: str) -> bool:
-        return os.path.exists(key)
+        return os.path.exists(self._join_path(self.root, key))
 
     def _get_folder_size(self):
         """
@@ -70,16 +72,9 @@ class FileStorage(Storage):
         """
         return sum(f.stat().st_size for f in Path(self.root).glob('**/*') if f.is_file())
 
-    @staticmethod
-    def safe_create(dir_path):
+    def safe_create(self, dir_path):
         """
         Utility method to create a folder if it does not exist
         """
-        directory = Path(dir_path)
+        directory = Path(self._join_path(self.root, dir_path))
         directory.mkdir(parents=True, exist_ok=True)
-
-
-class SSHFileStorage(FileStorage):
-    def __init__(self, root: str, max_size: int = None, *, host: str, user: str, password: str = None):
-        super().__init__(root, max_size)
-        self.root = f"ssh://{user}:{password}@{host}/{root}"

@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import time
 from typing import Union, List
@@ -75,15 +76,13 @@ class Streamer(Collector):
         Since rules are Streamer specific this method cannot be fully in the storage manager
         :param rules: the matching rules of the collected tweet
         """
-        existing_rules = self._storages_manager.get_rules_ids()
-        rules_to_store = []
-        for r in rules:
-            if r.id not in existing_rules:
-                rules_to_store.append(r.id)
-        if rules_to_store:
+        tags = [r.tag for r in rules]
+        ids = [r.id for r in rules]
+        ids_to_store = self._storages_manager.get_non_existing_rules(ids=ids, tags=tags)
+        if ids_to_store:
             if self._config.verbose:
-                self._logger.info(f"Storing new rules: {rules_to_store}")
-            self._storages_manager.save_rules(self.get_rules(ids=rules_to_store))
+                self._logger.info(f"Storing new rules: {ids_to_store}")
+            self._storages_manager.save_rules(self.get_rules(ids=ids_to_store))
 
     def _handle_user(self, tweet):
         """
@@ -96,6 +95,7 @@ class Streamer(Collector):
         pass
 
     def _handle_tweet(self, tweet: Tweet):
+        print('toto')
         self._log_tweets(tweet)
         # make sure rules are already saved
         self._handle_rules(tweet.matching_rules)
@@ -135,6 +135,7 @@ class Streamer(Collector):
         :return:
         """
         super(Streamer, self).collect()
+        executor = concurrent.futures.ThreadPoolExecutor()
         self._fetch_minutes = fetch_minutes
         # check if some rules are configured
         if len(self.get_rules()) == 0:
@@ -150,7 +151,8 @@ class Streamer(Collector):
                         if "errors" in data:
                             self._handle_errors(data['errors'])
                         tweet = Tweet(**data)
-                        self._handle_tweet(tweet)
+                        # self._handle_tweet(tweet)
+                        executor.submit(self._handle_tweet, tweet=tweet)
                     else:
                         self._logger.info("waiting for new tweets")
         except requests.RequestException:

@@ -1,8 +1,8 @@
 imagehash
 PyYAML
-smart-open
 pydantic
 requests
 pillow
 ffmpeg-python
 m3u8
+pysftp
