@@ -13,6 +13,7 @@ class Streamer(Collector):
     def __init__(self, config: Union[dict, str]):
         super(Streamer, self).__init__(config)
         self._fetch_minutes = False
+        self.executor = concurrent.futures.ThreadPoolExecutor()
 
     def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
         """
@@ -42,8 +43,11 @@ class Streamer(Collector):
             }]
         })
         if "errors" in res.json():
-            raise ValueError(f"The following errors happened while trying to create "
-                             f"the rule: {res.json()['errors'][0]['details']}")
+            if res.json()['errors'][0]['title'] != "DuplicateRule":
+                raise ValueError(f"The following errors happened while trying to create "
+                                 f"the rule: {res.json()['errors'][0]['details']}")
+            else:
+                self._logger.warning('This rule already exists')
         else:
             return res.json()['data'][0]['id']
 
@@ -95,12 +99,16 @@ class Streamer(Collector):
         pass
 
     def _handle_tweet(self, tweet: Tweet):
-        print('toto')
         self._log_tweets(tweet)
         # make sure rules are already saved
         self._handle_rules(tweet.matching_rules)
         # save user info if there are some:
         self._handle_user(tweet)
+        # save tweet and media asynchrounosly
+        # TODO: change to a queue to avoid creating a thread everytime
+        self.executor.submit(self._save_tweet_data, tweet=tweet)
+
+    def _save_tweet_data(self, tweet: Tweet):
         # get all tags associated to the tweet
         tags = list(set([r.tag for r in tweet.matching_rules]))
         # save media if there are some
@@ -135,11 +143,14 @@ class Streamer(Collector):
         :return:
         """
         super(Streamer, self).collect()
-        executor = concurrent.futures.ThreadPoolExecutor()
         self._fetch_minutes = fetch_minutes
         # check if some rules are configured
-        if len(self.get_rules()) == 0:
+        rules = self.get_rules()
+        if len(rules) == 0:
             self._logger.warning("Stream started but no rules are configured currently, use add_rule to add a new_rule")
+        else:
+            self._logger.info(f"Collecting with following rules: ")
+            self._logger.info('\n'.join([f'{r.value}, tag: {r.tag}' for r in rules]))
         params = self._create_params_from_config()
         if self._fetch_minutes:
             params = {**params, 'backfill_minutes': self._fetch_minutes}
@@ -151,8 +162,7 @@ class Streamer(Collector):
                         if "errors" in data:
                             self._handle_errors(data['errors'])
                         tweet = Tweet(**data)
-                        # self._handle_tweet(tweet)
-                        executor.submit(self._handle_tweet, tweet=tweet)
+                        self._handle_tweet(tweet)
                     else:
                         self._logger.info("waiting for new tweets")
         except requests.RequestException:

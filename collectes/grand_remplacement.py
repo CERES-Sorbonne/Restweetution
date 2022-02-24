@@ -32,7 +32,7 @@ if __name__ == "__main__":
             },
             # no tags mean all media storages will be stored directly here
         ],
-        'verbose': False,
+        'verbose': True,
         'tweet_config': MEDIUM_CONFIG.dict(),
         'average_hash': True
     }
