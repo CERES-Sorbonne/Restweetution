@@ -112,8 +112,18 @@ class StoragesManager:
         pass
 
     def save_media(self, media_list: List[Media], tweet_id: str, tags: List[str] = None) -> None:
+        # first check if we have any valid tags, otherwise there is no point of downloading the media
+        valid_storages = []
+        for s in self.media_storages:
+            if s.valid_tags(tags):
+                valid_storages.append(s)
+        if len(valid_storages) == 0:
+            return
+
         if not self.save_media:
             return
+
+        # download media
         average_hash = None
         for media in media_list:
             media_type = media.url.split('.')[-1] if media.url else self._get_file_type(media.type)
@@ -138,9 +148,8 @@ class StoragesManager:
                 media_type = 'mp4'
             full_name = f"{signature}.{media_type}"
 
-            for s in self.media_storages:
-                if s.valid_tags(tags):
-                    s.save_media(full_name, io.BytesIO(buffer))
+            for s in valid_storages:
+                s.save_media(full_name, io.BytesIO(buffer))
             for s in self.tweets_storages:
                 if s.valid_tags(tags):
                     s.save_media_link(media.media_key, signature, average_hash)

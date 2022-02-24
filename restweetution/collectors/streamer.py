@@ -170,7 +170,7 @@ class Streamer(Collector):
             self._logger.warning("Stream started but no rules are configured currently, use add_rule to add a new_rule")
         else:
             self._logger.info(f"Collecting with following rules: ")
-            self._logger.info('\n'.join([f'{r.value}, tag: {r.tag}' for r in rules]))
+            self._logger.info('\n'.join([f'{r.value}, tag: {r.tag} id: {r.id}' for r in rules]))
         params = self._create_params_from_config()
         if self._fetch_minutes:
             params = {**params, 'backfill_minutes': self._fetch_minutes}

@@ -15,8 +15,9 @@ if __name__ == "__main__":
         'token': token,
         'tweets_storages': [
             {
-                'storage': FileStorage(root=os.getenv('ROOT_PATH')),
-                'tags': ['ZemmourVsMelenchon']}
+                'storage': FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'GrandRemplacement')),
+                'tags': ['GR']
+            }
             # },
             # {
             #     'storage': SSHFileStorage(root='/home/felixalie/tweets',
@@ -28,7 +29,8 @@ if __name__ == "__main__":
         ],
         'media_storages': [
             {
-                'storage': FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'media'), max_size=1000),
+                'storage': FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'GrandRemplacementMedia'), max_size=1000),
+                'tags': ['GR']
             },
             # no tags mean all media storages will be stored directly here
         ],
@@ -37,4 +39,5 @@ if __name__ == "__main__":
         'average_hash': True
     }
     s = Streamer(config)
+    s.add_rule('(Grand Remplacement) OR (Grand Declassement) OR (Grand remplaçement)', 'GR')
     s.collect()
