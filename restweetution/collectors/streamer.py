@@ -1,7 +1,7 @@
 import concurrent.futures
 import json
 import time
-from typing import Union, List
+from typing import Union, List, Dict
 
 import requests
 
@@ -14,18 +14,38 @@ class Streamer(Collector):
         super(Streamer, self).__init__(config)
         self._fetch_minutes = False
         self.executor = concurrent.futures.ThreadPoolExecutor()
+        # use a cache to store the rules
+        self.rule_cache: Dict[str, StreamRule] = {}
 
     def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
         """
         Return the list of rules defined to collect tweets during a stream
+        Once fetched with the API, the rules are cached
         :param ids: an optional list of ids to fetch only specific rules
         :return: the list of rules
         """
         uri = "tweets/search/stream/rules"
         if ids:
-            uri += f"?ids={','.join(ids)}"
-        res = self._client.get(uri)
-        return [StreamRule(**r) for r in res.json().get('data', [])]
+            ids_to_fetch = list(set(ids) - set(self.rule_cache.keys()))
+            rules_to_return = []
+            # first get missing rules  with api and set them in cache
+            if ids_to_fetch:
+                uri += f"?ids={','.join(ids_to_fetch)}"
+                res = self._client.get(uri)
+                for r in res.json().get('data', []):
+                    rule = StreamRule(**r)
+                    self.rule_cache[rule.id] = rule
+            # then return the cached rules
+            return [self.rule_cache.get(rid) for rid in ids]
+        else:
+            if len(self.rule_cache.keys()) == 0:
+                res = self._client.get(uri)
+                # TODO: maybe find a way to avoid writing this code here too since it's already in the if ids part ?
+                for r in res.json().get('data', []):
+                    rule = StreamRule(**r)
+                    self.rule_cache[rule.id] = rule
+            # use this syntax to avoid pycharm typing error
+            return [*self.rule_cache.values()]
 
     def add_rule(self, rule: str, tag: str) -> str:
         """
