@@ -47,6 +47,25 @@ class Streamer(Collector):
             # use this syntax to avoid pycharm typing error
             return [*self.rule_cache.values()]
 
+    def reset_rules(self) -> None:
+        """
+        Removes all rules
+        """
+        self._logger('Removing all rules')
+        ids = [r.id for r in self.get_rules()]
+        for rid in ids:
+            self.remove_rule(rid)
+
+    def set_rule(self, rule: str, tag: str) -> str:
+        """
+        Like add_rule but instead removes all rules and then set the rule :rule:
+        :param rule: the rule to set
+        :param tag: the associated tag
+        """
+        self.reset_rules()
+        return self.add_rule(rule, tag)
+
+
     def add_rule(self, rule: str, tag: str) -> str:
         """
         Add a new fetch rule to the stream
@@ -85,6 +104,8 @@ class Streamer(Collector):
         if "errors" in res.json():
             raise ValueError(f"The following errors happened while trying to delete "
                              f"the rule: {res.json()['errors'][0]['errors']['message']}")
+        else:
+            self._logger.info(f'Removed rule: {id_to_remove}')
 
     def _log_tweets(self, tweet: Tweet):
         self.tweets_count += 1
