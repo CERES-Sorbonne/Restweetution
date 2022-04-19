@@ -1,24 +1,70 @@
+import concurrent.futures
 import json
-import os
 import time
-from typing import Union, List
+from typing import Union, List, Dict
+
+import requests
 
 from restweetution.collectors.collector import Collector
-from restweetution.models.tweet import Tweet, Rules
+from restweetution.models.tweet import Tweet, Rule, StreamRule
 
 
 class Streamer(Collector):
     def __init__(self, config: Union[dict, str]):
         super(Streamer, self).__init__(config)
         self._fetch_minutes = False
+        self.executor = concurrent.futures.ThreadPoolExecutor()
+        # use a cache to store the rules
+        self.rule_cache: Dict[str, StreamRule] = {}
 
-    def get_rules(self) -> list[dict]:
+    def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
         """
         Return the list of rules defined to collect tweets during a stream
+        Once fetched with the API, the rules are cached
+        :param ids: an optional list of ids to fetch only specific rules
         :return: the list of rules
         """
-        res = self._client.get("tweets/search/stream/rules")
-        return res.json().get('data', [])
+        uri = "tweets/search/stream/rules"
+        if ids:
+            ids_to_fetch = list(set(ids) - set(self.rule_cache.keys()))
+            rules_to_return = []
+            # first get missing rules  with api and set them in cache
+            if ids_to_fetch:
+                uri += f"?ids={','.join(ids_to_fetch)}"
+                res = self._client.get(uri)
+                for r in res.json().get('data', []):
+                    rule = StreamRule(**r)
+                    self.rule_cache[rule.id] = rule
+            # then return the cached rules
+            return [self.rule_cache.get(rid) for rid in ids]
+        else:
+            if len(self.rule_cache.keys()) == 0:
+                res = self._client.get(uri)
+                # TODO: maybe find a way to avoid writing this code here too since it's already in the if ids part ?
+                for r in res.json().get('data', []):
+                    rule = StreamRule(**r)
+                    self.rule_cache[rule.id] = rule
+            # use this syntax to avoid pycharm typing error
+            return [*self.rule_cache.values()]
+
+    def reset_rules(self) -> None:
+        """
+        Removes all rules
+        """
+        self._logger('Removing all rules')
+        ids = [r.id for r in self.get_rules()]
+        for rid in ids:
+            self.remove_rule(rid)
+
+    def set_rule(self, rule: str, tag: str) -> str:
+        """
+        Like add_rule but instead removes all rules and then set the rule :rule:
+        :param rule: the rule to set
+        :param tag: the associated tag
+        """
+        self.reset_rules()
+        return self.add_rule(rule, tag)
+
 
     def add_rule(self, rule: str, tag: str) -> str:
         """
@@ -36,8 +82,11 @@ class Streamer(Collector):
             }]
         })
         if "errors" in res.json():
-            raise ValueError(f"The following errors happened while trying to create "
-                             f"the rule: {res.json()['errors'][0]['details']}")
+            if res.json()['errors'][0]['title'] != "DuplicateRule":
+                raise ValueError(f"The following errors happened while trying to create "
+                                 f"the rule: {res.json()['errors'][0]['details']}")
+            else:
+                self._logger.warning('This rule already exists')
         else:
             return res.json()['data'][0]['id']
 
@@ -45,7 +94,6 @@ class Streamer(Collector):
         """
         Remove a rule
         :param id_to_remove: the id of the rule to remove
-        :return: None
         """
         res = self._client.post("tweets/search/stream/rules", json={
             "delete": {
@@ -56,6 +104,8 @@ class Streamer(Collector):
         if "errors" in res.json():
             raise ValueError(f"The following errors happened while trying to delete "
                              f"the rule: {res.json()['errors'][0]['errors']['message']}")
+        else:
+            self._logger.info(f'Removed rule: {id_to_remove}')
 
     def _log_tweets(self, tweet: Tweet):
         self.tweets_count += 1
@@ -64,33 +114,48 @@ class Streamer(Collector):
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
-    def _handle_rules(self, rules: List[Rules]) -> None:
+    def _handle_rules(self, rules: List[Rule]) -> None:
         """
-        Persist a list of rules if not existing
-        :param rules: list of rules
-        :return: none
+        Get every stored rule, and if some rules of the current tweets
+        are not stored currently, get full rule and store it
+        Since rules are Streamer specific this method cannot be fully in the storage manager
+        :param rules: the matching rules of the collected tweet
         """
-        for rule in rules:
-            path = os.path.join('rules', f"{rule.id}.json")
-            if self._tweet_storage.exists(path):
-                pass
-            else:
-                self._tweet_storage.put(rule.json(), path)
+        tags = [r.tag for r in rules]
+        ids = [r.id for r in rules]
+        ids_to_store = self._storages_manager.get_non_existing_rules(ids=ids, tags=tags)
+        if ids_to_store:
+            if self._config.verbose:
+                self._logger.info(f"Storing new rules: {ids_to_store}")
+            self._storages_manager.save_rules(self.get_rules(ids=ids_to_store))
 
-    def handle_tweet(self, tweet: Tweet):
+    def _handle_user(self, tweet):
+        """
+        get users in tweet
+        check if users in tweet have all their data stored in storage
+        if new user then save it, question => save only currently available data or do a get /user to get all data
+        :param tweet:
+        :return:
+        """
+        pass
+
+    def _handle_tweet(self, tweet: Tweet):
         self._log_tweets(tweet)
         # make sure rules are already saved
         self._handle_rules(tweet.matching_rules)
         # save user info if there are some:
         self._handle_user(tweet)
-        # save media if there are some
-        self._handle_media(tweet)
+        # save tweet and media asynchrounosly
+        # TODO: change to a queue to avoid creating a thread everytime
+        self.executor.submit(self._save_tweet_data, tweet=tweet)
+
+    def _save_tweet_data(self, tweet: Tweet):
         # get all tags associated to the tweet
         tags = list(set([r.tag for r in tweet.matching_rules]))
-        # save collected tweet in every tag folder
-        for tag in tags:
-            path = os.path.join(tag, f"{tweet.data.id}.json")
-            self._tweet_storage.put(tweet.json(exclude_none=True, ensure_ascii=False), path)
+        # save media if there are some
+        if tweet.includes and tweet.includes.media:
+            self._storages_manager.save_media(tweet.includes.media, tweet.data.id, tags)
+        self._storages_manager.save_tweets([tweet], tags)
 
     def _handle_errors(self, errors: List[dict], *args) -> None:
         """
@@ -99,14 +164,16 @@ class Streamer(Collector):
         which will only be triggered for responses > 299
         :param errors: a list of errors dictionnary
         :param args: the arguments to pass to collect when retrying
-        :return: none
         """
         for error in errors:
             self._logger.error(f"""The following error was encountered: {error}""")
-        if self._retry_count < self._config.max_retries:
-            self._logger.error("""The collect will try to start again in 30s""")
-            time.sleep(30)
-            self.collect(*args)
+        if errors[0]['title'] in ['Authorization Error', 'Forbidden']:
+            # Authorization Error: the tweet is private
+            # Forbidden: the user is probably suspended
+            # in all those cases we continue to collect, it's not a twitter blocking the connection
+            return
+        else:
+            raise requests.RequestException()
 
     def collect(self, sub_process: bool = False, fetch_minutes: int = False):
         """
@@ -119,18 +186,30 @@ class Streamer(Collector):
         super(Streamer, self).collect()
         self._fetch_minutes = fetch_minutes
         # check if some rules are configured
-        if len(self.get_rules()) == 0:
+        rules = self.get_rules()
+        if len(rules) == 0:
             self._logger.warning("Stream started but no rules are configured currently, use add_rule to add a new_rule")
+        else:
+            self._logger.info(f"Collecting with following rules: ")
+            self._logger.info('\n'.join([f'{r.value}, tag: {r.tag} id: {r.id}' for r in rules]))
         params = self._create_params_from_config()
         if self._fetch_minutes:
             params = {**params, 'backfill_minutes': self._fetch_minutes}
-        with self._client.get("tweets/search/stream", params=params, stream=True, timeout=5000) as resp:
-            for line in resp.iter_lines():
-                if line and self._has_free_space():
-                    data = json.loads(line.decode("utf-8"))
-                    if "errors" in data:
-                        self._handle_errors(data['errors'], sub_process, fetch_minutes)
-                    tweet = Tweet(**data)
-                    self.handle_tweet(tweet)
-                else:
-                    self._logger.info("waiting for new tweets")
+        try:
+            with self._client.get("tweets/search/stream", params=params, stream=True, timeout=5000) as resp:
+                for line in resp.iter_lines():
+                    if line:
+                        data = json.loads(line.decode("utf-8"))
+                        if "errors" in data:
+                            self._handle_errors(data['errors'])
+                        tweet = Tweet(**data)
+                        self._handle_tweet(tweet)
+                    else:
+                        self._logger.info("waiting for new tweets")
+        except requests.RequestException:
+            self._retry_count += 1
+            if self._retry_count < self._config.max_retries:
+                self._logger.error("""The collect will try to start again in 30s""")
+                time.sleep(30)
+                self.collect(sub_process, fetch_minutes)
+

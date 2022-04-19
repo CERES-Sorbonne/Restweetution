@@ -6,7 +6,7 @@ import pytest
 from PIL import Image
 
 from restweetution.models.config import FileStorageConfig
-from restweetution.storage.filestorage import FileStorage
+from restweetution.storage.object_storage.filestorage import FileStorage
 
 
 class StorageProvider:
