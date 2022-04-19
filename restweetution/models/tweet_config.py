@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel
 
@@ -17,7 +17,7 @@ MediaField = Literal["duration_ms", "height", "preview_image_url", "public_metri
 
 
 class TweetConfig(BaseModel):
-    expansions: Optional[list[Expansion]]
-    tweetFields: Optional[list[TweetField]]
-    mediaFields: Optional[list[MediaField]]
-    userFields: Optional[list[UserField]]
+    expansions: Optional[List[Expansion]]
+    tweetFields: Optional[List[TweetField]]
+    mediaFields: Optional[List[MediaField]]
+    userFields: Optional[List[UserField]]
