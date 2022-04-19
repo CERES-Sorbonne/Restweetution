@@ -10,7 +10,7 @@ import re
 import ffmpeg
 import shutil
 
-from restweetution.models.tweet import MediaType
+from restweetution.models.media import MediaType
 
 
 class TwitterDownloader:
