@@ -56,15 +56,25 @@ class Streamer(Collector):
         for rid in ids:
             self.remove_rule(rid)
 
-    def set_rule(self, rule: str, tag: str) -> str:
+    def set_rules(self, rules: Dict[str:str]) -> List[str]:
         """
-        Like add_rule but instead removes all rules and then set the rule :rule:
-        :param rule: the rule to set
-        :param tag: the associated tag
+        Like add_rule but instead removes all rules and then set the rules :rules:
+        :param rules: a dict in the form tag: rule
+        :return: the list of ids of all new rules
         """
-        self.reset_rules()
-        return self.add_rule(rule, tag)
-
+        existing_rules = self.get_rules()
+        existing_values = [r.value for r in existing_rules]
+        rules_to_remove = []
+        res = []
+        for existing_rule in existing_rules:
+            # check if an old rule has to be deleted cause it's no longer in the rules param
+            if existing_rule.value not in rules.values():
+                rules_to_remove.append(existing_rule.id)
+            # check if among the new_rules, some are already existing
+        for new_tag, new_rule in rules.items():
+            if new_rule not in existing_values:
+                res.append(self.add_rule(new_rule, new_tag))
+        return res
 
     def add_rule(self, rule: str, tag: str) -> str:
         """
@@ -90,14 +100,14 @@ class Streamer(Collector):
         else:
             return res.json()['data'][0]['id']
 
-    def remove_rule(self, id_to_remove: str) -> None:
+    def remove_rule(self, id_to_remove: Union[str, List[str]]) -> None:
         """
-        Remove a rule
-        :param id_to_remove: the id of the rule to remove
+        Remove one or several rules
+        :param id_to_remove: the id or a list of ids of rules to remove
         """
         res = self._client.post("tweets/search/stream/rules", json={
             "delete": {
-                "ids": [id_to_remove]
+                "ids": [id_to_remove] if isinstance(id_to_remove, str) else id_to_remove
             }
 
         })
