@@ -56,17 +56,13 @@ if __name__ == "__main__":
     q = CustomQueue(maxsize=5)
     s = StorageManager(q)
     q.set_callback(s.store_all)
-
-    def main():
-        i = 0
-        while True:
-            q.put("item" + str(i))
-            print("adding new item")
-            print(q.qsize())
-            time.sleep(1)
-            i += 1
-
-    t1 = threading.Thread(target=s.check_queue, args=[20])
-    t2 = threading.Thread(target=main)
+    t1 = threading.Thread(target=s.check_queue, args=[10])
     t1.start()
-    t2.start()
+
+    i = 0
+    while True:
+        q.put("item" + str(i))
+        print("adding new item")
+        print(q.qsize())
+        time.sleep(3)
+        i += 1
