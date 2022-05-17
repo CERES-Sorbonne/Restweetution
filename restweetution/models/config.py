@@ -6,7 +6,7 @@ from typing import Optional, Union, Callable, List
 
 from restweetution.models.examples_config import BASIC_CONFIG
 from restweetution.models.tweet_config import TweetConfig
-from restweetution.storage import SSHFileStorage, FileStorage
+from restweetution.storage import SSHFileStorageHelper, FileStorageHelper
 
 
 class StorageConfig(BaseModel):
@@ -27,7 +27,7 @@ class SSHFileStorageConfig(StorageConfig, extra=Extra.forbid):
 
 
 class ConfigStorage(BaseModel):
-    storage: Union[FileStorage, SSHFileStorage]
+    storage: Union[FileStorageHelper, SSHFileStorageHelper]
     tags: Optional[List[str]] = None
 
     class Config:

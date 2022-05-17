@@ -4,7 +4,7 @@ import os
 
 from restweetution.collectors import Streamer
 from restweetution.models.examples_config import MEDIUM_CONFIG
-from restweetution.storage import FileStorage, SSHFileStorage
+from restweetution.storage import FileStorage, SSHStorage
 
 if __name__ == "__main__":
     logging.basicConfig()
@@ -20,7 +20,7 @@ if __name__ == "__main__":
             }
             # },
             # {
-            #     'storage': SSHFileStorage(root='/home/felixalie/tweets',
+            #     'storage': SSHStorage(root='/home/felixalie/tweets',
             #                               host='ceres.huma-num.fr',
             #                               user='felixalie',
             #                               password=os.getenv('SSH_PWD')),
@@ -39,5 +39,5 @@ if __name__ == "__main__":
         'average_hash': True
     }
     s = Streamer(config)
-    s.add_rule('(Grand Remplacement) OR (Grand Declassement) OR (Grand remplaçement)', 'GR')
+    # s.set_rules({'GR': '(Grand Remplacement) OR (Grand Declassement) OR (Grand remplaçement)'})
     s.collect()

@@ -2,10 +2,10 @@ import os
 
 import pysftp
 
-from .filestorage import FileStorage
+from .filestorage_helper import FileStorageHelper
 
 
-class SSHFileStorage(FileStorage):
+class SSHFileStorageHelper(FileStorageHelper):
     def __init__(self, root: str, max_size: int = None, *, host: str, user: str, password: str = ""):
         super().__init__(root, max_size)
         self._sftp = pysftp.Connection(host, username=user, password=password)

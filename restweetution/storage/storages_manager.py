@@ -10,9 +10,9 @@ from PIL import Image
 
 from restweetution.models.config import StorageConfig, FileStorageConfig, SSHFileStorageConfig, ConfigStorage
 from restweetution.models.tweet import Tweet, Rule, StreamRule, Media
-from restweetution.storage import FileStorage, SSHFileStorage
-from restweetution.storage.object_storage.object_storage_wrapper import ObjectStorageWrapper
-from restweetution.storage.storage_wrapper import StorageWrapper
+from restweetution.storage import FileStorageHelper, SSHFileStorageHelper
+from restweetution.storage.object_storage.object_storage import ObjectStorage
+from restweetution.storage.storage import StorageHelper
 from restweetution.utils import TwitterDownloader
 
 
@@ -183,13 +183,13 @@ class StoragesManager:
         :param config: the storage config
         """
         if isinstance(config, FileStorageConfig):
-            return FileStorage(**config.dict())
+            return FileStorageHelper(**config.dict())
         elif isinstance(config, SSHFileStorageConfig):
-            return SSHFileStorage(**config.dict())
+            return SSHFileStorageHelper(**config.dict())
         else:
             raise ValueError(f"Unhandled type of storage: {type(config)}")
 
-    def _resolve_storage(self, storage_or_config: ConfigStorage) -> StorageWrapper:
+    def _resolve_storage(self, storage_or_config: ConfigStorage) -> StorageHelper:
         """
         Utility method to initialize a storage wrapper from a Storage Object or a StorageConfig
         :param storage_or_config: a Object containing a Storage or a StorageConfig, and a list of tags associated
@@ -200,5 +200,5 @@ class StoragesManager:
             storage = self._storage_from_config(storage_or_config.storage)
         else:
             storage = storage_or_config.storage
-        if isinstance(storage_or_config.storage, (FileStorage, SSHFileStorage)):
-            return ObjectStorageWrapper(storage, tags)
+        if isinstance(storage_or_config.storage, (FileStorageHelper, SSHFileStorageHelper)):
+            return ObjectStorage(storage, tags)
