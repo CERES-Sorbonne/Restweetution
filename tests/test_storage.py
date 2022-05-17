@@ -6,7 +6,7 @@ import pytest
 from PIL import Image
 
 from restweetution.models.config import FileStorageConfig
-from restweetution.storage.object_storage.filestorage import FileStorage
+from restweetution.storage.object_storage.filestorage_helper import FileStorageHelper
 
 
 class StorageProvider:
@@ -21,7 +21,7 @@ class StorageProvider:
 @pytest.fixture(params=["FS"])
 def storage(request, tmp_path):
     if request.param == "FS":
-        return FileStorage(FileStorageConfig(root_directory=tmp_path))
+        return FileStorageHelper(FileStorageConfig(root_directory=tmp_path))
 
 
 @pytest.fixture

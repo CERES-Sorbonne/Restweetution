@@ -6,7 +6,7 @@ from typing import Optional, Union, Callable, List
 
 from restweetution.models.examples_config import BASIC_CONFIG
 from restweetution.models.tweet_config import TweetConfig
-from restweetution.storage import SSHFileStorage, FileStorage
+from restweetution.storage.storage import Storage
 
 
 class StorageConfig(BaseModel):
@@ -26,18 +26,13 @@ class SSHFileStorageConfig(StorageConfig, extra=Extra.forbid):
     root: str = os.path.join(str(Path.home()), 'outputTweets')
 
 
-class ConfigStorage(BaseModel):
-    storage: Union[FileStorage, SSHFileStorage]
-    tags: Optional[List[str]] = None
-
-    class Config:
-        arbitrary_types_allowed = True
+StorageOrConfig = Union[StorageConfig, Storage]
 
 
 class Config(BaseModel):
     token: str
-    tweets_storages: Optional[List[ConfigStorage]] = [FileStorageConfig()]
-    media_storages: Optional[List[ConfigStorage]]
+    tweets_storages: Optional[List[StorageOrConfig]] = [FileStorageConfig()]
+    media_storages: Optional[List[StorageOrConfig]]
     tweet_config: Optional[TweetConfig] = BASIC_CONFIG
     max_retries: Optional[int] = 3
     verbose: Optional[bool] = False
@@ -53,3 +48,7 @@ class Config(BaseModel):
         if not values['media_storages'] and values['download_media']:
             raise ValueError("The config is set to download images and videos but no media storage was provided")
         return values
+
+    # allows to use custom classes as types
+    class Config:
+        arbitrary_types_allowed = True

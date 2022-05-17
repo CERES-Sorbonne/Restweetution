@@ -2,24 +2,27 @@ import io
 import json
 import logging
 import os
+from abc import ABC
 from typing import List, Union, Iterator
 
 from restweetution.models.tweet import Tweet, User, StreamRule
-from restweetution.storage import SSHFileStorage, FileStorage
-from restweetution.storage.storage_wrapper import StorageWrapper
+from .filestorage_helper import FileStorageHelper
+from .sshfilestorage_helper import SSHFileStorageHelper
+from restweetution.storage.storage import Storage
 
 
-class ObjectStorageWrapper(StorageWrapper):
+class ObjectStorage(Storage, ABC):
 
-    def __init__(self, storage: Union[FileStorage, SSHFileStorage], tags: List[str] = None):
+    def __init__(self, storage_helper: Union[FileStorageHelper, SSHFileStorageHelper], tags: List[str] = None, max_size: int = None):
         """
-        Wrapper to Object Storages like FileStorage or SSHFileStorage
+        Generic Object Storage, like FileStorage or SSHFileStorage
         Provide a simple interface to manipulate tweets and media for all kind of Object Storages
         Note: all undocumented methods are documented in parent class
-        :param storage: the storage to wrap
+        :param storage_helper: a storage helper depending on the type of storage
+        :param max_size: the maximum size available
         """
-        super(ObjectStorageWrapper, self).__init__(storage, tags=tags)
-        self.storage = storage
+        super(ObjectStorage, self).__init__(tags=tags)
+        self.storage = storage_helper
         self.logger = logging.getLogger("Collector.Storage.ObjectStorage")
         folders = ['tweets', 'rules', 'users', 'media_links']
         # aliases to access paths easily and avoid typo mistakes
@@ -103,3 +106,15 @@ class ObjectStorageWrapper(StorageWrapper):
             content = self.storage.get(self.media_links(signature)).read().decode()
             content += "\n" + media_key
             self.storage.put(content, self.media_links(signature))
+
+
+class FileStorage(ObjectStorage):
+    def __init__(self, root: str, tags: List[str] = None, max_size: int = None):
+        storage = FileStorageHelper(root=root, max_size=max_size)
+        super(FileStorage, self).__init__(storage_helper=storage, tags=tags)
+
+
+class SSHStorage(ObjectStorage):
+    def __init__(self, root: str, tags: List[str] = None, max_size: int = None, *, host: str, user: str, password: str = ""):
+        storage = SSHFileStorageHelper(root=root, max_size=max_size, host=host, user=user, password=password)
+        super(SSHStorage, self).__init__(storage_helper=storage, tags=tags)

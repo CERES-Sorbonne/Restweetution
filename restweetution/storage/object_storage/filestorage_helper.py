@@ -3,10 +3,10 @@ import os
 from pathlib import Path
 from typing import Union
 
-from restweetution.storage.storage import Storage
+from restweetution.storage.storage_helper import StorageHelper
 
 
-class FileStorage(Storage):
+class FileStorageHelper(StorageHelper):
     def __init__(self, root: str, max_size: int = None):
         super().__init__()
         self._root = root

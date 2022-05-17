@@ -1,1 +1,1 @@
-from restweetution.storage.object_storage import FileStorage, SSHFileStorage
+from restweetution.storage.object_storage import FileStorage, SSHStorage
