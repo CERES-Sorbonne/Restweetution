@@ -56,7 +56,7 @@ class Streamer(Collector):
         for rid in ids:
             self.remove_rule(rid)
 
-    def set_rules(self, rules: Dict[str:str]) -> List[str]:
+    def set_rules(self, rules: Dict[str, str]) -> List[str]:
         """
         Like add_rule but instead removes all rules and then set the rules :rules:
         :param rules: a dict in the form tag: rule

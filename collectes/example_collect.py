@@ -14,25 +14,25 @@ if __name__ == "__main__":
     config = {
         'token': token,
         'tweets_storages': [
-            {
-                'storage': FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'GrandRemplacement')),
-                'tags': ['GR']
-            }
-            # },
+            FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'GrandRemplacement'), tags=['GR']),
+            # config syntax:
             # {
-            #     'storage': SSHStorage(root='/home/felixalie/tweets',
-            #                               host='ceres.huma-num.fr',
-            #                               user='felixalie',
-            #                               password=os.getenv('SSH_PWD')),
-            #     'tags': ['ZemmourVsMelenchon']
+            #     'storage': {
+            #         'type': 'file',
+            #         'root': os.path.join(os.getenv('ROOT_PATH')),
+            #         'tags': ['GR']
+            #     }
             # }
+            # object syntax
+            # SSHStorage(root='/home/felixalie/tweets',
+            #            host='ceres.huma-num.fr',
+            #            user='felixalie',
+            #            password=os.getenv('SSH_PWD'),
+            #            tags: ['ZemmourVsMelenchon'])
         ],
         'media_storages': [
-            {
-                'storage': FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'GrandRemplacementMedia'), max_size=1000),
-                'tags': ['GR']
-            },
             # no tags mean all media storages will be stored directly here
+            FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'GrandRemplacementMedia'), max_size=1000, tags=['GR']),
         ],
         'verbose': True,
         'tweet_config': MEDIUM_CONFIG.dict(),

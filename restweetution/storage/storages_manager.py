@@ -8,16 +8,15 @@ import imagehash
 import requests
 from PIL import Image
 
-from restweetution.models.config import StorageConfig, FileStorageConfig, SSHFileStorageConfig, ConfigStorage
+from restweetution.models.config import StorageConfig, FileStorageConfig, SSHFileStorageConfig, StorageOrConfig
 from restweetution.models.tweet import Tweet, Rule, StreamRule, Media
-from restweetution.storage import FileStorageHelper, SSHFileStorageHelper
-from restweetution.storage.object_storage.object_storage import ObjectStorage
-from restweetution.storage.storage import StorageHelper
+from restweetution.storage import FileStorage, SSHStorage
+from restweetution.storage.storage import Storage
 from restweetution.utils import TwitterDownloader
 
 
 class StoragesManager:
-    def __init__(self, tweets_storages: List[ConfigStorage], media_storages: List[ConfigStorage],
+    def __init__(self, tweets_storages: List[StorageOrConfig], media_storages: List[StorageOrConfig],
                  average_hash: bool = False, download_media: bool = True):
         """
         Utility class to provide a single entry point to a Collector in order to perform all storages operations
@@ -183,22 +182,20 @@ class StoragesManager:
         :param config: the storage config
         """
         if isinstance(config, FileStorageConfig):
-            return FileStorageHelper(**config.dict())
+            return FileStorage(**config.dict())
         elif isinstance(config, SSHFileStorageConfig):
-            return SSHFileStorageHelper(**config.dict())
+            return SSHStorage(**config.dict())
         else:
             raise ValueError(f"Unhandled type of storage: {type(config)}")
 
-    def _resolve_storage(self, storage_or_config: ConfigStorage) -> StorageHelper:
+    def _resolve_storage(self, storage_or_config: StorageOrConfig) -> Storage:
         """
-        Utility method to initialize a storage wrapper from a Storage Object or a StorageConfig
+        Utility method to initialize a storage from a Storage Object or a StorageConfig
         :param storage_or_config: a Object containing a Storage or a StorageConfig, and a list of tags associated
         :return: a storage wrapper, which means a storage that exposes all methods to save or get data
         """
-        tags = storage_or_config.tags
-        if isinstance(storage_or_config.storage, StorageConfig):
-            storage = self._storage_from_config(storage_or_config.storage)
+        if isinstance(storage_or_config, StorageConfig):
+            storage = self._storage_from_config(storage_or_config)
         else:
-            storage = storage_or_config.storage
-        if isinstance(storage_or_config.storage, (FileStorageHelper, SSHFileStorageHelper)):
-            return ObjectStorage(storage, tags)
+            storage = storage_or_config
+        return storage

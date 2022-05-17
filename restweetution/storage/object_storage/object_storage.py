@@ -6,7 +6,8 @@ from abc import ABC
 from typing import List, Union, Iterator
 
 from restweetution.models.tweet import Tweet, User, StreamRule
-from restweetution.storage import SSHFileStorageHelper, FileStorageHelper
+from .filestorage_helper import FileStorageHelper
+from .sshfilestorage_helper import SSHFileStorageHelper
 from restweetution.storage.storage import Storage
 
 
