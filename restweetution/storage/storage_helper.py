@@ -39,7 +39,7 @@ class StorageHelper(ABC):
         """
         List all objects in the root directory
         :param prefix: used to filter the results (name, subdirectory) etc.
-        for instance, storage.list(prefix="/data") will return all objects stored under the data repository
+        for instance, storage.list(prefix="/tweet") will return all objects stored under the tweet repository
         :param recursive: if set to true, will recurse trough all subfolders
         :return: a list of strings containing the keys of the objects
         """
@@ -54,7 +54,7 @@ class StorageHelper(ABC):
 
     def has_free_space(self) -> bool:
         """
-        Is there still enough space in the storage to store data ?
+        Is there still enough space in the storage to store tweet ?
         :return: a boolean
         """
         pass

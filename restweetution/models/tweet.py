@@ -87,7 +87,7 @@ class Withheld(BaseModel):
     country_codes: List[str]
 
 
-class TweetData(BaseModel):
+class Tweet(BaseModel):
     id: str
     text: str
     attachments: Optional[Attachments]
@@ -120,11 +120,15 @@ class Rule(BaseModel):
     tag: str
 
 
-class Tweet(BaseModel):
-    data: TweetData
+class TweetResponse(BaseModel):
+    tweet: Tweet
     includes: Optional[TweetIncludes]
     matching_rules: Optional[List[Rule]]
     errors: Optional[List[dict]]
+
+
+class SavedTweet(Tweet):
+    matching_rules: Optional[List[Rule]]
 
 
 class StreamRule(Rule):

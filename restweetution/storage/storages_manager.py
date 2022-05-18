@@ -9,7 +9,7 @@ import requests
 from PIL import Image
 
 from restweetution.models.config import StorageConfig, FileStorageConfig, SSHFileStorageConfig, StorageOrConfig
-from restweetution.models.tweet import Tweet, Rule, StreamRule, Media
+from restweetution.models.tweet import TweetResponse, Rule, StreamRule, Media
 from restweetution.storage import FileStorage, SSHStorage
 from restweetution.storage.storage import Storage
 from restweetution.utils import TwitterDownloader
@@ -41,7 +41,7 @@ class StoragesManager:
             s += "- " + str(m)
         return s
 
-    def save_tweets(self, tweets: List[Tweet], tags: List[str] = None):
+    def save_tweets(self, tweets: List[TweetResponse], tags: List[str] = None):
         # save collected tweets
         size_errors = 0
         tags_errors = 0
@@ -59,7 +59,7 @@ class StoragesManager:
         if tags_errors == len(self.tweets_storages):
             raise ValueError(f"No storage was configured to handle tweet with tags: {tags}")
 
-    def get_tweets(self, tags: List[str] = None, ids: List[str] = None, duplicate: bool = False) -> Iterator[Tweet]:
+    def get_tweets(self, tags: List[str] = None, ids: List[str] = None, duplicate: bool = False) -> Iterator[TweetResponse]:
         storages = [self.tweets_storages[0]] if not duplicate else self.tweets_storages
         for s in storages:
             for r in s.get_tweets(tags=tags, ids=ids):
@@ -163,7 +163,7 @@ class StoragesManager:
             # store gif files as mp4 cause it's the way there are downloaded
             return "gif"
 
-    def get_media(self, tweet: Tweet):
+    def get_media(self, tweet: TweetResponse):
         pass
 
     @staticmethod
@@ -192,7 +192,7 @@ class StoragesManager:
         """
         Utility method to initialize a storage from a Storage Object or a StorageConfig
         :param storage_or_config: a Object containing a Storage or a StorageConfig, and a list of tags associated
-        :return: a storage wrapper, which means a storage that exposes all methods to save or get data
+        :return: a storage wrapper, which means a storage that exposes all methods to save or get tweet
         """
         if isinstance(storage_or_config, StorageConfig):
             storage = self._storage_from_config(storage_or_config)

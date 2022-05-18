@@ -8,7 +8,7 @@ import yaml
 
 from restweetution.collectors.client import Client
 from restweetution.models.config import Config
-from restweetution.models.tweet import Tweet
+from restweetution.models.tweet import TweetResponse
 from restweetution.storage.storages_manager import StoragesManager
 
 
@@ -69,7 +69,7 @@ class Collector:
             params['media.fields'] = ",".join(params_config.mediaFields)
         return params
 
-    def _handle_media(self, tweet: Tweet):
+    def _handle_media(self, tweet: TweetResponse):
         class Media(Enum):
             PHOTO = 1
             VIDEO = 2

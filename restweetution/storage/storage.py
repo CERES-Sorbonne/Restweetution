@@ -2,7 +2,7 @@ import io
 import uuid
 from abc import ABC
 from typing import List, Iterator
-from restweetution.models.tweet import Tweet, Rule, User, StreamRule
+from restweetution.models.tweet import TweetResponse, Rule, User, StreamRule
 from restweetution.storage.storage_helper import StorageHelper
 
 
@@ -28,10 +28,10 @@ class Storage(ABC):
             return True
         return False
 
-    def save_tweets(self, tweets: List[Tweet], tags: List[str] = None):
+    def save_tweets(self, tweets: List[TweetResponse], tags: List[str] = None):
         pass
 
-    def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[Tweet]:
+    def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
 
     def save_rules(self, rules: List[Rule]):

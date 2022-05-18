@@ -5,7 +5,7 @@ import os
 from abc import ABC
 from typing import List, Union, Iterator
 
-from restweetution.models.tweet import Tweet, User, StreamRule
+from restweetution.models.tweet import TweetResponse, User, StreamRule
 from .filestorage_helper import FileStorageHelper
 from .sshfilestorage_helper import SSHFileStorageHelper
 from restweetution.storage.storage import Storage
@@ -43,18 +43,18 @@ class ObjectStorage(Storage, ABC):
     def has_free_space(self):
         return self.storage.has_free_space
 
-    def save_tweets(self, tweets: List[Tweet], tags: List[str] = None):
+    def save_tweets(self, tweets: List[TweetResponse], tags: List[str] = None):
         """
         :param tweets: a list of tweets to save
         :param tags: the list of tags of the rules that were triggered to collect this tweet
         """
         # TODO: make this concurrent
         for tweet in tweets:
-            self.storage.put(tweet.json(exclude_none=True, ensure_ascii=False), self.tweets(f"{tweet.data.id}.json"))
+            self.storage.put(tweet.json(exclude_none=True, ensure_ascii=False), self.tweets(f"{tweet.tweet.id}.json"))
 
-    def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> Iterator[Tweet]:
+    def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> Iterator[TweetResponse]:
         for f in self.storage.list(self.tweets()):
-            yield Tweet.parse_file(self.tweets(f))
+            yield TweetResponse.parse_file(self.tweets(f))
 
     def save_rules(self, rules: List[StreamRule]):
         for rule in rules:
