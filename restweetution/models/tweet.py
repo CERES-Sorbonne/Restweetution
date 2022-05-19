@@ -121,13 +121,13 @@ class Rule(BaseModel):
 
 
 class TweetResponse(BaseModel):
-    tweet: Tweet
+    data: Tweet
     includes: Optional[TweetIncludes]
     matching_rules: Optional[List[Rule]]
     errors: Optional[List[dict]]
 
 
-class SavedTweet(Tweet):
+class RestTweet(Tweet):
     matching_rules: Optional[List[Rule]]
 
 

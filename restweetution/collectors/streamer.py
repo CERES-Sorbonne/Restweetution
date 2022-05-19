@@ -6,7 +6,7 @@ from typing import Union, List, Dict
 import requests
 
 from restweetution.collectors.collector import Collector
-from restweetution.models.tweet import TweetResponse, Rule, StreamRule, SavedTweet
+from restweetution.models.tweet import TweetResponse, Rule, StreamRule, RestTweet
 
 
 class Streamer(Collector):
@@ -32,7 +32,7 @@ class Streamer(Collector):
             if ids_to_fetch:
                 uri += f"?ids={','.join(ids_to_fetch)}"
                 res = self._client.get(uri)
-                for r in res.json().get('tweet', []):
+                for r in res.json().get('data', []):
                     rule = StreamRule(**r)
                     self.rule_cache[rule.id] = rule
             # then return the cached rules
@@ -41,7 +41,7 @@ class Streamer(Collector):
             if len(self.rule_cache.keys()) == 0:
                 res = self._client.get(uri)
                 # TODO: maybe find a way to avoid writing this code here too since it's already in the if ids part ?
-                for r in res.json().get('tweet', []):
+                for r in res.json().get('data', []):
                     rule = StreamRule(**r)
                     self.rule_cache[rule.id] = rule
             # use this syntax to avoid pycharm typing error
@@ -98,7 +98,7 @@ class Streamer(Collector):
             else:
                 self._logger.warning('This rule already exists')
         else:
-            return res.json()['tweet'][0]['id']
+            return res.json()['data'][0]['id']
 
     def remove_rule(self, id_to_remove: Union[str, List[str]]) -> None:
         """
@@ -120,7 +120,7 @@ class Streamer(Collector):
     def _log_tweets(self, tweet: TweetResponse):
         self.tweets_count += 1
         if self._config.verbose:
-            self._logger.info(tweet.tweet.text)
+            self._logger.info(tweet.data.text)
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
@@ -157,19 +157,19 @@ class Streamer(Collector):
         self._handle_user(tweet_res)
         # save tweet and media asynchrounosly
         # TODO: change to a queue to avoid creating a thread everytime
-        self.executor.submit(self._save_tweet_data, tweet=tweet_res)
+        self.executor.submit(self._save_tweet_data, tweet_res=tweet_res)
 
     def _save_tweet_data(self, tweet_res: TweetResponse):
         # get all tags associated to the tweet
         tags = list(set([r.tag for r in tweet_res.matching_rules]))
         # save media if there are some
         if tweet_res.includes and tweet_res.includes.media:
-            self._storages_manager.save_media(tweet_res.includes.media, tweet_res.tweet.id, tags)
-        # change from TweetResponse to SavedTweet object
-        to_save: SavedTweet = tweet_res.tweet
-        to_save.matching_rules = tweet_res.matching_rules
+            self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
+        # change from TweetResponse to RestTweet object
+        # to_save: RestTweet = tweet_res.data
+        # to_save.matching_rules = tweet_res.matching_rules
 
-        self._storages_manager.save_tweets([to_save], tags)
+        self._storages_manager.save_tweets([tweet_res], tags)
 
     def _handle_errors(self, errors: List[dict], *args) -> None:
         """

@@ -4,7 +4,7 @@ import os
 
 from restweetution.collectors import Streamer
 from restweetution.models.examples_config import MEDIUM_CONFIG
-from restweetution.storage import FileStorage, SSHStorage
+from restweetution.storage import FileStorage
 
 if __name__ == "__main__":
     logging.basicConfig()
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     config = {
         'token': token,
         'tweets_storages': [
-            FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'GrandRemplacement'), tags=['GR']),
+            FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Data'), tags=['Rule2']),
             # config syntax:
             # {
             #     'storage': {
@@ -39,5 +39,5 @@ if __name__ == "__main__":
         'average_hash': True
     }
     s = Streamer(config)
-    # s.set_rules({'GR': '(Grand Remplacement) OR (Grand Declassement) OR (Grand remplaçement)'})
+    s.set_rules({'Rule2': '(Johnny) OR (Depp) OR (MELANCHON)'})
     s.collect()

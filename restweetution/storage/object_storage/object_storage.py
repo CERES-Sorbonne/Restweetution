@@ -50,7 +50,7 @@ class ObjectStorage(Storage, ABC):
         """
         # TODO: make this concurrent
         for tweet in tweets:
-            self.storage.put(tweet.json(exclude_none=True, ensure_ascii=False), self.tweets(f"{tweet.tweet.id}.json"))
+            self.storage.put(tweet.json(exclude_none=True, ensure_ascii=False), self.tweets(f"{tweet.data.id}.json"))
 
     def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> Iterator[TweetResponse]:
         for f in self.storage.list(self.tweets()):
