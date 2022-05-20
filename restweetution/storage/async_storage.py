@@ -2,11 +2,10 @@ import io
 import uuid
 from abc import ABC
 from typing import List, Iterator
-from restweetution.models.tweet import TweetResponse, RuleLink, User, StreamRule
-from restweetution.storage.storage_helper import StorageHelper
+from restweetution.models.tweet import TweetResponse, RuleLink, User, StreamRule, RestTweet
 
 
-class Storage(ABC):
+class AsyncStorage(ABC):
     def __init__(self, tags: List[str] = None):
         """
         Abstract Class that provides the template for every other storage
@@ -23,18 +22,18 @@ class Storage(ABC):
         # if the storage was not tagged, then it accepts everything
         if not self.tags_to_save:
             return True
-        # if the tweet matched a least one tag of the tags to save
+        # if the data matched at least one tag of the tags to save
         if tags and len(set(tags) - set(self.tags_to_save)) < len(set(tags)):
             return True
         return False
 
-    def save_tweets(self, tweets: List[TweetResponse], tags: List[str] = None):
+    async def save_tweets(self, tweets: List[RestTweet], tags: List[str] = None):
         pass
 
-    def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
+    async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
 
-    def save_rules(self, rules: List[RuleLink]):
+    async def save_rules(self, rules: List[RuleLink]):
         """
         Persist a list of rules if not existing
         :param rules: list of rules
@@ -45,10 +44,10 @@ class Storage(ABC):
     def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
         pass
 
-    def save_users(self, users: List[User]):
+    async def save_users(self, users: List[User]):
         pass
 
-    def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
+    async def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
         """
         Save a buffer to the storage and returns an uri to the stored file
         :param file_name: the signature of the media with the file_type
@@ -57,7 +56,7 @@ class Storage(ABC):
         """
         pass
 
-    def get_media(self, media_key) -> io.BufferedIOBase:
+    async def get_media(self, media_key) -> io.BufferedIOBase:
         pass
 
     def list_dir(self) -> List[str]:

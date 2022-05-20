@@ -115,7 +115,7 @@ class TweetIncludes(BaseModel):
     users: Optional[List[User]]
 
 
-class Rule(BaseModel):
+class RuleLink(BaseModel):
     id: str
     tag: str
 
@@ -123,13 +123,13 @@ class Rule(BaseModel):
 class TweetResponse(BaseModel):
     data: Tweet
     includes: Optional[TweetIncludes]
-    matching_rules: Optional[List[Rule]]
+    matching_rules: Optional[List[RuleLink]]
     errors: Optional[List[dict]]
 
 
 class RestTweet(Tweet):
-    matching_rules: Optional[List[Rule]]
+    matching_rules: Optional[List[RuleLink]]
 
 
-class StreamRule(Rule):
+class StreamRule(RuleLink):
     value: str

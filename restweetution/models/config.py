@@ -6,6 +6,7 @@ from typing import Optional, Union, Callable, List
 
 from restweetution.models.examples_config import BASIC_CONFIG
 from restweetution.models.tweet_config import TweetConfig
+from restweetution.storage.async_storage import AsyncStorage
 from restweetution.storage.storage import Storage
 
 
@@ -26,7 +27,7 @@ class SSHFileStorageConfig(StorageConfig, extra=Extra.forbid):
     root: str = os.path.join(str(Path.home()), 'outputTweets')
 
 
-StorageOrConfig = Union[StorageConfig, Storage]
+StorageOrConfig = Union[StorageConfig, Storage, AsyncStorage]
 
 
 class Config(BaseModel):

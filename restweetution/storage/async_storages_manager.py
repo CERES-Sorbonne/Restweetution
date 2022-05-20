@@ -8,14 +8,14 @@ import imagehash
 import requests
 from PIL import Image
 
-from restweetution.models.config import StorageConfig, FileStorageConfig, SSHFileStorageConfig, StorageOrConfig
-from restweetution.models.tweet import TweetResponse, RuleLink, StreamRule, Media
-from restweetution.storage import FileStorage, SSHStorage
-from restweetution.storage.storage import Storage
+from restweetution.models.config import StorageConfig, StorageOrConfig
+from restweetution.models.tweet import TweetResponse, RuleLink, StreamRule, Media, RestTweet
+from restweetution.storage.async_storage import AsyncStorage
+from restweetution.storage.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.utils import TwitterDownloader
 
 
-class StoragesManager:
+class AsyncStoragesManager:
     def __init__(self, tweets_storages: List[StorageOrConfig], media_storages: List[StorageOrConfig],
                  average_hash: bool = False, download_media: bool = True):
         """
@@ -41,14 +41,14 @@ class StoragesManager:
             s += "- " + str(m)
         return s
 
-    def save_tweets(self, tweets: List[TweetResponse], tags: List[str] = None):
+    async def save_tweets(self, tweets: List[RestTweet], tags: List[str] = None):
         # save collected tweets
         size_errors = 0
         tags_errors = 0
         for s in self.tweets_storages:
             if s.has_free_space:
                 if s.valid_tags(tags):
-                    s.save_tweets(tweets, tags)
+                    await s.save_tweets(tweets, tags)
                 else:
                     tags_errors += 1
             else:
@@ -57,15 +57,16 @@ class StoragesManager:
         if size_errors == len(self.tweets_storages):
             raise OSError("The maxsize of the storage directory has been reached on every storage")
         if tags_errors == len(self.tweets_storages):
-            raise ValueError(f"No storage was configured to handle tweet with tags: {tags}")
+            raise ValueError(f"No storage was configured to handle data with tags: {tags}")
 
-    def get_tweets(self, tags: List[str] = None, ids: List[str] = None, duplicate: bool = False) -> Iterator[TweetResponse]:
+    async def get_tweets(self, tags: List[str] = None, ids: List[str] = None, duplicate: bool = False) -> Iterator[
+        TweetResponse]:
         storages = [self.tweets_storages[0]] if not duplicate else self.tweets_storages
         for s in storages:
-            for r in s.get_tweets(tags=tags, ids=ids):
+            for r in await s.get_tweets(tags=tags, ids=ids):
                 yield r
 
-    def save_rules(self, rules: List[RuleLink]):
+    async def save_rules(self, rules: List[RuleLink]):
         """
        Persist a list of rules if not existing
        :param rules: list of rules
@@ -74,7 +75,7 @@ class StoragesManager:
         tags = [r.tag for r in rules]
         for s in self.tweets_storages:
             if s.valid_tags(tags):
-                s.save_rules(rules)
+                await s.save_rules(rules)
 
     def get_non_existing_rules(self, ids: List[str], tags: List[str] = None):
         """
@@ -110,7 +111,7 @@ class StoragesManager:
     def save_users(self):
         pass
 
-    def save_media(self, media_list: List[Media], tweet_id: str, tags: List[str] = None) -> None:
+    async def save_media(self, media_list: List[Media], tweet_id: str, tags: List[str] = None) -> None:
         # first check if we have any valid tags, otherwise there is no point of downloading the media
         valid_storages = []
         for s in self.media_storages:
@@ -130,6 +131,7 @@ class StoragesManager:
             if media.url:
                 try:
                     logging.info(f"Downloading {media.url} with id: {media.media_key} and tweet_id: {tweet_id}")
+                    # TODO: make async
                     res = requests.get(media.url)
                     buffer: bytes = res.content
                     if self.average_hash:
@@ -139,6 +141,7 @@ class StoragesManager:
                     continue
             # TODO: change this when v2 api supports url for video and gifs
             else:  # then it's a video or a gif
+                # TODO: make async
                 buffer: bytes = self.media_downloader.download(tweet_id=tweet_id, media_type=media.type)
 
             signature = self._compute_signature(buffer)
@@ -148,9 +151,11 @@ class StoragesManager:
             full_name = f"{signature}.{media_type}"
 
             for s in valid_storages:
-                s.save_media(full_name, io.BytesIO(buffer))
+                # TODO: make async
+                await s.save_media(full_name, io.BytesIO(buffer))
             for s in self.tweets_storages:
                 if s.valid_tags(tags):
+                    # TODO: make async
                     s.save_media_link(media.media_key, signature, average_hash)
 
     @staticmethod
@@ -181,18 +186,20 @@ class StoragesManager:
         Utility method that takes a StorageConfig as input and returns a storage
         :param config: the storage config
         """
-        if isinstance(config, FileStorageConfig):
-            return FileStorage(**config.dict())
-        elif isinstance(config, SSHFileStorageConfig):
-            return SSHStorage(**config.dict())
+        # if isinstance(config, FileStorageConfig):
+        #     return FileStorage(**config.dict())
+        # elif isinstance(config, SSHFileStorageConfig):
+        #     return SSHStorage(**config.dict())
+        if isinstance(config, ElasticStorage):
+            return ElasticStorage(**config.dict())
         else:
             raise ValueError(f"Unhandled type of storage: {type(config)}")
 
-    def _resolve_storage(self, storage_or_config: StorageOrConfig) -> Storage:
+    def _resolve_storage(self, storage_or_config: StorageOrConfig) -> AsyncStorage:
         """
         Utility method to initialize a storage from a Storage Object or a StorageConfig
         :param storage_or_config: a Object containing a Storage or a StorageConfig, and a list of tags associated
-        :return: a storage wrapper, which means a storage that exposes all methods to save or get tweet
+        :return: a storage wrapper, which means a storage that exposes all methods to save or get data
         """
         if isinstance(storage_or_config, StorageConfig):
             storage = self._storage_from_config(storage_or_config)
