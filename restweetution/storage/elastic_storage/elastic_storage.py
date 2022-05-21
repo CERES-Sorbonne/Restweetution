@@ -1,6 +1,6 @@
 import io
 from typing import List, Iterator
-from restweetution.models.tweet import TweetResponse, RuleLink, User, StreamRule, RestTweet
+from restweetution.models.tweet import TweetResponse, RuleRef, User, StreamRule, RestTweet
 from restweetution.storage.async_storage import AsyncStorage
 from elasticsearch import AsyncElasticsearch
 
@@ -18,27 +18,36 @@ class ElasticStorage(AsyncStorage):
             basic_auth=("elastic", "vjD+mlOWmu6=oESqbxSb")
         )
 
-    async def save_tweets(self, tweets: List[RestTweet], tags: List[str] = None):
-        for tweet in tweets:
-            await self.es.index(index="tweet", id=tweet.id, document=tweet.dict())
+    async def save_tweet(self, tweet: RestTweet, data={}):
+
+        if "matching_rules" in data:
+            tweet.matching_rules = data["matching_rules"]
+
+        await self.es.index(index="tweet", id=tweet.id, document=tweet.dict())
         await self.es.indices.refresh(index="tweet")
 
     async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
 
-    async def save_rules(self, rules: List[RuleLink]):
-        """
-        Persist a list of rules if not existing
-        :param rules: list of rules
-        :return: none
-        """
-        self.rules = rules
+    async def save_rule(self, rule: StreamRule, data={}):
+        await self.es.index(index="rule", id=rule.id, document=rule.dict())
+        await self.es.indices.refresh(index="rule")
+
+    # async def save_rules(self, rules: List[RuleRef]):
+    #     """
+    #     Persist a list of rules if not existing
+    #     :param rules: list of rules
+    #     :return: none
+    #     """
+    #     self.rules = rules
 
     def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
         return self.rules
 
-    def save_users(self, users: List[User]):
-        pass
+    async def save_users(self, users: List[User]):
+        for user in users:
+            await self.es.index(index="user", id=user.id, document=user.dict())
+        await self.es.indices.refresh(index="user")
 
     def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
         """

@@ -2,7 +2,7 @@ import io
 import uuid
 from abc import ABC
 from typing import List, Iterator
-from restweetution.models.tweet import TweetResponse, RuleLink, User, StreamRule
+from restweetution.models.tweet import TweetResponse, RuleRef, User, StreamRule
 from restweetution.storage.storage_helper import StorageHelper
 
 
@@ -34,7 +34,7 @@ class Storage(ABC):
     def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
 
-    def save_rules(self, rules: List[RuleLink]):
+    def save_rules(self, rules: List[RuleRef]):
         """
         Persist a list of rules if not existing
         :param rules: list of rules

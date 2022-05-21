@@ -9,7 +9,9 @@ import requests
 from PIL import Image
 
 from restweetution.models.config import StorageConfig, StorageOrConfig
-from restweetution.models.tweet import TweetResponse, RuleLink, StreamRule, Media, RestTweet
+from restweetution.models.stream_rule import StreamRule
+from restweetution.models.tweet import TweetResponse, RuleRef, Media, RestTweet
+from restweetution.models.user import User
 from restweetution.storage.async_storage import AsyncStorage
 from restweetution.storage.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.utils import TwitterDownloader
@@ -41,23 +43,22 @@ class AsyncStoragesManager:
             s += "- " + str(m)
         return s
 
-    async def save_tweets(self, tweets: List[RestTweet], tags: List[str] = None):
-        # save collected tweets
-        size_errors = 0
-        tags_errors = 0
-        for s in self.tweets_storages:
-            if s.has_free_space:
-                if s.valid_tags(tags):
-                    await s.save_tweets(tweets, tags)
-                else:
-                    tags_errors += 1
-            else:
-                size_errors += 1
-                self.logger.warning(f"Maximum size reached for storage {str(s)}")
-        if size_errors == len(self.tweets_storages):
-            raise OSError("The maxsize of the storage directory has been reached on every storage")
-        if tags_errors == len(self.tweets_storages):
+    async def save_tweet(self, tweet: RestTweet, tags: List[str] = None):
+        for s in self._get_valid_tweet_storages(tags):
+            await s.save_tweet(tweet)
+
+    def _get_valid_tweet_storages(self, tags: List[str]):
+        # get storages that are listing to those tags
+        storages = [s for s in self.tweets_storages if s.valid_tags(tags)]
+        if not storages:
             raise ValueError(f"No storage was configured to handle data with tags: {tags}")
+
+        # only take storages with free space
+        storages = [s for s in storages if s.has_free_space()]
+        if not storages:
+            raise OSError("The maxsize of the storage directory has been reached on every storage")
+
+        return storages
 
     async def get_tweets(self, tags: List[str] = None, ids: List[str] = None, duplicate: bool = False) -> Iterator[
         TweetResponse]:
@@ -66,16 +67,16 @@ class AsyncStoragesManager:
             for r in await s.get_tweets(tags=tags, ids=ids):
                 yield r
 
-    async def save_rules(self, rules: List[RuleLink]):
+    async def save_rules(self, rules: List[StreamRule]):
         """
        Persist a list of rules if not existing
        :param rules: list of rules
        :return: none
         """
         tags = [r.tag for r in rules]
-        for s in self.tweets_storages:
-            if s.valid_tags(tags):
-                await s.save_rules(rules)
+        for s in self._get_valid_tweet_storages(tags):
+            for r in rules:
+                await s.save_rule(r)
 
     def get_non_existing_rules(self, ids: List[str], tags: List[str] = None):
         """
@@ -108,8 +109,9 @@ class AsyncStoragesManager:
     def get_rules_ids(self, tags: List[str] = None) -> List[str]:
         return [r.id for r in self.get_rules(tags=tags)]
 
-    def save_users(self):
-        pass
+    async def save_users(self, users: List[User], tags: List[str]):
+        for s in self._get_valid_tweet_storages(tags):
+            await s.save_users(users)
 
     async def save_media(self, media_list: List[Media], tweet_id: str, tags: List[str] = None) -> None:
         # first check if we have any valid tags, otherwise there is no point of downloading the media

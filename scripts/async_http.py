@@ -5,17 +5,12 @@ import json
 import os
 
 from restweetution.collectors.async_streamer import AsyncStreamer
-from restweetution.models.examples_config import MEDIUM_CONFIG
+from restweetution.models.examples_config import MEDIUM_CONFIG, ALL_CONFIG
 from restweetution.storage import FileStorage
-from quart import Quart
 
-app = Quart(__name__)
+from restweetution.storage.elastic_storage.elastic_storage import ElasticStorage
 
-
-@app.route('/')
-async def hello():
-    return 'hello'
-
+from restweetution.server.config_server import run_server
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -26,14 +21,14 @@ with open(os.getenv("CREDENTIALS"), "r") as f:
 config1 = {
     'token': token,
     'tweets_storages': [
-        FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Data'), tags=['Rule']),
+        ElasticStorage(tags=['Rule']),
     ],
     'media_storages': [
         # no tags mean all media storages will be stored directly here
         FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Media'), tags=['Bassem']),
     ],
     'verbose': True,
-    'tweet_config': MEDIUM_CONFIG.dict(),
+    'tweet_config': ALL_CONFIG.dict(),
     'average_hash': True
 }
 
@@ -45,14 +40,20 @@ async def tprint():
 
 
 async def launch():
-    asyncio.create_task(client.collect())
-    asyncio.create_task(tprint())
-    task = asyncio.create_task(app.run_task())
+    client = AsyncStreamer(config1)
+    # await client.reset_rules()
+    await client.add_rules({'Rule': '(johnny) OR (depp)'})
+    # await client.add_rules({'XS': '(glace) OR (eau)'})
+    # rules = await client.get_rules(['1527747516434874371'])
+    # print(rules)
+    # await client.remove_rules([1])
+    # await client._api_get_rules()
+
+    # asyncio.create_task(client._api_get_rules())
+    # asyncio.create_task(tprint())
+    task = asyncio.create_task(client.collect())
+    # task = asyncio.create_task(run_server())
     await task
 
 
-client = AsyncStreamer(config1)
-# client.reset_rules()
-client.set_rules({'Rule': '(johnny) OR (depp)'})
-# asyncio.run(client.collect())
 asyncio.run(launch())

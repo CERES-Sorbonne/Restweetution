@@ -1,11 +1,14 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 
-class Rule(BaseModel):
+class RuleRef(BaseModel):
     id: str
     tag: str
-    value: str
+
+
+class StreamRule(RuleRef):
+    value: Optional[str]
 
 
 class RuleResponseMeta(BaseModel):
@@ -14,5 +17,5 @@ class RuleResponseMeta(BaseModel):
 
 
 class RuleResponse(BaseModel):
-    data: List[Rule]
+    data: List[StreamRule]
     meta: RuleResponseMeta

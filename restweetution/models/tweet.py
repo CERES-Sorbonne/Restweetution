@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from .entities import Annotation, Tag, Url, Mention
 from .media import Media
+from .stream_rule import RuleRef, StreamRule
 from .user import User
 
 
@@ -115,21 +116,12 @@ class TweetIncludes(BaseModel):
     users: Optional[List[User]]
 
 
-class RuleLink(BaseModel):
-    id: str
-    tag: str
+class RestTweet(Tweet):
+    matching_rules: Optional[List[StreamRule]]
 
 
 class TweetResponse(BaseModel):
-    data: Tweet
+    data: RestTweet
     includes: Optional[TweetIncludes]
-    matching_rules: Optional[List[RuleLink]]
+    matching_rules: Optional[List[StreamRule]]
     errors: Optional[List[dict]]
-
-
-class RestTweet(Tweet):
-    matching_rules: Optional[List[RuleLink]]
-
-
-class StreamRule(RuleLink):
-    value: str

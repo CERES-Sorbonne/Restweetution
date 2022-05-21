@@ -29,12 +29,13 @@ class AsyncCollector:
                                                       download_media=self._config.download_media,
                                                       average_hash=self._config.average_hash
                                                       )
-        self._client = None
+        self._client = self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
+                                   error_handler=self._error_handler)
         self._logger = logging.getLogger("Collector")
 
-    async def init_client(self):
-        self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
-                                   error_handler=self._error_handler)
+    # async def init_client(self):
+    #     self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
+    #                                error_handler=self._error_handler)
 
     @staticmethod
     def resolve_config(config_param) -> Config:

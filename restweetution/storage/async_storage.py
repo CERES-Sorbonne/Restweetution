@@ -2,7 +2,7 @@ import io
 import uuid
 from abc import ABC
 from typing import List, Iterator
-from restweetution.models.tweet import TweetResponse, RuleLink, User, StreamRule, RestTweet
+from restweetution.models.tweet import TweetResponse, RuleRef, User, StreamRule, RestTweet
 
 
 class AsyncStorage(ABC):
@@ -27,18 +27,21 @@ class AsyncStorage(ABC):
             return True
         return False
 
-    async def save_tweets(self, tweets: List[RestTweet], tags: List[str] = None):
+    async def save_tweet(self, tweets: RestTweet, data={}):
         pass
 
     async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
 
-    async def save_rules(self, rules: List[RuleLink]):
-        """
-        Persist a list of rules if not existing
-        :param rules: list of rules
-        :return: none
-        """
+    # async def save_rules(self, rules: List[RuleRef]):
+    #     """
+    #     Persist a list of rules if not existing
+    #     :param rules: list of rules
+    #     :return: none
+    #     """
+    #     pass
+
+    async def save_rule(self, rule: StreamRule):
         pass
 
     def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:

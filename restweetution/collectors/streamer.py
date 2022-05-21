@@ -6,7 +6,8 @@ from typing import Union, List, Dict
 import requests
 
 from restweetution.collectors.collector import Collector
-from restweetution.models.tweet import TweetResponse, RuleLink, StreamRule
+from restweetution.models.tweet import TweetResponse
+from restweetution.models.stream_rule import RuleRef, StreamRule
 
 
 class Streamer(Collector):
@@ -124,7 +125,7 @@ class Streamer(Collector):
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
-    def _handle_rules(self, rules: List[RuleLink]) -> None:
+    def _handle_rules(self, rules: List[RuleRef]) -> None:
         """
         Get every stored rule, and if some rules of the current tweets
         are not stored currently, get full rule and store it
@@ -169,7 +170,7 @@ class Streamer(Collector):
         # to_save: RestTweet = tweet_res.data
         # to_save.matching_rules = tweet_res.matching_rules
 
-        self._storages_manager.save_tweets([tweet_res], tags)
+        self._storages_manager.save_tweet([tweet_res], tags)
 
     def _handle_errors(self, errors: List[dict], *args) -> None:
         """

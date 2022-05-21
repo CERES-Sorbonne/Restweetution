@@ -9,7 +9,7 @@ import requests
 from PIL import Image
 
 from restweetution.models.config import StorageConfig, FileStorageConfig, SSHFileStorageConfig, StorageOrConfig
-from restweetution.models.tweet import TweetResponse, RuleLink, StreamRule, Media
+from restweetution.models.tweet import TweetResponse, RuleRef, StreamRule, Media
 from restweetution.storage import FileStorage, SSHStorage
 from restweetution.storage.storage import Storage
 from restweetution.utils import TwitterDownloader
@@ -65,7 +65,7 @@ class StoragesManager:
             for r in s.get_tweets(tags=tags, ids=ids):
                 yield r
 
-    def save_rules(self, rules: List[RuleLink]):
+    def save_rules(self, rules: List[RuleRef]):
         """
        Persist a list of rules if not existing
        :param rules: list of rules
