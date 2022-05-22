@@ -7,7 +7,7 @@ from typing import Union
 import yaml
 
 from restweetution.collectors.async_client import AsyncClient
-from restweetution.models.config import Config
+from restweetution.models.stream_config import StreamConfig
 from restweetution.models.tweet import TweetResponse
 from restweetution.storage.async_storages_manager import AsyncStoragesManager
 
@@ -38,24 +38,24 @@ class AsyncCollector:
     #                                error_handler=self._error_handler)
 
     @staticmethod
-    def resolve_config(config_param) -> Config:
+    def resolve_config(config_param) -> StreamConfig:
         """
         Utility method to automatically transform the config_param in valid config object
         :param config_param: either a dict containing the config, or a path to a json or yaml
         :return: a Config objectA
         """
         if isinstance(config_param, dict):
-            return Config(**config_param)
+            return StreamConfig(**config_param)
         elif isinstance(config_param, str) and config_param.split('.')[-1] == 'json':
             try:
                 with open(config_param, 'r') as f:
-                    return Config(**json.load(f))
+                    return StreamConfig(**json.load(f))
             except json.JSONDecodeError as e:
                 raise ValueError(f"Invalid JSON provided, the following error occurred trying to open the config: {e}")
         elif isinstance(config_param, str) and config_param.split('.')[-1] == 'yaml':
             try:
                 with open(config_param, 'r') as f:
-                    return Config(**yaml.safe_load(f))
+                    return StreamConfig(**yaml.safe_load(f))
             except yaml.YAMLError as e:
                 raise ValueError(f"Invalid YAML provided, the following error occurred trying to open the config: {e}")
         else:

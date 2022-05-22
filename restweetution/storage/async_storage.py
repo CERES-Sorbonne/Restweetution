@@ -44,6 +44,9 @@ class AsyncStorage(ABC):
     async def save_rule(self, rule: StreamRule):
         pass
 
+    async def save_rules(self, rules: List[StreamRule]):
+        pass
+
     def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
         pass
 

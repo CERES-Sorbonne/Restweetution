@@ -8,7 +8,7 @@ import imagehash
 import requests
 from PIL import Image
 
-from restweetution.models.config import StorageConfig, StorageOrConfig
+from restweetution.models.stream_config import StorageConfig, StorageOrConfig
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.tweet import TweetResponse, RuleRef, Media, RestTweet
 from restweetution.models.user import User
@@ -75,8 +75,7 @@ class AsyncStoragesManager:
         """
         tags = [r.tag for r in rules]
         for s in self._get_valid_tweet_storages(tags):
-            for r in rules:
-                await s.save_rule(r)
+            await s.save_rules(rules)
 
     def get_non_existing_rules(self, ids: List[str], tags: List[str] = None):
         """

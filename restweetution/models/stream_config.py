@@ -27,12 +27,12 @@ class SSHFileStorageConfig(StorageConfig, extra=Extra.forbid):
     root: str = os.path.join(str(Path.home()), 'outputTweets')
 
 
-StorageOrConfig = Union[StorageConfig, Storage, AsyncStorage]
+StorageOrConfig = Union[StorageConfig, AsyncStorage, Storage]
 
 
-class Config(BaseModel):
+class StreamConfig(BaseModel):
     token: str
-    tweets_storages: Optional[List[StorageOrConfig]] = [FileStorageConfig()]
+    tweets_storages: Optional[List[StorageOrConfig]]
     media_storages: Optional[List[StorageOrConfig]]
     tweet_config: Optional[TweetConfig] = BASIC_CONFIG
     max_retries: Optional[int] = 3

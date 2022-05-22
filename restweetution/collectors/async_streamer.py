@@ -193,7 +193,7 @@ class AsyncStreamer(AsyncCollector):
         await self._storages_manager.save_rules(rules)
 
         # Save user is expanded data is available
-        if tweet_res.includes.users:
+        if tweet_res.includes and tweet_res.includes.users:
             await self._storages_manager.save_users(tweet_res.includes.users, tags)
 
         # We save rules that triggered this tweet inside the tweet data to make sure we don't lose it
@@ -258,7 +258,7 @@ class AsyncStreamer(AsyncCollector):
                     async for line in resp.content:
                         if line:
                             txt = line.decode("utf-8")
-                            self._logger.info(txt)
+                            # self._logger.info(txt)
                             if txt != '\r\n':
                                 data = json.loads(txt)
                                 # self._logger.info(data)
@@ -267,6 +267,8 @@ class AsyncStreamer(AsyncCollector):
                                 tweet_res = TweetResponse(**data)
                                 # print(tweet_res.includes)
                                 asyncio.create_task(self._handle_tweet_response(tweet_res))
+                                # await self._handle_tweet_response(tweet_res)
+                                print('receive tweet' + tweet_res.data.id)
                         else:
                             self._logger.info("waiting for new tweets")
             except aiohttp.ClientConnectorError as e:

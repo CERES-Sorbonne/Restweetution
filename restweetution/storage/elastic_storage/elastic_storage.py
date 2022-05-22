@@ -1,22 +1,22 @@
 import io
-from typing import List, Iterator
+from typing import List, Iterator, Dict
+
+from pydantic import BaseModel
+
 from restweetution.models.tweet import TweetResponse, RuleRef, User, StreamRule, RestTweet
 from restweetution.storage.async_storage import AsyncStorage
 from elasticsearch import AsyncElasticsearch
 
 
 class ElasticStorage(AsyncStorage):
-    def __init__(self, tags: List[str] = None):
+    def __init__(self, config: Dict[str, str], tags: List[str] = None):
         """
         Storage for Elasticsearch stack
         :param tags: the list of tags that will be saved by this storage
         """
         super().__init__(tags=tags)
-        self.rules = []
-        self.es = AsyncElasticsearch(
-            "https://ceres.huma-num.fr:443/elastic",
-            basic_auth=("elastic", "vjD+mlOWmu6=oESqbxSb")
-        )
+        self.rules = {}
+        self.es = AsyncElasticsearch(config['url'], basic_auth=(config['user'], config['pwd']), timeout=60)
 
     async def save_tweet(self, tweet: RestTweet, data={}):
 
@@ -29,8 +29,14 @@ class ElasticStorage(AsyncStorage):
     async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
 
-    async def save_rule(self, rule: StreamRule, data={}):
-        await self.es.index(index="rule", id=rule.id, document=rule.dict())
+    async def save_rules(self, rules: List[StreamRule]):
+        to_save = [r for r in rules if r.id not in self.rules]
+        if not to_save:
+            return
+
+        for r in to_save:
+            self.rules[r.id] = True
+            await self.es.index(index="rule", id=r.id, document=r.dict())
         await self.es.indices.refresh(index="rule")
 
     # async def save_rules(self, rules: List[RuleRef]):

@@ -1,31 +1,26 @@
 import asyncio
-
 import logging
-import json
 import os
 
+import restweetution.config as config
 from restweetution.collectors.async_streamer import AsyncStreamer
-from restweetution.models.examples_config import MEDIUM_CONFIG, ALL_CONFIG
+from restweetution.models.examples_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.storage import FileStorage
-
 from restweetution.storage.elastic_storage.elastic_storage import ElasticStorage
-
-from restweetution.server.config_server import run_server
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
-with open(os.getenv("CREDENTIALS"), "r") as f:
-    token = json.load(f).get('token')
-
+config = config.get_config()
 config1 = {
-    'token': token,
+    'token': config['token'],
     'tweets_storages': [
-        ElasticStorage(tags=['Rule']),
+        ElasticStorage(config=config['elastic_config'], tags=['Rule'])
+        # ElasticStorage(config={'url': 'http://localhost:9200', 'user': '', 'pwd': ''}, tags=['Rule'])
     ],
     'media_storages': [
         # no tags mean all media storages will be stored directly here
-        FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Media'), tags=['Bassem']),
+        FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Media'), tags=['Bassem'])
     ],
     'verbose': True,
     'tweet_config': ALL_CONFIG.dict(),

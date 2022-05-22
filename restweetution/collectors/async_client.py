@@ -3,11 +3,11 @@ from typing import Callable
 import aiohttp
 from urllib.parse import urljoin
 
-from restweetution.models.config import Config
+from restweetution.models.stream_config import StreamConfig
 
 
 class AsyncClient(aiohttp.ClientSession):
-    def __init__(self, config: Config = None, base_url: str = "", error_handler: Callable = None, headers: str = ''):
+    def __init__(self, config: StreamConfig = None, base_url: str = "", error_handler: Callable = None, headers: str = ''):
         super().__init__()
         self.base_url = base_url
         self.headers.update({"Authorization": f"Bearer {config.token}"})
@@ -18,5 +18,5 @@ class AsyncClient(aiohttp.ClientSession):
         try:
             res = super()._request(method, modified_url, **kwargs)
             return res
-        except aiohttp.ClientConnectionError as e:
-            self.error_handler(str(e), e.response.status_code)
+        except aiohttp.ClientResponseError as e:
+            self.error_handler(str(e), e.message)
