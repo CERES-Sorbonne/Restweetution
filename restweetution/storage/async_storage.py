@@ -1,6 +1,8 @@
 import io
 from abc import ABC
 from typing import List, Iterator
+
+from restweetution.models.bulk_data import BulkData
 from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTweet
 
 
@@ -23,6 +25,9 @@ class AsyncStorage(ABC):
 
     def is_media_storage(self):
         return self._is_media_storage
+
+    async def bulk_save(self, data: BulkData):
+        pass
 
     async def save_tweet(self, tweet: RestTweet):
         pass

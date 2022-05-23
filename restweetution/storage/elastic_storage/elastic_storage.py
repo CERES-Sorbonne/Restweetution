@@ -1,6 +1,9 @@
 import io
 from typing import List, Dict
 
+from elasticsearch import helpers
+
+from restweetution.models.bulk_data import BulkData
 from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTweet
 from restweetution.storage.async_storage import AsyncStorage
 from elasticsearch import AsyncElasticsearch
@@ -16,6 +19,46 @@ class ElasticTweetStorage(AsyncStorage):
         super().__init__(name, tweet=True)
         self.rules = {}
         self.es = AsyncElasticsearch(es_config['url'], basic_auth=(es_config['user'], es_config['pwd']), timeout=60)
+
+    async def bulk_save(self, data: BulkData):
+
+        actions = []
+        actions.extend(self._rules_to_bulk_actions(data.rules))
+        actions.extend(self._users_to_bulk_actions(data.users))
+        actions.extend(self._tweet_to_bulk_actions(data.tweets))
+
+        res = await helpers.async_bulk(self.es, actions)
+        print(res)
+
+    @staticmethod
+    def _rules_to_bulk_actions(rules: List[StreamRule]):
+        for rule in rules:
+            yield {
+                "_op_type": 'index',
+                "_index": "rule",
+                "_id": rule.id,
+                "_doc": rule.dict()
+            }
+
+    @staticmethod
+    def _users_to_bulk_actions(users: List[User]):
+        for user in users:
+            yield {
+                "_op_type": 'index',
+                "_index": "user",
+                "_id": user.id,
+                "_doc": user.dict()
+            }
+
+    @staticmethod
+    def _tweet_to_bulk_actions(tweets: List[RestTweet]):
+        for tweet in tweets:
+            yield {
+                "_op_type": 'index',
+                "_index": "tweet",
+                "_id": tweet.id,
+                "_source": tweet.dict()
+            }
 
     async def save_tweet(self, tweet: RestTweet):
         await self.save_tweets([tweet])

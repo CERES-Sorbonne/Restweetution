@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from .entities import Annotation, Tag, Url, Mention
 from .media import Media
-from .stream_rule import StreamRule
+from restweetution.models.stream_rule import StreamRule
 from .user import User
 
 

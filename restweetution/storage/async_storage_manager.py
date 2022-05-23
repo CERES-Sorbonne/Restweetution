@@ -73,6 +73,11 @@ class AsyncStorageManager:
         shared = [t for t in self.storage_tags[storage.name] if t in tags]
         return len(shared) > 0
 
+    def get_storages_by_tags(self, tags: List[str]):
+        storages = self.storages
+        storages = [s for s in storages if self.has_tags(s, tags)]
+        return storages
+
     def get_tweet_storages(self):
         return [s for s in self.storages if s.is_tweet_storage()]
 
@@ -96,6 +101,10 @@ class AsyncStorageManager:
     #     for s in storages:
     #         for r in await s.get_tweets(tags=tags, ids=ids):
     #             yield r
+
+    async def bulk_save(self, bulk_data, tags: List[str]):
+        for s in self.get_storages_by_tags(tags):
+            await s.bulk_save(bulk_data)
 
     async def save_rules(self, rules: List[StreamRule]):
         """
@@ -232,3 +241,4 @@ class AsyncStorageManager:
     #     else:
     #     storage = storage_or_config
     #     return storage
+

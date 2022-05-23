@@ -7,6 +7,7 @@ from typing import Union, List, Dict
 import requests
 
 from restweetution.collectors.async_collector import AsyncCollector
+from restweetution.models.bulk_data import BulkData
 from restweetution.models.tweet import TweetResponse, RestTweet
 from restweetution.models.stream_rule import StreamRule, RuleResponse
 from restweetution.storage.async_storage_manager import AsyncStorageManager
@@ -181,30 +182,37 @@ class AsyncStreamer(AsyncCollector):
     #
     def _log_tweets(self, tweet: TweetResponse):
         self.tweets_count += 1
-        if self._config.verbose:
-            self._logger.info(tweet.data.text)
+        # if self._config.verbose:
+        #     self._logger.info(tweet.data.text)
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
     async def _handle_tweet_response(self, tweet_res: TweetResponse):
         self._log_tweets(tweet_res)
+        bulk_data = BulkData()
+
+
         # Get the full rule from the id in matching_rules
         rules_ref = tweet_res.matching_rules
         rules_id = [r.id for r in rules_ref]
         rules = await self.get_rules(rules_id)
         tags = [r.tag for r in rules]
-        await self._storages_manager.save_rules(rules)
+        bulk_data.rules = rules
+        # await self._storages_manager.save_rules(rules)
 
         # Save user is expanded data is available
         if tweet_res.includes and tweet_res.includes.users:
-            await self._storages_manager.save_users(tweet_res.includes.users, tags)
+            bulk_data.users = tweet_res.includes.users
+            # await self._storages_manager.save_users(tweet_res.includes.users, tags)
 
         # We save rules that triggered this tweet inside the tweet data to make sure we don't lose it
         tweet = RestTweet(**tweet_res.data.dict())
         tweet.matching_rules = rules
         # Send the full data to the storages
-        await self._storages_manager.save_tweet(tweet, tags)
+        bulk_data.tweets = [tweet]
+        # await self._storages_manager.save_tweet(tweet, tags)
 
+        await self._storages_manager.bulk_save(bulk_data, tags)
         # await self._save_media(tweet_res)
 
     # async def _save_media(self, tweet_res: TweetResponse):
@@ -212,6 +220,7 @@ class AsyncStreamer(AsyncCollector):
     #     # save media if there are some
     #     if tweet_res.includes and tweet_res.includes.media:
     #         await self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
+
 
     def _handle_errors(self, errors: List[dict]) -> None:
         """

@@ -2,7 +2,9 @@ import io
 import uuid
 from abc import ABC
 from typing import List, Iterator
-from restweetution.models.tweet import TweetResponse, RuleRef, User, StreamRule
+
+from restweetution.models.stream_rule import RuleRef
+from restweetution.models.tweet import TweetResponse, User, StreamRule
 from restweetution.storage.storage_helper import StorageHelper
 
 
