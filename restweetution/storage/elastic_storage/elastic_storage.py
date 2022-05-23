@@ -1,33 +1,35 @@
 import io
-from typing import List, Iterator, Dict
+from typing import List, Dict
 
-from pydantic import BaseModel
-
-from restweetution.models.tweet import TweetResponse, RuleRef, User, StreamRule, RestTweet
+from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTweet
 from restweetution.storage.async_storage import AsyncStorage
 from elasticsearch import AsyncElasticsearch
 
 
-class ElasticStorage(AsyncStorage):
-    def __init__(self, config: Dict[str, str], tags: List[str] = None):
+class ElasticTweetStorage(AsyncStorage):
+    def __init__(self, name: str, es_config: Dict[str, str]):
         """
         Storage for Elasticsearch stack
-        :param tags: the list of tags that will be saved by this storage
+        :param name: Name of the storage. Human friendly identifier
+        :param es_config: Connection configuration. Dictionary has 3 fields: url, user, pwd
         """
-        super().__init__(tags=tags)
+        super().__init__(name, tweet=True)
         self.rules = {}
-        self.es = AsyncElasticsearch(config['url'], basic_auth=(config['user'], config['pwd']), timeout=60)
+        self.es = AsyncElasticsearch(es_config['url'], basic_auth=(es_config['user'], es_config['pwd']), timeout=60)
 
-    async def save_tweet(self, tweet: RestTweet, data={}):
+    async def save_tweet(self, tweet: RestTweet):
+        await self.save_tweets([tweet])
 
-        if "matching_rules" in data:
-            tweet.matching_rules = data["matching_rules"]
-
-        await self.es.index(index="tweet", id=tweet.id, document=tweet.dict())
+    async def save_tweets(self, tweets: List[RestTweet]):
+        for tweet in tweets:
+            await self.es.index(index="tweet", id=tweet.id, document=tweet.dict())
         await self.es.indices.refresh(index="tweet")
 
     async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
+
+    async def save_rule(self, rule: StreamRule):
+        await self.save_rules([rule])
 
     async def save_rules(self, rules: List[StreamRule]):
         to_save = [r for r in rules if r.id not in self.rules]
@@ -38,17 +40,6 @@ class ElasticStorage(AsyncStorage):
             self.rules[r.id] = True
             await self.es.index(index="rule", id=r.id, document=r.dict())
         await self.es.indices.refresh(index="rule")
-
-    # async def save_rules(self, rules: List[RuleRef]):
-    #     """
-    #     Persist a list of rules if not existing
-    #     :param rules: list of rules
-    #     :return: none
-    #     """
-    #     self.rules = rules
-
-    def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
-        return self.rules
 
     async def save_users(self, users: List[User]):
         for user in users:

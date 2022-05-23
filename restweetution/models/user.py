@@ -40,9 +40,3 @@ class User(BaseModel):
     url: Optional[str]
     verified: Optional[bool]
     withheld: Any
-
-
-
-
-
-

@@ -7,7 +7,7 @@ from restweetution.models.stream_config import StreamConfig
 
 
 class AsyncClient(aiohttp.ClientSession):
-    def __init__(self, config: StreamConfig = None, base_url: str = "", error_handler: Callable = None, headers: str = ''):
+    def __init__(self, config: StreamConfig = None, base_url: str = "", error_handler: Callable = None):
         super().__init__()
         self.base_url = base_url
         self.headers.update({"Authorization": f"Bearer {config.token}"})

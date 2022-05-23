@@ -39,5 +39,5 @@ if __name__ == "__main__":
         'average_hash': True
     }
     s = Streamer(config)
-    s.set_rules({'Rule2': '(Johnny) OR (Depp) OR (MELANCHON)'})
+    s.set_stream_rules({'Rule2': '(Johnny) OR (Depp) OR (MELANCHON)'})
     s.collect()

@@ -1,5 +1,3 @@
-import copy
-
 import aiohttp
 import asyncio
 
@@ -11,11 +9,12 @@ import requests
 from restweetution.collectors.async_collector import AsyncCollector
 from restweetution.models.tweet import TweetResponse, RestTweet
 from restweetution.models.stream_rule import StreamRule, RuleResponse
+from restweetution.storage.async_storage_manager import AsyncStorageManager
 
 
 class AsyncStreamer(AsyncCollector):
-    def __init__(self, config: Union[dict, str]):
-        super(AsyncStreamer, self).__init__(config)
+    def __init__(self, storage_manager: AsyncStorageManager, config: Union[dict, str]):
+        super(AsyncStreamer, self).__init__(storage_manager, config)
         self._fetch_minutes = False
         # use a cache to store the rules
         self.rule_cache: Dict[str, StreamRule] = {}
@@ -49,7 +48,7 @@ class AsyncStreamer(AsyncCollector):
                 return True
         return False
 
-    async def _api_get_rules(self, ids: List[str] = []):
+    async def _api_get_rules(self, ids: List[str] = None):
         """
         Return the list of rules defined to collect tweets during a stream
         from the Twitter API
@@ -58,7 +57,7 @@ class AsyncStreamer(AsyncCollector):
         """
 
         uri = "tweets/search/stream/rules"
-        if len(ids) > 0:
+        if ids:
             uri += f"?ids={','.join(ids)}"
         async with self._client.get(uri) as r:
             res = await r.json()
@@ -68,7 +67,7 @@ class AsyncStreamer(AsyncCollector):
             # print(res)
             return res.data
 
-    async def reset_rules(self) -> None:
+    async def reset_stream_rules(self) -> None:
         """
         Removes all rules
         """
@@ -76,34 +75,35 @@ class AsyncStreamer(AsyncCollector):
         await self._load_rule_cache()
         if not self.rule_cache:
             return
-        ids = [r.id for r in self.rule_cache]
-        await self.remove_rules(ids)
+        ids = [r.id for r in self.rule_cache.values()]
+        await self.remove_stream_rules(ids)
 
-    async def set_rules(self, rules: Dict[str, str]) -> List[StreamRule]:
+    async def set_stream_rules(self, rules: Dict[str, str]) -> List[StreamRule]:
         """
         Like add_rule but instead removes all rules and then set the rules :rules:
         :param rules: a dict in the form tag: rule
         :return: the list of all the new rules
         """
-        await self.reset_rules()
-        res = await self.add_rules(rules)
+        await self.reset_stream_rules()
+        res = await self.add_stream_rules(rules)
         return res
 
-    async def add_rule(self, rule: str, tag: str) -> StreamRule:
+    async def add_stream_rule(self, rule: str, tag: str) -> StreamRule:
         """
         Add a new fetch rule to the stream
         :param rule: the rule to be created, for more info on the syntax check
         https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/build-a-rule
         :param tag: the tag associated to the rule, all tweets collected with those rules will be stored under the
         <tag> folder
-        so if you have different rules with the same tag, all this rules will collect tweets that will be grouped in one place
+        so if you have different rules with the same tag,
+        all this rules will collect tweets that will be grouped in one place
         :return: the id of the created rule (can be used to delete the rule later)
         """
 
-        res = await self.add_rules({rule: tag})
+        res = await self.add_stream_rules({rule: tag})
         return res[0]
 
-    async def add_rules(self, rule_definitions: Dict[str, str]) -> List[StreamRule]:
+    async def add_stream_rules(self, rule_definitions: Dict[str, str]) -> List[StreamRule]:
         rules = []
         # convert to Twitter api Rule format
         for t, r in rule_definitions.items():
@@ -135,7 +135,7 @@ class AsyncStreamer(AsyncCollector):
                 valid_rules = res['data']
             return valid_rules
 
-    async def remove_rules(self, ids: List[str]) -> None:
+    async def remove_stream_rules(self, ids: List[str]) -> None:
         deleted_ids = await self._api_remove_rules(ids)
         # if no ids return an error occurred
         # We have no information over the remaining rules
@@ -176,6 +176,9 @@ class AsyncStreamer(AsyncCollector):
             self._logger.error(res)
             return []
 
+    # def add_storage_rule(self, rule: Dict[str, List[str]]):
+    #
+    #
     def _log_tweets(self, tweet: TweetResponse):
         self.tweets_count += 1
         if self._config.verbose:
@@ -210,13 +213,12 @@ class AsyncStreamer(AsyncCollector):
     #     if tweet_res.includes and tweet_res.includes.media:
     #         await self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
 
-    def _handle_errors(self, errors: List[dict], *args) -> None:
+    def _handle_errors(self, errors: List[dict]) -> None:
         """
         Some errors might still be wrapped in a 200 response
         So they need to be handled manually and not in Collector._error_handler
         which will only be triggered for responses > 299
         :param errors: a list of errors dictionary
-        :param args: the arguments to pass to collect when retrying
         """
         for error in errors:
             self._logger.error(f"""The following error was encountered: {error}""")
@@ -265,10 +267,7 @@ class AsyncStreamer(AsyncCollector):
                                 if "errors" in data:
                                     self._handle_errors(data['errors'])
                                 tweet_res = TweetResponse(**data)
-                                # print(tweet_res.includes)
                                 asyncio.create_task(self._handle_tweet_response(tweet_res))
-                                # await self._handle_tweet_response(tweet_res)
-                                print('receive tweet' + tweet_res.data.id)
                         else:
                             self._logger.info("waiting for new tweets")
             except aiohttp.ClientConnectorError as e:

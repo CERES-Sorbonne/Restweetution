@@ -1,45 +1,37 @@
 import io
-import uuid
 from abc import ABC
 from typing import List, Iterator
-from restweetution.models.tweet import TweetResponse, RuleRef, User, StreamRule, RestTweet
+from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTweet
 
 
 class AsyncStorage(ABC):
-    def __init__(self, tags: List[str] = None):
+    def __init__(self, name: str, tweet: bool = False, media: bool = False, tags: List[str] = None):
         """
         Abstract Class that provides the template for every other storage
-        :param tags: the list of tags that will be saved by this storage
+        :param name: Give a name to identify this Storage Later
         """
+        self.name = name
         self.tags_to_save = tags
-        self.id = uuid.uuid4()
+        self._is_tweet_storage = tweet
+        self._is_media_storage = media
 
-    @property
-    def name(self):
-        return f"{type(self).__name__}-{self.id}"
+        if not self._is_media_storage and not self._is_tweet_storage:
+            raise Exception(f'Storage: {self.name} tweet and media cant both be False')
 
-    def valid_tags(self, tags: List[str] = None):
-        # if the storage was not tagged, then it accepts everything
-        if not self.tags_to_save:
-            return True
-        # if the data matched at least one tag of the tags to save
-        if tags and len(set(tags) - set(self.tags_to_save)) < len(set(tags)):
-            return True
-        return False
+    def is_tweet_storage(self):
+        return self._is_tweet_storage
 
-    async def save_tweet(self, tweets: RestTweet, data={}):
+    def is_media_storage(self):
+        return self._is_media_storage
+
+    async def save_tweet(self, tweet: RestTweet):
+        pass
+
+    async def save_tweets(self, tweets: List[RestTweet]):
         pass
 
     async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
-
-    # async def save_rules(self, rules: List[RuleRef]):
-    #     """
-    #     Persist a list of rules if not existing
-    #     :param rules: list of rules
-    #     :return: none
-    #     """
-    #     pass
 
     async def save_rule(self, rule: StreamRule):
         pass

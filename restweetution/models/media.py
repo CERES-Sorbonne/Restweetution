@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Literal, List
+from typing import Optional, Literal
 
 MediaType = Literal["video", "animated_gif", "photo"]
 

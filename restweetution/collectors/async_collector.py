@@ -1,19 +1,18 @@
 import json
 import logging
 import time
-from enum import Enum
+
 from typing import Union
 
 import yaml
 
 from restweetution.collectors.async_client import AsyncClient
 from restweetution.models.stream_config import StreamConfig
-from restweetution.models.tweet import TweetResponse
-from restweetution.storage.async_storages_manager import AsyncStoragesManager
+from restweetution.storage.async_storage_manager import AsyncStorageManager
 
 
 class AsyncCollector:
-    def __init__(self, config: Union[dict, str]):
+    def __init__(self, storage_manager: AsyncStorageManager, config: Union[dict, str]):
         """
         Class to define the mains methods of the different collectors (stream, search)
         It should not be instantiated on its own
@@ -24,13 +23,9 @@ class AsyncCollector:
         self.tweets_count = 0
         self._retry_count = 0
         self._config = self.resolve_config(config)
-        self._storages_manager = AsyncStoragesManager(tweets_storages=self._config.tweets_storages,
-                                                      media_storages=self._config.media_storages,
-                                                      download_media=self._config.download_media,
-                                                      average_hash=self._config.average_hash
-                                                      )
+        self._storages_manager = storage_manager
         self._client = self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
-                                   error_handler=self._error_handler)
+                                                  error_handler=self._error_handler)
         self._logger = logging.getLogger("Collector")
 
     # async def init_client(self):
@@ -74,15 +69,15 @@ class AsyncCollector:
             params['media.fields'] = ",".join(params_config.mediaFields)
         return params
 
-    def _handle_media(self, tweet: TweetResponse):
-        class Media(Enum):
-            PHOTO = 1
-            VIDEO = 2
-            GIF = 3
-
-            def __eq__(self, other):
-                if isinstance(other, str):
-                    return self.name.lower() == other
+    # def _handle_media(self, tweet: TweetResponse):
+    #     class Media(Enum):
+    #         PHOTO = 1
+    #         VIDEO = 2
+    #         GIF = 3
+    #
+    #         def __eq__(self, other):
+    #             if isinstance(other, str):
+    #                 return self.name.lower() == other
 
     def _error_handler(self, error: str, status_code: int):
         self._logger.error(f"A new http error occurred with status: {status_code}, {error}")
