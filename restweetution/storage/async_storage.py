@@ -1,13 +1,17 @@
+import asyncio
+import copy
 import io
+import time
 from abc import ABC
-from typing import List, Iterator
+from typing import List, Iterator, Optional
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTweet
 
 
 class AsyncStorage(ABC):
-    def __init__(self, name: str, tweet: bool = False, media: bool = False, tags: List[str] = None):
+    def __init__(self, name: str, tweet: bool = False, media: bool = False, tags: List[str] = None,
+                 interval: int = 2, buffer_size: int = 100):
         """
         Abstract Class that provides the template for every other storage
         :param name: Give a name to identify this Storage Later
@@ -16,6 +20,15 @@ class AsyncStorage(ABC):
         self.tags_to_save = tags
         self._is_tweet_storage = tweet
         self._is_media_storage = media
+        self._is_bulk_storage = False
+
+        self._buffer_bulk_data: BulkData = BulkData()
+        self._flush_interval = interval
+        self._buffer_max_tweets = buffer_size
+
+        self._last_buffer_flush: float = 0
+
+        self._periodic_flush_task: Optional[asyncio.Task] = None
 
         if not self._is_media_storage and not self._is_tweet_storage:
             raise Exception(f'Storage: {self.name} tweet and media cant both be False')
@@ -25,6 +38,46 @@ class AsyncStorage(ABC):
 
     def is_media_storage(self):
         return self._is_media_storage
+
+    def is_bulk_storage(self):
+        return self._is_bulk_storage
+
+    def buffered_bulk_save(self, data: BulkData):
+        self._buffer_bulk_data += data
+
+        if self._buffer_is_full():
+            self._flush_buffer()
+
+        self._start_periodic_flush_task()
+
+    def _flush_buffer(self):
+        data = copy.deepcopy(self._buffer_bulk_data)
+        self._clear_buffer()
+        asyncio.create_task(self.bulk_save(data))
+        self._last_buffer_flush = time.time()
+
+    def _clear_buffer(self):
+        self._buffer_bulk_data = BulkData()
+
+    def _buffer_is_full(self):
+        return len(self._buffer_bulk_data.users) > self._buffer_max_tweets
+
+    def _start_periodic_flush_task(self):
+        if self._periodic_flush_task:
+            return
+        # initialize
+        self._last_buffer_flush = time.time()
+        self._periodic_flush_task = asyncio.create_task(self._periodic_flush_loop())
+
+    async def _periodic_flush_loop(self):
+        while True:
+            time_diff = time.time() - self._last_buffer_flush
+            if time_diff >= self._flush_interval:
+                self._flush_buffer()
+                time_diff = 0
+                print(f'Timout flush: {time.time()}')
+
+            await asyncio.sleep(self._flush_interval - time_diff)
 
     async def bulk_save(self, data: BulkData):
         pass

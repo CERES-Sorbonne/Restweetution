@@ -11,3 +11,10 @@ class BulkData(BaseModel):
     rules: Optional[List[StreamRule]] = []
     users: Optional[List[User]] = []
     tweets: Optional[List[RestTweet]] = []
+
+    def __add__(self, other):
+        self.rules.extend(other.rules)
+        self.users.extend(other.users)
+        self.tweets.extend(other.tweets)
+
+        return self

@@ -1,4 +1,5 @@
 import io
+import time
 from typing import List, Dict
 
 from elasticsearch import helpers
@@ -18,17 +19,15 @@ class ElasticTweetStorage(AsyncStorage):
         """
         super().__init__(name, tweet=True)
         self.rules = {}
-        self.es = AsyncElasticsearch(es_config['url'], basic_auth=(es_config['user'], es_config['pwd']), timeout=60)
+        self.es = AsyncElasticsearch(es_config['url'], basic_auth=(es_config['user'], es_config['pwd']))
 
     async def bulk_save(self, data: BulkData):
-
         actions = []
         actions.extend(self._rules_to_bulk_actions(data.rules))
         actions.extend(self._users_to_bulk_actions(data.users))
         actions.extend(self._tweet_to_bulk_actions(data.tweets))
 
-        res = await helpers.async_bulk(self.es, actions)
-        print(res)
+        await helpers.async_bulk(self.es, actions)
 
     @staticmethod
     def _rules_to_bulk_actions(rules: List[StreamRule]):

@@ -1,41 +1,35 @@
 import asyncio
-from datetime import datetime
-from elasticsearch import AsyncElasticsearch
 
-from restweetution.models.tweet import Tweet
-
-# es = Elasticsearch('http://elastic:vjD+mlOWmu6=oESqbxSb@ceres.huma-num.fr:9200')
-es = AsyncElasticsearch(
-    "https://ceres.huma-num.fr:443/elastic",
-    basic_auth=("elastic", "vjD+mlOWmu6=oESqbxSb")
-)
+from restweetution.models.bulk_data import BulkData
 
 
-async def read():
-    resp = await es.search(index="test-index", query={"match_all": {}})
-    print("Got %d Hits:" % resp['hits']['total']['value'])
-    for hit in resp['hits']['hits']:
-        print("%(timestamp)s %(author)s: %(text)s" % hit["_source"])
+async def cancel_me():
+    print('cancel_me(): before sleep')
+
+    # Wait for 1 hour
+    await asyncio.sleep(3600)
 
 
-# doc = {
-#     'author': 'kimchy',
-#     'text': 'Elasticsearch: cool. bonsai cool.',
-#     'timestamp': datetime.now(),
-# }
-# resp = es.index(index="test-index", id=1, document=doc)
-# print(resp['result'])
+async def main():
+    # Create a "cancel_me" Task
+    task = asyncio.create_task(cancel_me())
+
+    # Wait for 1 second
+    await asyncio.sleep(1)
+
+    # task.cancel()
+    # await task
+    print("main(): cancel_me is cancelled now")
+
+
+asyncio.run(main())
+
+# a = BulkData()
+# b = BulkData()
 #
-# resp = es.get(index="test-index", id=1)
-# print(resp['_source'])
+# a.rules = [{'tag': 'a', 'id': '1'}]
+# b.rules = [{'tag': 'b', 'id': '2'}]
 #
-# es.indices.refresh(index="test-index")
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(read())
-
-
-def save_tweet(tweet: Tweet):
-    resp = es.index(index="data", id=tweet.id, document=tweet.dict())
-    es.indices.refresh(index="data")
-    print(resp)
+# c = a+b
+# c = c + c
+# print(c.rules)

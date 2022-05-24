@@ -13,6 +13,12 @@ logging.root.setLevel(logging.INFO)
 config = config.get_config()
 
 es_storage = ElasticTweetStorage(name='CERES_Elastic', es_config=config['elastic_config'])
+# es_storage = ElasticTweetStorage(name='Localhost_Elastic',
+#                                  es_config={
+#                                      "url": "http://localhost:9200",
+#                                      "user": "",
+#                                      "pwd": ""}
+#                                  )
 config1 = {
     'token': config['token'],
     'verbose': True,
@@ -30,7 +36,8 @@ async def launch():
 
     task = asyncio.create_task(streamer.collect())
     # task = asyncio.create_task(run_server())
-    await task
+    # await task
 
-
-asyncio.run(launch())
+loop = asyncio.get_event_loop()
+loop.create_task(launch())
+loop.run_forever()

@@ -212,7 +212,7 @@ class AsyncStreamer(AsyncCollector):
         bulk_data.tweets = [tweet]
         # await self._storages_manager.save_tweet(tweet, tags)
 
-        await self._storages_manager.bulk_save(bulk_data, tags)
+        self._storages_manager.bulk_save(bulk_data, tags)
         # await self._save_media(tweet_res)
 
     # async def _save_media(self, tweet_res: TweetResponse):
