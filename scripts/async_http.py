@@ -21,7 +21,7 @@ es_storage = ElasticTweetStorage(name='CERES_Elastic', es_config=config['elastic
 #                                  )
 config1 = {
     'token': config['token'],
-    'verbose': True,
+    'verbose': False,
     'tweet_config': ALL_CONFIG.dict(),
     'average_hash': True
 }
@@ -34,8 +34,8 @@ async def launch():
     streamer = AsyncStreamer(storage_manager, config1)
     await streamer.add_stream_rules({'Rule': '(johnny) OR (depp)'})
 
-    task = asyncio.create_task(streamer.collect())
-    # task = asyncio.create_task(run_server())
+    asyncio.create_task(streamer.collect())
+    # asyncio.create_task(run_server())
     # await task
 
 loop = asyncio.get_event_loop()

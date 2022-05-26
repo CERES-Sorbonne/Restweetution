@@ -15,10 +15,22 @@ from restweetution.storage.async_storage_manager import AsyncStorageManager
 
 class AsyncStreamer(AsyncCollector):
     def __init__(self, storage_manager: AsyncStorageManager, config: Union[dict, str]):
-        super(AsyncStreamer, self).__init__(storage_manager, config)
+        # Member declaration before super constructor
+        self._params = None
         self._fetch_minutes = False
+
+        super(AsyncStreamer, self).__init__(storage_manager, config)
+
         # use a cache to store the rules
         self.rule_cache: Dict[str, StreamRule] = {}
+
+    def load_config(self, config: dict):
+        super().load_config(config)
+        # compute request parameters
+        self._params = self._create_params_from_config()
+        self._fetch_minutes = self._config.fetch_minutes
+        if self._fetch_minutes:
+            self._params = {**self._params, 'backfill_minutes': self._fetch_minutes}
 
     async def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
         """
@@ -182,15 +194,14 @@ class AsyncStreamer(AsyncCollector):
     #
     def _log_tweets(self, tweet: TweetResponse):
         self.tweets_count += 1
-        # if self._config.verbose:
-        #     self._logger.info(tweet.data.text)
+        if self._config.verbose:
+            self._logger.info(tweet.data.text)
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
     async def _handle_tweet_response(self, tweet_res: TweetResponse):
         self._log_tweets(tweet_res)
         bulk_data = BulkData()
-
 
         # Get the full rule from the id in matching_rules
         rules_ref = tweet_res.matching_rules
@@ -221,7 +232,6 @@ class AsyncStreamer(AsyncCollector):
     #     if tweet_res.includes and tweet_res.includes.media:
     #         await self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
 
-
     def _handle_errors(self, errors: List[dict]) -> None:
         """
         Some errors might still be wrapped in a 200 response
@@ -239,15 +249,13 @@ class AsyncStreamer(AsyncCollector):
         else:
             raise requests.RequestException()
 
-    async def collect(self, fetch_minutes: int = False):
+    async def collect(self):
         """
         Main method to collect tweets in a stream
-        :param fetch_minutes: if you have a pro or an academic account, you can specify
         an int between 1 and 5 to tell the stream to fetch tweets from the past minutes.
-        :return:
         """
         super().collect()
-        self._fetch_minutes = fetch_minutes
+
         # check if some rules are configured
         rules = await self.get_rules()
         if len(rules) == 0:
@@ -255,15 +263,12 @@ class AsyncStreamer(AsyncCollector):
         else:
             self._logger.info(f"Collecting with following rules: ")
             self._logger.info('\n'.join([f'{r.value}, tag: {r.tag} id: {r.id}' for r in rules]))
-        params = self._create_params_from_config()
-        if self._fetch_minutes:
-            params = {**params, 'backfill_minutes': self._fetch_minutes}
 
         async with self._client as session:
             try:
                 async with session.get(
                         "https://api.twitter.com/2/tweets/search/stream",
-                        params=params,
+                        params=self._params,
                         timeout=5000
                 ) as resp:
                     async for line in resp.content:
@@ -275,6 +280,7 @@ class AsyncStreamer(AsyncCollector):
                                 # self._logger.info(data)
                                 if "errors" in data:
                                     self._handle_errors(data['errors'])
+                                # print(data)
                                 tweet_res = TweetResponse(**data)
                                 asyncio.create_task(self._handle_tweet_response(tweet_res))
                         else:
@@ -285,4 +291,4 @@ class AsyncStreamer(AsyncCollector):
                 if self._retry_count < self._config.max_retries:
                     self._logger.error("""The collect will try to start again in 30s""")
                     await asyncio.sleep(30)
-                    await self.collect(fetch_minutes)
+                    await self.collect()

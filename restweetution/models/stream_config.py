@@ -37,6 +37,7 @@ class StreamConfig(BaseModel):
     verbose: Optional[bool] = False
     download_media: Optional[bool] = True
     average_hash: Optional[bool] = False
+    fetch_minutes: bool = False
     custom_handler: Optional[Union[Callable]]
 
     # allows to use custom classes as types

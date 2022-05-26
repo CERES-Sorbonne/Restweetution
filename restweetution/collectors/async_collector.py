@@ -2,7 +2,7 @@ import json
 import logging
 import time
 
-from typing import Union
+from typing import Union, Optional
 
 import yaml
 
@@ -22,15 +22,24 @@ class AsyncCollector:
         """
         self.tweets_count = 0
         self._retry_count = 0
-        self._config = self.resolve_config(config)
+        self._config: Optional[StreamConfig] = None
         self._storages_manager = storage_manager
-        self._client = self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
-                                                  error_handler=self._error_handler)
+
+        if config:
+            self.load_config(config)
         self._logger = logging.getLogger("Collector")
 
     # async def init_client(self):
     #     self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
     #                                error_handler=self._error_handler)
+
+    def load_config(self, config: dict):
+        self._config = StreamConfig(**config)
+        self._init_client()
+
+    def _init_client(self):
+        self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
+                                   error_handler=self._error_handler)
 
     @staticmethod
     def resolve_config(config_param) -> StreamConfig:
