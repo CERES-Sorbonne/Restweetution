@@ -5,7 +5,7 @@ from io import BytesIO
 from typing import List, Dict
 
 import imagehash
-import requests
+import httpx as requests
 from PIL import Image
 
 from restweetution.models.stream_rule import StreamRule
@@ -116,37 +116,6 @@ class AsyncStorageManager:
         for s in self.get_tweet_storages_by_tags(tags):
             await s.save_rules(rules)
 
-    # def get_non_existing_rules(self, ids: List[str], tags: List[str] = None):
-    #     """
-    #     Return the ids of the rules that are not saved in concerned storages
-    #     :param ids: ids of the rules to filter
-    #     :param tags: tags of the rules to filer
-    #     :return: the filtered list of ids
-    #     """
-    #     all_ids = []
-    #     for s in self.tweets_storages:
-    #         # if the rules should be saved for this storage
-    #         if s.valid_tags(tags):
-    #             # keep only ids that were not saved already
-    #             already_saved = [r.id for r in s.get_rules()]
-    #             all_ids = [*all_ids, *[_id for _id in ids if _id not in already_saved]]
-    #     return all_ids
-
-    # def get_rules(self, ids: List[str] = None, tags: List[str] = None) -> Iterator[StreamRule]:
-    #     """
-    #     Returns an iterator on the rules of the stream
-    #     :param ids: get some specific rules
-    #     :param tags: get some specific tags
-    #     :return:
-    #     """
-    #     for s in self.tweets_storages:
-    #         if s.valid_tags(tags):
-    #             for r in s.get_rules(ids):
-    #                 yield r
-    #
-    # def get_rules_ids(self, tags: List[str] = None) -> List[str]:
-    #     return [r.id for r in self.get_rules(tags=tags)]
-
     async def save_users(self, users: List[User], tags: List[str]):
         for s in self.get_tweet_storages_by_tags(tags):
             await s.save_users(users)
@@ -188,10 +157,9 @@ class AsyncStorageManager:
             full_name = f"{signature}.{media_type}"
 
             for s in valid_storages:
-                # TODO: make async
                 await s.save_media(full_name, io.BytesIO(buffer))
             for s in self.get_tweet_storages_by_tags(tags):
-                s.save_media_link(media.media_key, signature, average_hash)
+                await s.save_media_link(media.media_key, signature, average_hash)
 
     @staticmethod
     def _get_file_type(file_type: str) -> str:

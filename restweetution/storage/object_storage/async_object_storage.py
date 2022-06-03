@@ -6,14 +6,16 @@ from abc import ABC
 from typing import List, Union, Iterator
 
 from restweetution.models.tweet import TweetResponse, User, StreamRule
+from .async_filestorage_helper import AsyncFileStorageHelper
 from .filestorage_helper import FileStorageHelper
 from .sshfilestorage_helper import SSHFileStorageHelper
 from restweetution.storage.storage import Storage
+from ..async_storage import AsyncStorage
 
 
-class ObjectStorage(Storage, ABC):
+class AsyncObjectStorage(AsyncStorage, ABC):
 
-    def __init__(self, storage_helper: Union[FileStorageHelper, SSHFileStorageHelper], tags: List[str] = None, max_size: int = None):
+    def __init__(self, storage_helper: Union[AsyncFileStorageHelper, SSHFileStorageHelper], tags: List[str] = None, max_size: int = None):
         """
         Generic Object Storage, like FileStorage or SSHFileStorage
         Provide a simple interface to manipulate tweets and media for all kind of Object Storages
@@ -21,7 +23,8 @@ class ObjectStorage(Storage, ABC):
         :param storage_helper: a storage helper depending on the type of storage
         :param max_size: the maximum size available
         """
-        super(ObjectStorage, self).__init__(tags=tags)
+        # TODO: changer le tweet et media pour que ça soit géré par le storage manager
+        super(AsyncObjectStorage, self).__init__(tags=tags, tweet=True, media=True)
         self.storage_helper = storage_helper
         self.logger = logging.getLogger("Collector.Storage.ObjectStorage")
         folders = ['tweets', 'rules', 'users', 'media_links']
@@ -108,15 +111,7 @@ class ObjectStorage(Storage, ABC):
             self.storage_helper.put(content, self.media_links(signature))
 
 
-class FileStorage(ObjectStorage):
+class AsyncFileStorage(AsyncObjectStorage):
     def __init__(self, root: str, tags: List[str] = None, max_size: int = None):
-        storage = FileStorageHelper(root=root, max_size=max_size)
-        super(FileStorage, self).__init__(storage_helper=storage, tags=tags)
-
-
-class SSHStorage(ObjectStorage):
-    def __init__(self, root: str, tags: List[str] = None, max_size: int = None, *, host: str, user: str, password: str = ""):
-        raise NotImplemented("This storage is currently not supported")
-        # TODO: uncomment when everything else works properly
-        # storage_helper = SSHFileStorageHelper(root=root, max_size=max_size, host=host, user=user, password=password)
-        # super(SSHStorage, self).__init__(storage_helper=storage_helper, tags=tags)
+        storage = AsyncFileStorageHelper(root=root, max_size=max_size)
+        super(AsyncFileStorage, self).__init__(storage_helper=storage, tags=tags)

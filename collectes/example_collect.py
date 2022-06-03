@@ -2,7 +2,7 @@ import json
 import logging
 import os
 
-from restweetution.collectors import Streamer
+from restweetution.collectors import AsyncStreamer
 from restweetution.models.examples_config import MEDIUM_CONFIG
 from restweetution.storage import FileStorage
 

@@ -10,17 +10,21 @@ from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTwee
 
 
 class AsyncStorage(ABC):
-    def __init__(self, name: str, tweet: bool = False, media: bool = False, tags: List[str] = None,
+    def __init__(self, name: str = None, tweet: bool = False, media: bool = False, tags: List[str] = None,
                  interval: int = 2, buffer_size: int = 100):
         """
         Abstract Class that provides the template for every other storage
         :param name: Give a name to identify this Storage Later
+        :param tweet: Is this storage used to store tweets ?
+        :param media: Is this storage used to store media ?
+        :param tags: Store only the data gathered with the rules identified with these tags.
+        :param interval: Clear storage every X seconds.
+        :param buffer_size: Max number of data the buffer can contain.
         """
         self.name = name
         self.tags_to_save = tags
         self._is_tweet_storage = tweet
         self._is_media_storage = media
-        self._is_bulk_storage = False
 
         self._buffer_bulk_data: BulkData = BulkData()
         self._flush_interval = interval
@@ -39,10 +43,10 @@ class AsyncStorage(ABC):
     def is_media_storage(self):
         return self._is_media_storage
 
-    def is_bulk_storage(self):
-        return self._is_bulk_storage
-
     def buffered_bulk_save(self, data: BulkData):
+        """
+        Save multiple type of data (bulk) at once
+        """
         self._buffer_bulk_data += data
 
         if self._buffer_is_full():
@@ -51,6 +55,9 @@ class AsyncStorage(ABC):
         self._start_periodic_flush_task()
 
     def _flush_buffer(self):
+        """
+        Save buffered data then clear the buffer
+        """
         data = copy.deepcopy(self._buffer_bulk_data)
         self._clear_buffer()
         asyncio.create_task(self.bulk_save(data))
@@ -60,9 +67,12 @@ class AsyncStorage(ABC):
         self._buffer_bulk_data = BulkData()
 
     def _buffer_is_full(self):
-        return len(self._buffer_bulk_data.users) > self._buffer_max_tweets
+        return len(self._buffer_bulk_data.tweets) > self._buffer_max_tweets
 
     def _start_periodic_flush_task(self):
+        """
+        Start the periodic flushing of the buffer
+        """
         if self._periodic_flush_task:
             return
         # initialize
@@ -70,6 +80,9 @@ class AsyncStorage(ABC):
         self._periodic_flush_task = asyncio.create_task(self._periodic_flush_loop())
 
     async def _periodic_flush_loop(self):
+        """
+
+        """
         while True:
             time_diff = time.time() - self._last_buffer_flush
             if time_diff >= self._flush_interval:
@@ -97,10 +110,13 @@ class AsyncStorage(ABC):
     async def save_rules(self, rules: List[StreamRule]):
         pass
 
-    def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
+    async def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
         pass
 
     async def save_users(self, users: List[User]):
+        pass
+
+    async def get_users(self, ids:List[str] = None) -> Iterator[User]:
         pass
 
     async def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
@@ -121,7 +137,7 @@ class AsyncStorage(ABC):
     def has_free_space(self) -> bool:
         pass
 
-    def save_media_link(self, media_key, signature, average_signature):
+    async def save_media_link(self, media_key, signature, average_signature):
         """
         Save the match between the media_key and the computed signature of the media
         """

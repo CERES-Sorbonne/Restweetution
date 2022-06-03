@@ -1,5 +1,4 @@
 import io
-import time
 from typing import List, Dict
 
 from elasticsearch import helpers
@@ -11,15 +10,14 @@ from elasticsearch import AsyncElasticsearch
 
 
 class ElasticTweetStorage(AsyncStorage):
-    def __init__(self, name: str, es_config: Dict[str, str]):
+    def __init__(self, name: str, *, url, user, password):
         """
         Storage for Elasticsearch stack
         :param name: Name of the storage. Human friendly identifier
-        :param es_config: Connection configuration. Dictionary has 3 fields: url, user, pwd
         """
         super().__init__(name, tweet=True)
         self.rules = {}
-        self.es = AsyncElasticsearch(es_config['url'], basic_auth=(es_config['user'], es_config['pwd']))
+        self.es = AsyncElasticsearch(url, basic_auth=(user, password))
 
     async def bulk_save(self, data: BulkData):
         actions = []

@@ -1,4 +1,5 @@
 import aiohttp
+import httpx
 import asyncio
 
 import json
@@ -60,8 +61,8 @@ class AsyncStreamer(AsyncCollector):
         uri = "tweets/search/stream/rules"
         if ids:
             uri += f"?ids={','.join(ids)}"
-        async with self._client.get(uri) as r:
-            res = await r.json()
+        async with self._client.get(uri) as resp:
+            res = await resp.json()
             if not res.get('data'):
                 res['data'] = []
             res = RuleResponse(**res)
@@ -191,7 +192,6 @@ class AsyncStreamer(AsyncCollector):
         self._log_tweets(tweet_res)
         bulk_data = BulkData()
 
-
         # Get the full rule from the id in matching_rules
         rules_ref = tweet_res.matching_rules
         rules_id = [r.id for r in rules_ref]
@@ -220,7 +220,6 @@ class AsyncStreamer(AsyncCollector):
     #     # save media if there are some
     #     if tweet_res.includes and tweet_res.includes.media:
     #         await self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
-
 
     def _handle_errors(self, errors: List[dict]) -> None:
         """
@@ -259,30 +258,27 @@ class AsyncStreamer(AsyncCollector):
         if self._fetch_minutes:
             params = {**params, 'backfill_minutes': self._fetch_minutes}
 
-        async with self._client as session:
-            try:
-                async with session.get(
-                        "https://api.twitter.com/2/tweets/search/stream",
-                        params=params,
-                        timeout=5000
-                ) as resp:
-                    async for line in resp.content:
-                        if line:
-                            txt = line.decode("utf-8")
-                            # self._logger.info(txt)
-                            if txt != '\r\n':
-                                data = json.loads(txt)
-                                # self._logger.info(data)
-                                if "errors" in data:
-                                    self._handle_errors(data['errors'])
-                                tweet_res = TweetResponse(**data)
-                                asyncio.create_task(self._handle_tweet_response(tweet_res))
-                        else:
-                            self._logger.info("waiting for new tweets")
-            except aiohttp.ClientConnectorError as e:
-                self._logger.error(e)
-                self._retry_count += 1
-                if self._retry_count < self._config.max_retries:
-                    self._logger.error("""The collect will try to start again in 30s""")
-                    await asyncio.sleep(30)
-                    await self.collect(fetch_minutes)
+        try:
+            async with self._client.get("tweets/search/stream",
+                                        params=params,
+                                        timeout=5000
+                                        ) as resp:
+                async for line in resp.content:
+                    if line:
+                        txt = line.decode("utf-8")
+                        if txt != '\r\n':
+                            data = json.loads(txt)
+                            self._logger.info(data)
+                            if "errors" in data:
+                                self._handle_errors(data['errors'])
+                            tweet_res = TweetResponse(**data)
+                            asyncio.create_task(self._handle_tweet_response(tweet_res))
+                    else:
+                        self._logger.info("waiting for new tweets")
+        except aiohttp.ClientError as e:
+            self._logger.error(e)
+            self._retry_count += 1
+            if self._retry_count < self._config.max_retries:
+                self._logger.error("""The collect will try to start again in 30s""")
+                await asyncio.sleep(30)
+                await self.collect(fetch_minutes)
