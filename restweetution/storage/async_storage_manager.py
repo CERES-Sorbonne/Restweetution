@@ -16,21 +16,17 @@ from restweetution.utils import TwitterDownloader
 
 
 class AsyncStorageManager:
-    def __init__(self, average_hash: bool = False, download_media: bool = True):
+    def __init__(self):
         """
         Utility class to provide a single entry point to a Collector in order to perform all storages operations
-        :param average_hash: should we also compute average hash to find similar images
-        :param download_media: should we download images and videos
         """
 
         self.storages: List[AsyncStorage] = []
         self.storage_tags: Dict[str, List[str]] = {}
 
         # self.media_storages = [self._resolve_storage(s) for s in media_storages]
-        self.average_hash = average_hash
-        self.download_media = download_media
         self.media_downloader = TwitterDownloader()
-        self.logger = logging.getLogger("Storage")
+        self.logger = logging.getLogger("StorageManager")
 
     def __str__(self):
         s = "    Tweets, Users and Rules stored at: \n                "
@@ -61,6 +57,16 @@ class AsyncStorageManager:
 
         if tags:
             self.add_storage_tags(storage, tags)
+
+    def remove_storages(self, names: List[str] = None):
+        to_delete = self.storages
+        if names:
+            to_delete = [s.name for s in to_delete if s.name in names]
+
+        for name in to_delete:
+            self.storage_tags.pop(name)
+
+        self.storages = [s for s in self.storages if s.name not in to_delete]
 
     async def save_tweet(self, tweet: RestTweet, tags: List[str] = None):
         for s in self.get_tweet_storages_by_tags(tags):
@@ -115,37 +121,6 @@ class AsyncStorageManager:
         tags = [r.tag for r in rules]
         for s in self.get_tweet_storages_by_tags(tags):
             await s.save_rules(rules)
-
-    # def get_non_existing_rules(self, ids: List[str], tags: List[str] = None):
-    #     """
-    #     Return the ids of the rules that are not saved in concerned storages
-    #     :param ids: ids of the rules to filter
-    #     :param tags: tags of the rules to filer
-    #     :return: the filtered list of ids
-    #     """
-    #     all_ids = []
-    #     for s in self.tweets_storages:
-    #         # if the rules should be saved for this storage
-    #         if s.valid_tags(tags):
-    #             # keep only ids that were not saved already
-    #             already_saved = [r.id for r in s.get_rules()]
-    #             all_ids = [*all_ids, *[_id for _id in ids if _id not in already_saved]]
-    #     return all_ids
-
-    # def get_rules(self, ids: List[str] = None, tags: List[str] = None) -> Iterator[StreamRule]:
-    #     """
-    #     Returns an iterator on the rules of the stream
-    #     :param ids: get some specific rules
-    #     :param tags: get some specific tags
-    #     :return:
-    #     """
-    #     for s in self.tweets_storages:
-    #         if s.valid_tags(tags):
-    #             for r in s.get_rules(ids):
-    #                 yield r
-    #
-    # def get_rules_ids(self, tags: List[str] = None) -> List[str]:
-    #     return [r.id for r in self.get_rules(tags=tags)]
 
     async def save_users(self, users: List[User], tags: List[str]):
         for s in self.get_tweet_storages_by_tags(tags):
@@ -214,30 +189,3 @@ class AsyncStorageManager:
     def _computer_average_signature(buffer: bytes):
         img = Image.open(BytesIO(buffer))
         return str(imagehash.average_hash(img))
-
-    # @staticmethod
-    # def _storage_from_config(config: StorageConfig):
-    #     """
-    #     Utility method that takes a StorageConfig as input and returns a storage
-    #     :param config: the storage config
-    #     """
-    # if isinstance(config, FileStorageConfig):
-    #     return FileStorage(**config.dict())
-    # elif isinstance(config, SSHFileStorageConfig):
-    #     return SSHStorage(**config.dict())
-    # if isinstance(config, ElasticTweetStorage):
-    # #     return ElasticTweetStorage(**config.dict())
-    # else:
-    #     raise ValueError(f"Unhandled type of storage: {type(config)}")
-
-    # def _resolve_storage(self, storage_or_config: StorageOrConfig) -> AsyncStorage:
-    #     """
-    #     Utility method to initialize a storage from a Storage Object or a StorageConfig
-    #     :param storage_or_config: an Object containing a Storage or a StorageConfig, and a list of tags associated
-    #     :return: a storage wrapper, which means a storage that exposes all methods to save or get data
-    #     """
-    #     if isinstance(storage_or_config, StorageConfig):
-    #         storage = self._storage_from_config(storage_or_config)
-    #     else:
-    #     storage = storage_or_config
-    #     return storage

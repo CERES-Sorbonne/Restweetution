@@ -1,16 +1,14 @@
 from typing import Callable
-
-import aiohttp
 from urllib.parse import urljoin
 
-from restweetution.models.stream_config import StreamConfig
+import aiohttp
 
 
 class AsyncClient(aiohttp.ClientSession):
-    def __init__(self, config: StreamConfig = None, base_url: str = "", error_handler: Callable = None):
+    def __init__(self, token: str, base_url: str = "https://api.twitter.com/2/", error_handler: Callable = None):
         super().__init__()
         self.base_url = base_url
-        self.headers.update({"Authorization": f"Bearer {config.token}"})
+        self.headers.update({"Authorization": f"Bearer {token}"})
         self.error_handler = error_handler
 
     def _request(self, method, url, **kwargs):

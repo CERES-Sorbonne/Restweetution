@@ -8,7 +8,7 @@
 # import requests
 # from PIL import Image
 #
-# from restweetution.models.stream_config import StorageConfig, FileStorageConfig, SSHFileStorageConfig, StorageOrConfig
+# from restweetution.models.stream_config import OsStorageConfig, FileStorageConfig, SSHFileStorageConfig, StorageOrConfig
 # from restweetution.models.tweet import TweetResponse, RuleRef, StreamRule, Media
 # from restweetution.storage import FileStorage, SSHStorage
 # from restweetution.storage.storage import Storage
@@ -176,9 +176,9 @@
 #         return str(imagehash.average_hash(img))
 #
 #     @staticmethod
-#     def _storage_from_config(config: StorageConfig):
+#     def _storage_from_config(config: OsStorageConfig):
 #         """
-#         Utility method that takes a StorageConfig as input and returns a storage
+#         Utility method that takes a OsStorageConfig as input and returns a storage
 #         :param config: the storage config
 #         """
 #         if isinstance(config, FileStorageConfig):
@@ -190,11 +190,11 @@
 #
 #     def _resolve_storage(self, storage_or_config: StorageOrConfig) -> Storage:
 #         """
-#         Utility method to initialize a storage from a Storage Object or a StorageConfig
-#         :param storage_or_config: a Object containing a Storage or a StorageConfig, and a list of tags associated
+#         Utility method to initialize a storage from a Storage Object or a OsStorageConfig
+#         :param storage_or_config: a Object containing a Storage or a OsStorageConfig, and a list of tags associated
 #         :return: a storage wrapper, which means a storage that exposes all methods to save or get tweet
 #         """
-#         if isinstance(storage_or_config, StorageConfig):
+#         if isinstance(storage_or_config, OsStorageConfig):
 #             storage = self._storage_from_config(storage_or_config)
 #         else:
 #             storage = storage_or_config

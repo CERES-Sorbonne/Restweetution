@@ -1,10 +1,6 @@
-import json
 import logging
 import time
-
 from typing import Union, Optional
-
-import yaml
 
 from restweetution.collectors.async_client import AsyncClient
 from restweetution.models.stream_config import StreamConfig
@@ -12,7 +8,7 @@ from restweetution.storage.async_storage_manager import AsyncStorageManager
 
 
 class AsyncCollector:
-    def __init__(self, storage_manager: AsyncStorageManager, config: Union[dict, str]):
+    def __init__(self, client: AsyncClient, storage_manager: AsyncStorageManager):
         """
         Class to define the mains methods of the different collectors (stream, search)
         It should not be instantiated on its own
@@ -24,46 +20,12 @@ class AsyncCollector:
         self._retry_count = 0
         self._config: Optional[StreamConfig] = None
         self._storages_manager = storage_manager
+        self._client = client
 
-        if config:
-            self.load_config(config)
         self._logger = logging.getLogger("Collector")
 
-    # async def init_client(self):
-    #     self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
-    #                                error_handler=self._error_handler)
-
-    def load_config(self, config: dict):
-        self._config = StreamConfig(**config)
-        self._init_client()
-
-    def _init_client(self):
-        self._client = AsyncClient(config=self._config, base_url="https://api.twitter.com/2/",
-                                   error_handler=self._error_handler)
-
-    @staticmethod
-    def resolve_config(config_param) -> StreamConfig:
-        """
-        Utility method to automatically transform the config_param in valid config object
-        :param config_param: either a dict containing the config, or a path to a json or yaml
-        :return: a Config objectA
-        """
-        if isinstance(config_param, dict):
-            return StreamConfig(**config_param)
-        elif isinstance(config_param, str) and config_param.split('.')[-1] == 'json':
-            try:
-                with open(config_param, 'r') as f:
-                    return StreamConfig(**json.load(f))
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON provided, the following error occurred trying to open the config: {e}")
-        elif isinstance(config_param, str) and config_param.split('.')[-1] == 'yaml':
-            try:
-                with open(config_param, 'r') as f:
-                    return StreamConfig(**yaml.safe_load(f))
-            except yaml.YAMLError as e:
-                raise ValueError(f"Invalid YAML provided, the following error occurred trying to open the config: {e}")
-        else:
-            raise ValueError("Invalid config provided")
+    def set_query_params(self):
+        pass
 
     def _create_params_from_config(self):
         params = {}

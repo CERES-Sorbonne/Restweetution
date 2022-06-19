@@ -12,7 +12,7 @@ logging.root.setLevel(logging.INFO)
 
 config = config.get_config()
 
-es_storage = ElasticTweetStorage(name='CERES_Elastic', es_config=config['elastic_config'])
+es_storage = ElasticTweetStorage(es_config=config['elastic_config'])
 # es_storage = ElasticTweetStorage(name='Localhost_Elastic',
 #                                  es_config={
 #                                      "url": "http://localhost:9200",
@@ -26,11 +26,10 @@ config1 = {
     'average_hash': True
 }
 
-
 async def launch():
+
     storage_manager = AsyncStorageManager()
     storage_manager.add_storage(es_storage, ['Rule'])
-
     streamer = AsyncStreamer(storage_manager, config1)
     await streamer.add_stream_rules({'Rule': '(johnny) OR (depp)'})
 

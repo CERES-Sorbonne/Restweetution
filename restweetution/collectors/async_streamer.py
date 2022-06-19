@@ -6,6 +6,7 @@ from typing import Union, List, Dict
 
 import requests
 
+from restweetution.collectors.async_client import AsyncClient
 from restweetution.collectors.async_collector import AsyncCollector
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.tweet import TweetResponse, RestTweet
@@ -14,18 +15,17 @@ from restweetution.storage.async_storage_manager import AsyncStorageManager
 
 
 class AsyncStreamer(AsyncCollector):
-    def __init__(self, storage_manager: AsyncStorageManager, config: Union[dict, str]):
+    def __init__(self, client: AsyncClient, storage_manager: AsyncStorageManager):
         # Member declaration before super constructor
         self._params = None
         self._fetch_minutes = False
 
-        super(AsyncStreamer, self).__init__(storage_manager, config)
+        super(AsyncStreamer, self).__init__(client, storage_manager)
 
         # use a cache to store the rules
         self.rule_cache: Dict[str, StreamRule] = {}
 
     def load_config(self, config: dict):
-        super().load_config(config)
         # compute request parameters
         self._params = self._create_params_from_config()
         self._fetch_minutes = self._config.fetch_minutes
