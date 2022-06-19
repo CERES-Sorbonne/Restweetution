@@ -9,7 +9,10 @@ class AsyncClient(aiohttp.ClientSession):
         super().__init__()
         self.base_url = base_url
         self.headers.update({"Authorization": f"Bearer {token}"})
-        self.error_handler = error_handler
+        self._error_handler = error_handler
+
+    def set_error_handler(self, error_handler: Callable):
+        self._error_handler = error_handler
 
     def _request(self, method, url, **kwargs):
         modified_url = urljoin(self.base_url, url)
@@ -17,4 +20,4 @@ class AsyncClient(aiohttp.ClientSession):
             res = super()._request(method, modified_url, **kwargs)
             return res
         except aiohttp.ClientResponseError as e:
-            self.error_handler(str(e), e.message)
+            self._error_handler(str(e), e.message)

@@ -1,36 +1,32 @@
-import aiohttp
 import asyncio
-
 import json
-from typing import Union, List, Dict
+from typing import List, Dict
 
+import aiohttp
 import requests
 
 from restweetution.collectors.async_client import AsyncClient
 from restweetution.collectors.async_collector import AsyncCollector
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.tweet import TweetResponse, RestTweet
 from restweetution.models.stream_rule import StreamRule, RuleResponse
+from restweetution.models.tweet import TweetResponse, RestTweet
 from restweetution.storage.async_storage_manager import AsyncStorageManager
 
 
 class AsyncStreamer(AsyncCollector):
-    def __init__(self, client: AsyncClient, storage_manager: AsyncStorageManager):
+    def __init__(self, client: AsyncClient, storage_manager: AsyncStorageManager, verbose: bool = False):
         # Member declaration before super constructor
         self._params = None
         self._fetch_minutes = False
 
-        super(AsyncStreamer, self).__init__(client, storage_manager)
+        super(AsyncStreamer, self).__init__(client, storage_manager, verbose=verbose)
 
         # use a cache to store the rules
         self.rule_cache: Dict[str, StreamRule] = {}
 
-    def load_config(self, config: dict):
+    def set_backfill_minutes(self, backfill_minutes: int):
         # compute request parameters
-        self._params = self._create_params_from_config()
-        self._fetch_minutes = self._config.fetch_minutes
-        if self._fetch_minutes:
-            self._params = {**self._params, 'backfill_minutes': self._fetch_minutes}
+        self._params['backfill_minutes'] = backfill_minutes
 
     async def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
         """
@@ -119,10 +115,10 @@ class AsyncStreamer(AsyncCollector):
     async def add_stream_rules(self, rule_definitions: Dict[str, str]) -> List[StreamRule]:
         rules = []
         # convert to Twitter api Rule format
-        for t, r in rule_definitions.items():
+        for tag, rule in rule_definitions.items():
             rules.append({
-                "tag": t,
-                "value": r
+                "tag": tag,
+                "value": rule
             })
         # make api call
         new_rules = await self._api_add_rules(rules)
@@ -194,7 +190,7 @@ class AsyncStreamer(AsyncCollector):
     #
     def _log_tweets(self, tweet: TweetResponse):
         self.tweets_count += 1
-        if self._config.verbose:
+        if self._verbose:
             self._logger.info(tweet.data.text)
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
@@ -288,7 +284,7 @@ class AsyncStreamer(AsyncCollector):
             except aiohttp.ClientConnectorError as e:
                 self._logger.error(e)
                 self._retry_count += 1
-                if self._retry_count < self._config.max_retries:
+                if self._retry_count < self._max_retries:
                     self._logger.error("""The collect will try to start again in 30s""")
                     await asyncio.sleep(30)
                     await self.collect()

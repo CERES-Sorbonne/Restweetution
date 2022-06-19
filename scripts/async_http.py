@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import restweetution.config as config
+from restweetution.collectors.async_client import AsyncClient
 from restweetution.collectors.async_streamer import AsyncStreamer
 from restweetution.models.examples_config import ALL_CONFIG
 from restweetution.storage.async_storage_manager import AsyncStorageManager
@@ -22,20 +23,23 @@ es_storage = ElasticTweetStorage(es_config=config['elastic_config'])
 config1 = {
     'token': config['token'],
     'verbose': False,
-    'tweet_config': ALL_CONFIG.dict(),
+    'tweet_config': ALL_CONFIG,
     'average_hash': True
 }
 
-async def launch():
 
+async def launch():
+    client = AsyncClient(config1['token'])
     storage_manager = AsyncStorageManager()
     storage_manager.add_storage(es_storage, ['Rule'])
-    streamer = AsyncStreamer(storage_manager, config1)
+    streamer = AsyncStreamer(client, storage_manager)
+    streamer.set_query_params(config1['tweet_config'])
     await streamer.add_stream_rules({'Rule': '(johnny) OR (depp)'})
 
     asyncio.create_task(streamer.collect())
     # asyncio.create_task(run_server())
     # await task
+
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())
