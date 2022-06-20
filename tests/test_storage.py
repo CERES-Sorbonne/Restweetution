@@ -5,7 +5,7 @@ import os
 import pytest
 from PIL import Image
 
-from restweetution.models.config import FileStorageConfig
+from restweetution.models.stream_config import FileStorageConfig
 from restweetution.storage.object_storage.filestorage_helper import FileStorageHelper
 
 

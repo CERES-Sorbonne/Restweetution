@@ -92,7 +92,7 @@ class Tweet(BaseModel):
     id: str
     text: str
     attachments: Optional[Attachments]
-    author_id: str
+    author_id: Optional[str]
     context_annotations: Optional[List[ContextAnnotation]]
     conversation_id: Optional[str]
     created_at: Optional[str]

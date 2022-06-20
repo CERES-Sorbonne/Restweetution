@@ -1,10 +1,11 @@
 imagehash
 PyYAML
 pydantic
-httpx
+requests
 pillow
 ffmpeg-python
 m3u8
 pysftp
 elasticsearch
+aiohttp
 aiofiles

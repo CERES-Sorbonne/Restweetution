@@ -16,7 +16,7 @@ UserField = Literal["created_at", "description", "entities", "location", "pinned
 MediaField = Literal["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url"]
 
 
-class TweetConfig(BaseModel):
+class QueryParams(BaseModel):
     expansions: Optional[List[Expansion]]
     tweetFields: Optional[List[TweetField]]
     mediaFields: Optional[List[MediaField]]
