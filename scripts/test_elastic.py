@@ -13,7 +13,11 @@ logging.root.setLevel(logging.INFO)
 
 config = config.get_config()
 
-es_storage = ElasticTweetStorage(es_config=config['elastic_config'])
+esc = config['elastic_config']
+es_storage = ElasticTweetStorage(name=esc['name'],
+                                 es_url=esc['url'],
+                                 es_user=esc['user'],
+                                 es_pwd=esc['pwd'])
 # es_storage = ElasticTweetStorage(name='Localhost_Elastic',
 #                                  es_config={
 #                                      "url": "http://localhost:9200",
@@ -37,9 +41,6 @@ async def launch():
     await streamer.add_stream_rules({'Rule': '(johnny) OR (depp)'})
 
     asyncio.create_task(streamer.collect())
-    # asyncio.create_task(run_server())
-    # await task
-
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())
