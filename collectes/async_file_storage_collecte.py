@@ -4,7 +4,7 @@ import logging
 import os
 
 from restweetution.collectors import AsyncStreamer
-from restweetution.models.examples_config import MEDIUM_CONFIG
+from restweetution.models.config.query_params_config import MEDIUM_CONFIG
 from restweetution.storage.async_storage_manager import AsyncStorageManager
 from restweetution.storage.object_storage.async_object_storage import AsyncFileStorage
 

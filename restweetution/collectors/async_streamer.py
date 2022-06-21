@@ -103,7 +103,7 @@ class AsyncStreamer(AsyncCollector):
         ids = [r.id for r in self._persistent_rule_cache.values()]
         await self.remove_stream_rules(ids)
 
-    def preset_stream_rules(self, rules: Dict[str, str]):
+    def preset_stream_rules(self, rules: List[Dict[str, str]]):
         self._preset_stream_rules = rules
 
     async def set_stream_rules(self, rules: List[Dict[str, str]]) -> List[StreamRule]:

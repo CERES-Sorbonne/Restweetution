@@ -2,7 +2,7 @@ from typing import Optional, Union, Callable
 
 from pydantic import BaseModel
 
-from restweetution.models.examples_config import BASIC_CONFIG
+from restweetution.models.config.query_params_config import BASIC_CONFIG
 from restweetution.models.tweet_config import QueryParams
 
 

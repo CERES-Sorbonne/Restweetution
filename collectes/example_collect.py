@@ -2,8 +2,7 @@ import json
 import logging
 import os
 
-from restweetution.collectors import AsyncStreamer
-from restweetution.models.examples_config import MEDIUM_CONFIG
+from restweetution.models.config.query_params_config import MEDIUM_CONFIG
 from restweetution.storage import FileStorage
 
 if __name__ == "__main__":

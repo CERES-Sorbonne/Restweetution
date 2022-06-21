@@ -1,12 +1,11 @@
 import json
-import os
 
 import yaml
 
 from restweetution.collectors import AsyncStreamer
 from restweetution.collectors.async_client import AsyncClient
 from restweetution.models.config.main_config import MainConfig
-from restweetution.models.stream_config import StreamConfig
+from restweetution.models.config.query_params_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.storage.async_storage_manager import AsyncStorageManager
 from restweetution.storage.elastic_storage.elastic_storage import ElasticTweetStorage
 
@@ -71,10 +70,36 @@ def parse_streamer_config(main_conf: MainConfig, data: dict):
         if 'streamer' in data:
             s_data = data['streamer']
             if 'verbose' in s_data:
-                streamer.set_verbose(s_data['verbose'])
+                main_conf.streamer_verbose = s_data['verbose']
+                streamer.set_verbose(main_conf.streamer_verbose)
             if 'rules' in s_data:
-                streamer.preset_stream_rules(s_data['rules'])
+                main_conf.streamer_rules = s_data['rules']
+                streamer.preset_stream_rules(main_conf.streamer_rules)
+            if 'query_params' in s_data:
+                parse_query_params(main_conf, s_data['query_params'])
+                streamer.set_query_params(main_conf.streamer_query_params)
+        print(main_conf.streamer_query_params)
         main_conf.streamer = streamer
+
+
+def parse_query_params(main_conf: MainConfig, data: dict):
+    """
+    Parse query params from config
+    :param main_conf: MainConfig to populate
+    :param data: query_params data from config
+    """
+    if 'pre_set' in data:
+        value = data['pre_set'].lower()
+        if value == 'all':
+            main_conf.streamer_query_params = ALL_CONFIG
+        elif value == 'medium':
+            main_conf.streamer_query_params = MEDIUM_CONFIG
+        elif value == 'basic':
+            main_conf.streamer_query_params = BASIC_CONFIG
+    elif 'file' in data:
+        main_conf.streamer_query_params = read_conf(data['file'])
+    else:
+        main_conf.streamer_query_params = data
 
 
 def parse_client_config(main_conf: MainConfig, data: dict):
@@ -96,10 +121,10 @@ def parse_storage_config(main_conf: MainConfig, data: dict):
     """
     if 'tweet_storages' in data:
         for key, value in data['tweet_storages'].items():
-            main_conf.tweet_storages.append(create_storage(key, value))
+            main_conf.storage_tweet_storages.append(create_storage(key, value))
     if 'storage_tags' in data:
         main_conf.storage_tags = data['storage_tags']
-        for storage in main_conf.tweet_storages:
+        for storage in main_conf.storage_tweet_storages:
             if storage.name not in main_conf.storage_tags:
                 main_conf.storage_tags[storage.name] = []
     main_conf.storage_manager = create_storage_manager(main_conf)
@@ -112,7 +137,7 @@ def create_storage_manager(main_conf: MainConfig) -> AsyncStorageManager:
     :return: storage_manager
     """
     manager = AsyncStorageManager()
-    for storage in main_conf.tweet_storages:
+    for storage in main_conf.storage_tweet_storages:
         manager.add_storage(storage=storage, tags=main_conf.storage_tags[storage.name])
     return manager
 
