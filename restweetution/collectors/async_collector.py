@@ -49,6 +49,9 @@ class AsyncCollector:
     #             if isinstance(other, str):
     #                 return self.name.lower() == other
 
+    def set_verbose(self, value: bool):
+        self._verbose = value
+
     def _error_handler(self, error: str, status_code: int):
         self._logger.error(f"A new http error occurred with status: {status_code}, {error}")
         self._retry_count += 1

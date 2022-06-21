@@ -18,42 +18,58 @@ class AsyncStreamer(AsyncCollector):
         # Member declaration before super constructor
         self._params = None
         self._fetch_minutes = False
+        self._preset_stream_rules = None      # used to preset rules in non-async context (config)
 
         super(AsyncStreamer, self).__init__(client, storage_manager, verbose=verbose)
 
         # use a cache to store the rules
-        self.rule_cache: Dict[str, StreamRule] = {}
+        self._persistent_rule_cache: Dict[str, StreamRule] = {}
+        self._active_rule_cache: Dict[str, StreamRule] = {}
+
+    def _cache_persistent_rule(self, rule):
+        self._persistent_rule_cache[rule.id] = rule
+
+    def _cache_active_rule(self, rule):
+        self._active_rule_cache[rule.id] = rule
+        self._cache_persistent_rule(rule)
+
+    def _remove_active_cache_rule(self, r_id):
+        self._active_rule_cache.pop(r_id)
 
     def set_backfill_minutes(self, backfill_minutes: int):
         # compute request parameters
         self._params['backfill_minutes'] = backfill_minutes
 
-    async def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
+    async def get_active_rules(self) -> List[StreamRule]:
         """
         Return the list of rules defined to collect tweets during a stream
         Once fetched with the API, the rules are cached
-        :param ids: an optional list of ids to fetch only specific rules
         :return: the list of rules
         """
-        if not self.rule_cache or self._rule_is_missing(ids):
+        if not self._active_rule_cache:
             await self._load_rule_cache()
 
-        rules = self.rule_cache.values()
+        return list(self._active_rule_cache.values())
+
+    async def get_rules_from_cache(self, ids):
+        if not self._persistent_rule_cache or self._rule_is_missing(ids):
+            print('load 1')
+            print(ids)
+            print(self._persistent_rule_cache)
+            await self._load_rule_cache()
+
+        rules = self._persistent_rule_cache.values()
         if ids:
             rules = [r for r in rules if r.id in ids]
         return rules
 
-    async def get_rule(self, r_id: str) -> StreamRule:
-        res = await self.get_rules([r_id])
-        return res[0]
-
     def _rule_is_missing(self, ids):
-        if not self.rule_cache:
+        if not self._persistent_rule_cache:
             return True
         if not ids:
             return False
         for i in ids:
-            if not self.rule_cache[i]:
+            if i not in self._persistent_rule_cache:
                 return True
         return False
 
@@ -82,12 +98,15 @@ class AsyncStreamer(AsyncCollector):
         """
         # self._logger('Removing all rules')
         await self._load_rule_cache()
-        if not self.rule_cache:
+        if not self._persistent_rule_cache:
             return
-        ids = [r.id for r in self.rule_cache.values()]
+        ids = [r.id for r in self._persistent_rule_cache.values()]
         await self.remove_stream_rules(ids)
 
-    async def set_stream_rules(self, rules: Dict[str, str]) -> List[StreamRule]:
+    def preset_stream_rules(self, rules: Dict[str, str]):
+        self._preset_stream_rules = rules
+
+    async def set_stream_rules(self, rules: List[Dict[str, str]]) -> List[StreamRule]:
         """
         Like add_rule but instead removes all rules and then set the rules :rules:
         :param rules: a dict in the form tag: rule
@@ -109,23 +128,17 @@ class AsyncStreamer(AsyncCollector):
         :return: the id of the created rule (can be used to delete the rule later)
         """
 
-        res = await self.add_stream_rules({rule: tag})
+        res = await self.add_stream_rules([{'tag': tag, 'value': rule}])
         return res[0]
 
-    async def add_stream_rules(self, rule_definitions: Dict[str, str]) -> List[StreamRule]:
-        rules = []
-        # convert to Twitter api Rule format
-        for tag, rule in rule_definitions.items():
-            rules.append({
-                "tag": tag,
-                "value": rule
-            })
+    async def add_stream_rules(self, rule_definitions: List[Dict[str, str]]) -> List[StreamRule]:
         # make api call
-        new_rules = await self._api_add_rules(rules)
+        new_rules = await self._api_add_rules(rule_definitions)
 
         # add new rules to cache
         for r in new_rules:
-            self.rule_cache[r['id']] = r
+            rule = StreamRule(**r)
+            self._cache_active_rule(rule)
             self._logger.info(f'Cached rule: {r["tag"]}')
         return new_rules
 
@@ -153,14 +166,15 @@ class AsyncStreamer(AsyncCollector):
             await self._load_rule_cache()
         else:
             for r_id in deleted_ids:
-                self.rule_cache.pop(r_id)
+                self._remove_active_cache_rule(r_id)
 
     async def _load_rule_cache(self):
         self._logger.info('Load Stream Rules from API into cache')
         rules = await self._api_get_rules()
-        self.rule_cache = {}
+        print(rules)
+        self._persistent_rule_cache = {}
         for r in rules:
-            self.rule_cache[r.id] = r
+            self._cache_active_rule(r)
 
     async def _api_remove_rules(self, ids: List[str]):
         """
@@ -201,8 +215,9 @@ class AsyncStreamer(AsyncCollector):
 
         # Get the full rule from the id in matching_rules
         rules_ref = tweet_res.matching_rules
-        rules_id = [r.id for r in rules_ref]
-        rules = await self.get_rules(rules_id)
+        rule_ids = [r.id for r in rules_ref]
+
+        rules = await self.get_rules_from_cache(rule_ids)
         tags = [r.tag for r in rules]
         bulk_data.rules = rules
         # await self._storages_manager.save_rules(rules)
@@ -252,8 +267,12 @@ class AsyncStreamer(AsyncCollector):
         """
         super().collect()
 
+        # if rules are preset, set them now
+        if self._preset_stream_rules:
+            await self.set_stream_rules(self._preset_stream_rules)
+            self._preset_stream_rules = None
         # check if some rules are configured
-        rules = await self.get_rules()
+        rules = await self.get_active_rules()
         if len(rules) == 0:
             self._logger.warning("Stream started but no rules are configured currently, use add_rule to add a new_rule")
         else:
