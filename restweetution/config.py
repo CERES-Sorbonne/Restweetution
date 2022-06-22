@@ -78,7 +78,6 @@ def parse_streamer_config(main_conf: MainConfig, data: dict):
             if 'query_params' in s_data:
                 parse_query_params(main_conf, s_data['query_params'])
                 streamer.set_query_params(main_conf.streamer_query_params)
-        print(main_conf.streamer_query_params)
         main_conf.streamer = streamer
 
 
