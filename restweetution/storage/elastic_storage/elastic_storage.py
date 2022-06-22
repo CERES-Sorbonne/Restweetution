@@ -22,7 +22,7 @@ class ElasticTweetStorage(AsyncStorage):
         :param es_config: Connection configuration. Dictionary has 3 fields: url, user, pwd
         """
 
-        super().__init__(name=name, tweet=True)
+        super().__init__(name=name)
         self.rules = {}
         self.es = AsyncElasticsearch(es_url, basic_auth=(es_user, es_pwd))
 

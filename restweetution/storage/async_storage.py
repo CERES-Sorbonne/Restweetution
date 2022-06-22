@@ -10,21 +10,17 @@ from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTwee
 
 
 class AsyncStorage(ABC):
-    def __init__(self, name: str = None, tweet: bool = False, media: bool = False, tags: List[str] = None,
+    def __init__(self, name: str = None, tags: List[str] = None,
                  interval: int = 2, buffer_size: int = 100):
         """
         Abstract Class that provides the template for every other storage
         :param name: Give a name to identify this Storage Later
-        :param tweet: Is this storage used to store tweets ?
-        :param media: Is this storage used to store media ?
-        :param tags: Store only the data gathered with the rules identified with these tags.
-        :param interval: Clear storage every X seconds.
-        :param buffer_size: Max number of data the buffer can contain.
+        :param tags: Store only the data gathered with the rules identified with these tags
+        :param interval: Clear storage every X seconds
+        :param buffer_size: Max number of data the buffer can contain
         """
         self.name = name
         self.tags_to_save = tags
-        self._is_tweet_storage = tweet
-        self._is_media_storage = media
 
         self._buffer_bulk_data: BulkData = BulkData()
         self._flush_interval = interval
@@ -33,15 +29,6 @@ class AsyncStorage(ABC):
         self._last_buffer_flush: float = 0
 
         self._periodic_flush_task: Optional[asyncio.Task] = None
-
-        if not self._is_media_storage and not self._is_tweet_storage:
-            raise Exception(f'Storage: {self.name} tweet and media cant both be False')
-
-    def is_tweet_storage(self):
-        return self._is_tweet_storage
-
-    def is_media_storage(self):
-        return self._is_media_storage
 
     def buffered_bulk_save(self, data: BulkData):
         """
@@ -116,7 +103,7 @@ class AsyncStorage(ABC):
     async def save_users(self, users: List[User]):
         pass
 
-    async def get_users(self, ids:List[str] = None) -> Iterator[User]:
+    async def get_users(self, ids: List[str] = None) -> Iterator[User]:
         pass
 
     async def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:

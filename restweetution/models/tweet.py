@@ -118,6 +118,7 @@ class TweetIncludes(BaseModel):
 
 class RestTweet(Tweet):
     matching_rules: Optional[List[StreamRule]]
+    author_username: Optional[str]
 
 
 class TweetResponse(BaseModel):

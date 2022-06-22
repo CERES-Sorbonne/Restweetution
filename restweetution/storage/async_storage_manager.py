@@ -21,12 +21,15 @@ class AsyncStorageManager:
         Utility class to provide a single entry point to a Collector in order to perform all storages operations
         """
 
-        self.storages: List[AsyncStorage] = []
+        self._tweet_storages: List[AsyncStorage] = []
+        self._media_storages: List[AsyncStorage] = []
         self.storage_tags: Dict[str, List[str]] = {}
 
         # self.media_storages = [self._resolve_storage(s) for s in media_storages]
         self.media_downloader = TwitterDownloader()
         self.logger = logging.getLogger("StorageManager")
+
+        self.average_hash = False
 
     def __str__(self):
         s = "    Tweets, Users and Rules stored at: \n                "
@@ -49,24 +52,24 @@ class AsyncStorageManager:
         self.storage_tags[name] = [s for s in self.storage_tags[name] if s not in tags]
 
     def add_storage(self, storage: AsyncStorage, tags: List[str] = None):
-        if storage.name in [s.name for s in self.storages]:
+        if storage.name in [s.name for s in self._tweet_storages]:
             self.logger.warning(f'Storage name must be unique! name: {storage.name} is already taken')
             return
-        self.storages.append(storage)
+        self._tweet_storages.append(storage)
         self.storage_tags[storage.name] = []
 
         if tags:
             self.add_storage_tags(storage, tags)
 
     def remove_storages(self, names: List[str] = None):
-        to_delete = self.storages
+        to_delete = self._tweet_storages
         if names:
             to_delete = [s.name for s in to_delete if s.name in names]
 
         for name in to_delete:
             self.storage_tags.pop(name)
 
-        self.storages = [s for s in self.storages if s.name not in to_delete]
+        self._tweet_storages = [s for s in self._tweet_storages if s.name not in to_delete]
 
     async def save_tweet(self, tweet: RestTweet, tags: List[str] = None):
         for s in self.get_tweet_storages_by_tags(tags):
@@ -80,12 +83,12 @@ class AsyncStorageManager:
         return len(shared) > 0
 
     def get_storages_by_tags(self, tags: List[str]):
-        storages = self.storages
+        storages = self._tweet_storages
         storages = [s for s in storages if self.has_tags(s, tags)]
         return storages
 
     def get_tweet_storages(self):
-        return [s for s in self.storages if s.is_tweet_storage()]
+        return self._tweet_storages
 
     def get_tweet_storages_by_tags(self, tags: List[str]):
         # get tweet storages
@@ -94,7 +97,7 @@ class AsyncStorageManager:
         return storages
 
     def get_media_storages(self):
-        return [s for s in self.storages if s.is_media_storage()]
+        return self._media_storages
 
     def get_media_storages_by_tags(self, tags):
         storages = self.get_media_storages()

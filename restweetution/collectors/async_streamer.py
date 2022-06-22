@@ -18,7 +18,7 @@ class AsyncStreamer(AsyncCollector):
         # Member declaration before super constructor
         self._params = None
         self._fetch_minutes = False
-        self._preset_stream_rules = None      # used to preset rules in non-async context (config)
+        self._preset_stream_rules = None  # used to preset rules in non-async context (config)
 
         super(AsyncStreamer, self).__init__(client, storage_manager, verbose=verbose)
 
@@ -103,7 +103,7 @@ class AsyncStreamer(AsyncCollector):
         ids = [r.id for r in self._persistent_rule_cache.values()]
         await self.remove_stream_rules(ids)
 
-    def preset_stream_rules(self, rules: List[Dict[str, str]]):
+    def pre_set_stream_rules(self, rules: List[Dict[str, str]]):
         self._preset_stream_rules = rules
 
     async def set_stream_rules(self, rules: List[Dict[str, str]]) -> List[StreamRule]:
@@ -227,13 +227,14 @@ class AsyncStreamer(AsyncCollector):
             bulk_data.users = tweet_res.includes.users
             # await self._storages_manager.save_users(tweet_res.includes.users, tags)
 
-        # We save rules that triggered this tweet inside the tweet data to make sure we don't lose it
+        # Add tweet to bulk_data
         tweet = RestTweet(**tweet_res.data.dict())
-        tweet.matching_rules = rules
-        # Send the full data to the storages
         bulk_data.tweets = [tweet]
-        # await self._storages_manager.save_tweet(tweet, tags)
 
+        # Enrich data by de-normalizing some fields
+        self._enrich_data(bulk_data, tweet_res)
+
+        # send data to storage manager
         self._storages_manager.bulk_save(bulk_data, tags)
         # await self._save_media(tweet_res)
 
@@ -242,6 +243,19 @@ class AsyncStreamer(AsyncCollector):
     #     # save media if there are some
     #     if tweet_res.includes and tweet_res.includes.media:
     #         await self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
+
+    @staticmethod
+    def _enrich_data(bulk_data: BulkData, tweet_response: TweetResponse):
+
+        for tweet in bulk_data.tweets:
+            # We save rules that triggered the tweets inside the tweet data to make sure we don't lose it
+            tweet_rule_ids = [r.id for r in tweet_response.matching_rules]
+            tweet.matching_rules = [r for r in bulk_data.rules if r.id in tweet_rule_ids]
+
+            # If user data is given we add author username to tweet
+            user = next((u for u in bulk_data.users if u.id == tweet.author_id), None)
+            if user:
+                tweet.author_username = user.username
 
     def _handle_errors(self, errors: List[dict]) -> None:
         """
