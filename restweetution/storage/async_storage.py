@@ -75,7 +75,7 @@ class AsyncStorage(ABC):
             if time_diff >= self._flush_interval:
                 self._flush_buffer()
                 time_diff = 0
-                print(f'Timout flush: {time.time()}')
+                print(f'Timeout flush: {time.time()}')
 
             await asyncio.sleep(self._flush_interval - time_diff)
 

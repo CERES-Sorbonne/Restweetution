@@ -11,3 +11,4 @@ aiohttp
 aiofiles
 sqlalchemy
 psycopg2
+httpx

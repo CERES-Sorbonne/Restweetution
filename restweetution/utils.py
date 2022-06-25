@@ -1,23 +1,16 @@
 import logging
+import re
+import shutil
 import sys
 import tempfile
-from typing import Dict
-
-import requests
 import urllib.parse
-import m3u8
 from pathlib import Path
-import re
+
 import ffmpeg
-import shutil
+import m3u8
+import requests
 
 from restweetution.models.twitter.media import MediaType
-from restweetution.storage.elastic_storage.elastic_storage import ElasticTweetStorage
-
-
-def resolve_storage(storage_config: Dict[str, str]):
-    if storage_config.type == "elastic_tweet":
-        return ElasticTweetStorage(storage_config)
 
 
 class TwitterDownloader:

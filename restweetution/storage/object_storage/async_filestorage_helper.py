@@ -12,7 +12,7 @@ class AsyncFileStorageHelper(AsyncStorageHelper):
         super().__init__()
         self._root = root
         self.max_size = max_size
-        # use this so we can override it in the ssh client
+        # use this, so we can override it in the ssh client
         self._open = open
         # same for join
         self._join_path = os.path.join

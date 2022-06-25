@@ -18,7 +18,6 @@ class ElasticTweetStorage(AsyncStorage):
         """
         Storage for Elasticsearch stack
         :param name: Name of the storage. Human friendly identifier
-        :param es_config: Connection configuration. Dictionary has 3 fields: url, user, pwd
         """
 
         super().__init__(name=name)

@@ -53,7 +53,3 @@ class PostgresStorage(AsyncStorage):
                 pg_poll.update(poll.dict())
                 await session.merge(pg_poll)
             await session.commit()
-
-
-
-

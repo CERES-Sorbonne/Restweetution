@@ -5,7 +5,7 @@ from typing import Union
 
 class AsyncStorageHelper(ABC):
     """
-    Meta class to define some generic storage methods that will be implemented in every type of storage
+    Metaclass to define some generic storage methods that will be implemented in every type of storage
     """
     def __init__(self, *args, **kwargs):
         self.root = None
@@ -40,7 +40,7 @@ class AsyncStorageHelper(ABC):
         List all objects in the root directory
         :param prefix: used to filter the results (name, subdirectory) etc.
         for instance, storage.list(prefix="/tweet") will return all objects stored under the tweet repository
-        :param recursive: if set to true, will recurse trough all subfolders
+        :param recursive: if set to true, will recurse through all sub folders
         :return: a list of strings containing the keys of the objects
         """
         pass

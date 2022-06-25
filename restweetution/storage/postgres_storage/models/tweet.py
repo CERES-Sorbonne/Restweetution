@@ -19,15 +19,49 @@ class Tweet(Base):
     author_id = Column(String, nullable=True)
     conversation_id = Column(String, nullable=True)
     in_reply_to_user_id = Column(String, nullable=True)
-    referenced_tweets = relationship('ReferencedTweet', cascade="all,delete,delete-orphan", backref='_parent')  # one-to-many
-    attachments = relationship('Attachment', cascade="all,delete,delete-orphan", back_populates="_parent", uselist=False)  # one-to-one
-    geo = relationship('Geo', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
-    context_annotations = relationship('ContextAnnotation', cascade="all,delete,delete-orphan", backref='_parent')  # one-to-many
-    entities = relationship('TweetEntities', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
-    withheld = relationship('TweetWithheld', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
-    public_metrics = relationship('TweetPublicMetrics', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
-    organic_metrics = relationship('TweetOrganicMetrics', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
-    promoted_metrics = relationship('TweetPromotedMetrics', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
+    referenced_tweets = relationship(
+        'ReferencedTweet',
+        cascade="all,delete,delete-orphan",
+        backref='_parent')  # one-to-many
+    attachments = relationship(
+        'Attachment',
+        cascade="all,delete,delete-orphan",
+        back_populates="_parent",
+        uselist=False)  # one-to-one
+    geo = relationship(
+        'Geo',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
+    context_annotations = relationship(
+        'ContextAnnotation',
+        cascade="all,delete,delete-orphan",
+        backref='_parent')  # one-to-many
+    entities = relationship(
+        'TweetEntities',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
+    withheld = relationship(
+        'TweetWithheld',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
+    public_metrics = relationship(
+        'TweetPublicMetrics',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
+    organic_metrics = relationship(
+        'TweetOrganicMetrics',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
+    promoted_metrics = relationship(
+        'TweetPromotedMetrics',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
     possibly_sensitive = Column(Boolean, nullable=True)
     lang = Column(String, nullable=True)
     source = Column(String, nullable=True)

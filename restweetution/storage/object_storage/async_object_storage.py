@@ -3,23 +3,21 @@ import json
 import logging
 import os
 from abc import ABC
-from typing import List, Union, Iterator
+from typing import List, Iterator
 
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule
 from .async_filestorage_helper import AsyncFileStorageHelper
-from .sshfilestorage_helper import SSHFileStorageHelper
 from ..async_storage import AsyncStorage
 
 
 class AsyncObjectStorage(AsyncStorage, ABC):
 
-    def __init__(self, storage_helper: Union[AsyncFileStorageHelper, SSHFileStorageHelper], tags: List[str] = None, max_size: int = None):
+    def __init__(self, storage_helper: AsyncFileStorageHelper, tags: List[str] = None):
         """
         Generic Object Storage, like FileStorage or SSHFileStorage
         Provide a simple interface to manipulate tweets and media for all kind of Object Storages
         Note: all undocumented methods are documented in parent class
         :param storage_helper: a storage helper depending on the type of storage
-        :param max_size: the maximum size available
         """
         # TODO: changer le tweet et media pour que ça soit géré par le storage manager
         super(AsyncObjectStorage, self).__init__(tags=tags, tweet=True, media=True)
@@ -73,13 +71,13 @@ class AsyncObjectStorage(AsyncStorage, ABC):
             # filter all files to fetch, keep only the ones with the ids specified in parameter
             files = [f for f in files if f.split('.')[0] in ids]
         for f in files:
-            yield StreamRule(**json.load(self.storage_helper.get(self.rules(f))))
+            yield StreamRule(**json.load(await self.storage_helper.get(self.rules(f))))
 
     def save_users(self, users: List[User]):
         pass
 
     def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
-        return self.storage_helper.put(buffer, file_name)
+        return await self.storage_helper.put(buffer, file_name)
 
     def get_media(self, media_key) -> io.BufferedIOBase:
         pass
@@ -96,7 +94,7 @@ class AsyncObjectStorage(AsyncStorage, ABC):
         self.storage_helper.put(signature, self.media_links(media_key))
         # then save the signature -> media_key link in a file to be able to count easily identical images
         self.save_signature_file(media_key, signature)
-        # if we also have a average hash, save it the same way
+        # if we also have an average hash, save it the same way
         if average:
             self.save_signature_file(media_key, average)
 
@@ -104,7 +102,8 @@ class AsyncObjectStorage(AsyncStorage, ABC):
         if not self.storage_helper.exists(self.media_links(signature)):
             self.storage_helper.put(media_key, self.media_links(signature))
         else:
-            content = self.storage_helper.get(self.media_links(signature)).read().decode()
+            sign = await self.storage_helper.get(self.media_links(signature))
+            content = sign.read().decode()
             content += "\n" + media_key
             self.storage_helper.put(content, self.media_links(signature))
 

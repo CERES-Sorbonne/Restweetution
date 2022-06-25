@@ -1,8 +1,7 @@
-import os
-
-from aiohttp import web
 from pathlib import Path
+
 import aiofiles
+from aiohttp import web
 
 app = web.Application()
 routes = web.RouteTableDef()

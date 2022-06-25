@@ -62,11 +62,27 @@ class Media(Base):
     url = Column(String, nullable=True)
     duration_ms = Column(Integer, nullable=True)
     height = Column(Integer, nullable=True)
-    non_public_metrics = relationship('MediaNonPublicMetrics', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
-    organic_metrics = relationship('MediaOrganicMetrics', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
+    non_public_metrics = relationship(
+        'MediaNonPublicMetrics',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
+    organic_metrics = relationship(
+        'MediaOrganicMetrics',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
     preview_image_url = Column(String, nullable=True)
-    promoted_metrics = relationship('MediaPromotedMetrics', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
-    public_metrics = relationship('MediaPublicMetrics', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
+    promoted_metrics = relationship(
+        'MediaPromotedMetrics',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
+    public_metrics = relationship(
+        'MediaPublicMetrics',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
     width = Column(Integer, nullable=True)
     alt_text = Column(String, nullable=True)
     variants = Column(ARRAY(JSONB), nullable=True)
@@ -78,4 +94,3 @@ class Media(Base):
         self.update_one_to_one('promoted_metrics', MediaPromotedMetrics, data)
         self.update_one_to_one('public_metrics', MediaPublicMetrics, data)
         self.variants = data['variants']
-

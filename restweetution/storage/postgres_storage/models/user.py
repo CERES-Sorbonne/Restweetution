@@ -13,15 +13,27 @@ class User(Base):
     created_at = Column(TIMESTAMP(timezone=True))
     description = Column(String, nullable=True)
     entities_url_urls = relationship('UrlUrl', backref='_parent')
-    entities_description = relationship('UserDescriptionEntities', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
+    entities_description = relationship(
+        'UserDescriptionEntities',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
     location = Column(String, nullable=True)
     pinned_tweet_id = Column(String, nullable=True)
     profile_image_url = Column(String, nullable=True)
     protected = Column(Boolean, nullable=True)
-    public_metrics = relationship('UserPublicMetrics', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one
+    public_metrics = relationship(
+        'UserPublicMetrics',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one
     url = Column(String, nullable=True)
     verified = Column(Boolean, nullable=True)
-    withheld = relationship('UserWithheld', cascade="all,delete,delete-orphan", back_populates='_parent', uselist=False)  # one-to-one)
+    withheld = relationship(
+        'UserWithheld',
+        cascade="all,delete,delete-orphan",
+        back_populates='_parent',
+        uselist=False)  # one-to-one)
 
     def update(self, data):
         super().update(data)

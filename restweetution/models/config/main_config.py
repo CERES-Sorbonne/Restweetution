@@ -1,10 +1,9 @@
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from pydantic import BaseModel
 
 from restweetution.collectors import AsyncStreamer
 from restweetution.collectors.async_client import AsyncClient
-from restweetution.models.stream_rule import StreamRule
 from restweetution.models.tweet_config import QueryParams
 from restweetution.storage.async_storage import AsyncStorage
 from restweetution.storage.async_storage_manager import AsyncStorageManager
@@ -25,5 +24,3 @@ class MainConfig(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
-
-
