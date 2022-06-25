@@ -6,7 +6,7 @@ from abc import ABC
 from typing import List, Iterator, Optional
 
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTweet
+from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 
 
 class AsyncStorage(ABC):

@@ -1,11 +1,14 @@
+from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel
 
-from .entities import Annotation, Tag, Url, Mention
-from .media import Media
+from restweetution.models.twitter.entities import Annotation, Tag, Url, Mention
+from restweetution.models.twitter.media import Media
 from restweetution.models.stream_rule import StreamRule
-from .user import User
+from restweetution.models.twitter.place import Place
+from restweetution.models.twitter.poll import Poll
+from restweetution.models.twitter.user import User
 
 
 class Attachments(BaseModel):
@@ -86,6 +89,7 @@ class ReferencedTweet(BaseModel):
 class Withheld(BaseModel):
     copyright: bool
     country_codes: List[str]
+    scope: str
 
 
 class Tweet(BaseModel):
@@ -95,7 +99,7 @@ class Tweet(BaseModel):
     author_id: Optional[str]
     context_annotations: Optional[List[ContextAnnotation]]
     conversation_id: Optional[str]
-    created_at: Optional[str]
+    created_at: Optional[datetime]
     entities: Optional[Entities]
     geo: Optional[Geo]
     in_reply_to_user_id: Optional[str]
@@ -114,6 +118,8 @@ class Tweet(BaseModel):
 class TweetIncludes(BaseModel):
     media: Optional[List[Media]]
     users: Optional[List[User]]
+    places: Optional[List[Place]]
+    polls: Optional[List[Poll]]
 
 
 class RestTweet(Tweet):

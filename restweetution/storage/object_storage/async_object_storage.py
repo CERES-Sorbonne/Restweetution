@@ -5,11 +5,9 @@ import os
 from abc import ABC
 from typing import List, Union, Iterator
 
-from restweetution.models.tweet import TweetResponse, User, StreamRule
+from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule
 from .async_filestorage_helper import AsyncFileStorageHelper
-from .filestorage_helper import FileStorageHelper
 from .sshfilestorage_helper import SSHFileStorageHelper
-from restweetution.storage.storage import Storage
 from ..async_storage import AsyncStorage
 
 

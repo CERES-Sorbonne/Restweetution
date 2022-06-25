@@ -9,3 +9,5 @@ pysftp
 elasticsearch
 aiohttp
 aiofiles
+sqlalchemy
+psycopg2

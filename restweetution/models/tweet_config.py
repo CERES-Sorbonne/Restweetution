@@ -15,9 +15,15 @@ UserField = Literal["created_at", "description", "entities", "location", "pinned
 
 MediaField = Literal["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url"]
 
+PlaceField = Literal["contained_within", "country", "country_code", "geo", "name", "place_type"]
+
+PollField = Literal["duration_minutes", "end_datetime", "voting_status"]
+
 
 class QueryParams(BaseModel):
     expansions: Optional[List[Expansion]]
     tweetFields: Optional[List[TweetField]]
     mediaFields: Optional[List[MediaField]]
     userFields: Optional[List[UserField]]
+    placeFields: Optional[List[PlaceField]]
+    pollFields: Optional[List[PollField]]

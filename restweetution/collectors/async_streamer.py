@@ -9,7 +9,8 @@ from restweetution.collectors.async_client import AsyncClient
 from restweetution.collectors.async_collector import AsyncCollector
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.stream_rule import StreamRule, RuleResponse
-from restweetution.models.tweet import TweetResponse, RestTweet
+from restweetution.models.twitter.tweet import TweetResponse, RestTweet
+from restweetution.models.twitter.user import User
 from restweetution.storage.async_storage_manager import AsyncStorageManager
 
 
@@ -53,9 +54,6 @@ class AsyncStreamer(AsyncCollector):
 
     async def get_rules_from_cache(self, ids):
         if not self._persistent_rule_cache or self._rule_is_missing(ids):
-            print('load 1')
-            print(ids)
-            print(self._persistent_rule_cache)
             await self._load_rule_cache()
 
         rules = self._persistent_rule_cache.values()
@@ -223,16 +221,24 @@ class AsyncStreamer(AsyncCollector):
         # await self._storages_manager.save_rules(rules)
 
         # Save user is expanded data is available
-        if tweet_res.includes and tweet_res.includes.users:
-            bulk_data.users = tweet_res.includes.users
-            # await self._storages_manager.save_users(tweet_res.includes.users, tags)
+        if tweet_res.includes:
+            if tweet_res.includes.users:
+                bulk_data.users = tweet_res.includes.users
+                # await self._storages_manager.save_users(tweet_res.includes.users, tags)
+            if tweet_res.includes.places:
+                bulk_data.places = tweet_res.includes.places
+            if tweet_res.includes.media:
+                bulk_data.media = tweet_res.includes.media
+            if tweet_res.includes.polls:
+                bulk_data.polls = tweet_res.includes.polls
 
-        # Add tweet to bulk_data
+        # Convert to RestTweet standard
         tweet = RestTweet(**tweet_res.data.dict())
+        # Enrich data by de-normalizing some fields
+        self._enrich_tweet(tweet, rules, bulk_data.users)
+        # Save into bulk_data
         bulk_data.tweets = [tweet]
 
-        # Enrich data by de-normalizing some fields
-        self._enrich_data(bulk_data, tweet_res)
 
         # send data to storage manager
         self._storages_manager.bulk_save(bulk_data, tags)
@@ -245,17 +251,15 @@ class AsyncStreamer(AsyncCollector):
     #         await self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
 
     @staticmethod
-    def _enrich_data(bulk_data: BulkData, tweet_response: TweetResponse):
+    def _enrich_tweet(tweet: RestTweet, rules: List[StreamRule], users: List[User]):
 
-        for tweet in bulk_data.tweets:
-            # We save rules that triggered the tweets inside the tweet data to make sure we don't lose it
-            tweet_rule_ids = [r.id for r in tweet_response.matching_rules]
-            tweet.matching_rules = [r for r in bulk_data.rules if r.id in tweet_rule_ids]
+        # We save rules that triggered the tweets inside the tweet data to make sure we don't lose it
+        tweet.matching_rules = rules
 
-            # If user data is given we add author username to tweet
-            user = next((u for u in bulk_data.users if u.id == tweet.author_id), None)
-            if user:
-                tweet.author_username = user.username
+        # If user data is given we add author username to tweet
+        user = next((u for u in users if u.id == tweet.author_id), None)
+        if user:
+            tweet.author_username = user.username
 
     def _handle_errors(self, errors: List[dict]) -> None:
         """
@@ -309,7 +313,6 @@ class AsyncStreamer(AsyncCollector):
                                 # self._logger.info(data)
                                 if "errors" in data:
                                     self._handle_errors(data['errors'])
-                                # print(data)
                                 tweet_res = TweetResponse(**data)
                                 asyncio.create_task(self._handle_tweet_response(tweet_res))
                         else:

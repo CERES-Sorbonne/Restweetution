@@ -9,8 +9,8 @@ import httpx as requests
 from PIL import Image
 
 from restweetution.models.stream_rule import StreamRule
-from restweetution.models.tweet import TweetResponse, Media, RestTweet
-from restweetution.models.user import User
+from restweetution.models.twitter.tweet import TweetResponse, Media, RestTweet
+from restweetution.models.twitter.user import User
 from restweetution.storage.async_storage import AsyncStorage
 from restweetution.utils import TwitterDownloader
 
@@ -77,7 +77,7 @@ class AsyncStorageManager:
 
     def has_tags(self, storage: AsyncStorage, tags):
         """
-        Test if the given storage has at least one of the tags
+        Tweet if the given storage has at least one of the tags
         """
         shared = [t for t in self.storage_tags[storage.name] if t in tags]
         return len(shared) > 0

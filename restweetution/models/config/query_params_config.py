@@ -24,5 +24,7 @@ ALL_CONFIG: QueryParams = QueryParams(**{
                     "public_metrics", "referenced_tweets", "reply_settings", "source", "withheld"],
     "userFields": ["created_at", "description", "entities", "location", "pinned_tweet_id", "profile_image_url",
                    "protected", "public_metrics", "url", "verified", "withheld"],
-    "mediaFields": ["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url"]
+    "mediaFields": ["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url"],
+    "placeFields": ["contained_within", "country", "country_code", "geo", "name", "place_type"],
+    "pollFields": ["duration_minutes", "end_datetime", "voting_status"]
 })

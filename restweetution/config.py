@@ -6,8 +6,10 @@ from restweetution.collectors import AsyncStreamer
 from restweetution.collectors.async_client import AsyncClient
 from restweetution.models.config.main_config import MainConfig
 from restweetution.models.config.query_params_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
+from restweetution.models.tweet_config import QueryParams
 from restweetution.storage.async_storage_manager import AsyncStorageManager
 from restweetution.storage.elastic_storage.elastic_storage import ElasticTweetStorage
+from restweetution.storage.postgres_storage.postgres_storage import PostgresStorage
 
 
 def get_config_from_file(file_path: str):
@@ -87,18 +89,19 @@ def parse_query_params(main_conf: MainConfig, data: dict):
     :param main_conf: MainConfig to populate
     :param data: query_params data from config
     """
+    params = data
     if 'pre_set' in data:
         value = data['pre_set'].lower()
         if value == 'all':
-            main_conf.streamer_query_params = ALL_CONFIG
+            params = ALL_CONFIG
         elif value == 'medium':
-            main_conf.streamer_query_params = MEDIUM_CONFIG
+            params = MEDIUM_CONFIG
         elif value == 'basic':
-            main_conf.streamer_query_params = BASIC_CONFIG
+            params = BASIC_CONFIG
     elif 'file' in data:
-        main_conf.streamer_query_params = read_conf(data['file'])
-    else:
-        main_conf.streamer_query_params = data
+        params = QueryParams(**read_conf(data['file']))
+
+    main_conf.streamer_query_params = params
 
 
 def parse_client_config(main_conf: MainConfig, data: dict):
@@ -148,8 +151,12 @@ def create_storage(name: str, data: dict):
     :param data: raw config data
     :return: storage
     """
-    if data['type'] == 'elastic':
+    storage_type = data['type']
+    if storage_type == 'elastic':
         return ElasticTweetStorage(name=name,
                                    es_url=data['url'],
                                    es_user=data['user'],
                                    es_pwd=data['pwd'])
+    if storage_type == 'postgres':
+        return PostgresStorage(name=name,
+                               url=data['url'])

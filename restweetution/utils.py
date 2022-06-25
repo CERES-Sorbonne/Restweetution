@@ -11,7 +11,7 @@ import re
 import ffmpeg
 import shutil
 
-from restweetution.models.media import MediaType
+from restweetution.models.twitter.media import MediaType
 from restweetution.storage.elastic_storage.elastic_storage import ElasticTweetStorage
 
 

@@ -38,6 +38,11 @@ class AsyncCollector:
             self._params['user.fields'] = ",".join(query_params.userFields)
         if query_params.mediaFields:
             self._params['media.fields'] = ",".join(query_params.mediaFields)
+        if query_params.placeFields:
+            self._params['place.fields'] = ",".join(query_params.placeFields)
+        if query_params.pollFields:
+            self._params['poll.fields'] = ','.join(query_params.pollFields)
+
 
     # def _handle_media(self, tweet: TweetResponse):
     #     class Media(Enum):

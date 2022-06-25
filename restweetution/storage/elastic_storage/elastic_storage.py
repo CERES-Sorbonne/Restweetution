@@ -1,11 +1,10 @@
 import io
-import time
-from typing import List, Dict, Union
+from typing import List
 
 from elasticsearch import helpers
 
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.tweet import TweetResponse, User, StreamRule, RestTweet
+from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 from restweetution.storage.async_storage import AsyncStorage
 from elasticsearch import AsyncElasticsearch
 
