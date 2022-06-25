@@ -4,6 +4,9 @@ from typing import List
 from elasticsearch import helpers
 
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.twitter.media import Media
+from restweetution.models.twitter.place import Place
+from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 from restweetution.storage.async_storage import AsyncStorage
 from elasticsearch import AsyncElasticsearch
@@ -29,6 +32,9 @@ class ElasticTweetStorage(AsyncStorage):
         actions.extend(self._rules_to_bulk_actions(data.rules))
         actions.extend(self._users_to_bulk_actions(data.users))
         actions.extend(self._tweet_to_bulk_actions(data.tweets))
+        actions.extend(self._media_to_bulk_actions(data.media))
+        actions.extend(self._poll_to_bulk_actions(data.polls))
+        actions.extend(self._place_to_bulk_actions(data.places))
 
         await helpers.async_bulk(self.es, actions)
 
@@ -60,6 +66,36 @@ class ElasticTweetStorage(AsyncStorage):
                 "_index": "tweet",
                 "_id": tweet.id,
                 "_source": tweet.dict()
+            }
+
+    @staticmethod
+    def _media_to_bulk_actions(medias: List[Media]):
+        for media in medias:
+            yield {
+                "_op_type": 'index',
+                "_index": "media",
+                "_id": media.media_key,
+                "_source": media.dict()
+            }
+
+    @staticmethod
+    def _place_to_bulk_actions(places: List[Place]):
+        for place in places:
+            yield {
+                "_op_type": 'index',
+                "_index": "place",
+                "_id": place.id,
+                "_source": place.dict()
+            }
+
+    @staticmethod
+    def _poll_to_bulk_actions(polls: List[Poll]):
+        for poll in polls:
+            yield {
+                "_op_type": 'index',
+                "_index": "poll",
+                "_id": poll.id,
+                "_source": poll.dict()
             }
 
     async def save_tweet(self, tweet: RestTweet):
