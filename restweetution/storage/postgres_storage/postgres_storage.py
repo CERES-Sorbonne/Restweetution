@@ -55,16 +55,19 @@ class PostgresStorage(AsyncStorage):
                 pg_poll.update(data.polls[key].dict())
                 await session.merge(pg_poll)
             for key in data.rules:
-                pg_rule = await session.get(Rule, key)
-                if not pg_rule:
-                    pg_rule = Rule()
-                    pg_rule.update(data.rules[key].dict())
-                    await session.merge(pg_rule)
-                else:
-                    rule = data.rules[key]
-                    for tweet_id in rule.tweet_ids:
-                        pg_collected = CollectedTweet()
-                        pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
-                        session.add(pg_collected)
+                await self._add_or_update_rule(session, data.rules[key])
 
             await session.commit()
+
+    @staticmethod
+    async def _add_or_update_rule(session: any, rule):
+        pg_rule = await session.get(Rule, rule.id)
+        if not pg_rule:
+            pg_rule = Rule()
+            pg_rule.update(rule.dict())
+            await session.merge(pg_rule)
+        else:
+            for tweet_id in rule.tweet_ids:
+                pg_collected = CollectedTweet()
+                pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
+                session.add(pg_collected)
