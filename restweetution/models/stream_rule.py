@@ -9,6 +9,7 @@ class RuleRef(BaseModel):
 
 class StreamRule(RuleRef):
     value: Optional[str]
+    tweet_ids: List[str] = []
 
 
 class RuleResponseMeta(BaseModel):

@@ -1,12 +1,15 @@
+from typing import Dict
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.storage.async_storage import AsyncStorage
 
-from restweetution.storage.postgres_storage.models import User, Place
+from restweetution.storage.postgres_storage.models import User, Place, Rule
 from restweetution.storage.postgres_storage.models.media import Media
 from restweetution.storage.postgres_storage.models.poll import Poll
+from restweetution.storage.postgres_storage.models.rule import CollectedTweet
 from restweetution.storage.postgres_storage.models.tweet import Tweet
 
 
@@ -30,26 +33,38 @@ class PostgresStorage(AsyncStorage):
         )
 
     async def bulk_save(self, data: BulkData):
-        tweets = data.tweets
         async with self._async_session() as session:
-            for tweet in tweets:
+            for key in data.tweets:
                 pg_tweet = Tweet()
-                pg_tweet.update(tweet.dict())
+                pg_tweet.update(data.tweets[key].dict())
                 await session.merge(pg_tweet)
-            for user in data.users:
+            for key in data.users:
                 pg_user = User()
-                pg_user.update(user.dict())
+                pg_user.update(data.users[key].dict())
                 await session.merge(pg_user)
-            for place in data.places:
+            for key in data.places:
                 pg_place = Place()
-                pg_place.update(place.dict())
+                pg_place.update(data.places[key].dict())
                 await session.merge(pg_place)
-            for media in data.media:
+            for key in data.media:
                 pg_media = Media()
-                pg_media.update(media.dict())
+                pg_media.update(data.media[key].dict())
                 await session.merge(pg_media)
-            for poll in data.polls:
+            for key in data.polls:
                 pg_poll = Poll()
-                pg_poll.update(poll.dict())
+                pg_poll.update(data.polls[key].dict())
                 await session.merge(pg_poll)
+            for key in data.rules:
+                pg_rule = await session.get(Rule, key)
+                if not pg_rule:
+                    pg_rule = Rule()
+                    pg_rule.update(data.rules[key].dict())
+                    await session.merge(pg_rule)
+                else:
+                    rule = data.rules[key]
+                    for tweet_id in rule.tweet_ids:
+                        pg_collected = CollectedTweet()
+                        pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
+                        session.add(pg_collected)
+
             await session.commit()

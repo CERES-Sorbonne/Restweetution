@@ -72,8 +72,11 @@ class CustomBase(object):
         if self._is_empty_dict(nested_data):
             return
 
+        setattr(self, db_key, [])
+        attr = getattr(self, db_key)
+
         for args in nested_data:
-            attr = getattr(self, db_key)
+
             sqa_model_object = sqa_model()
             sqa_model_object.update(args)
             attr.append(sqa_model_object)

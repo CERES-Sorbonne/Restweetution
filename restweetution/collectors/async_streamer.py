@@ -59,7 +59,7 @@ class AsyncStreamer(AsyncCollector):
         rules = self._persistent_rule_cache.values()
         if ids:
             rules = [r for r in rules if r.id in ids]
-        return rules
+        return rules.copy()
 
     def _rule_is_missing(self, ids):
         if not self._persistent_rule_cache:
@@ -207,6 +207,11 @@ class AsyncStreamer(AsyncCollector):
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
+    @staticmethod
+    def set_from_list(target: dict, key: str, array: list):
+        for item in array:
+            target[item.dict()[key]] = item
+
     async def _handle_tweet_response(self, tweet_res: TweetResponse):
         self._log_tweets(tweet_res)
         bulk_data = BulkData()
@@ -217,28 +222,31 @@ class AsyncStreamer(AsyncCollector):
 
         rules = await self.get_rules_from_cache(rule_ids)
         tags = [r.tag for r in rules]
-        bulk_data.rules = rules
+
+        for r in rules:
+            r.tweet_ids = [tweet_res.data.id]
+        self.set_from_list(bulk_data.rules, 'id', rules)
+
         # await self._storages_manager.save_rules(rules)
 
         # Save user is expanded data is available
         if tweet_res.includes:
             if tweet_res.includes.users:
-                bulk_data.users = tweet_res.includes.users
-                # await self._storages_manager.save_users(tweet_res.includes.users, tags)
+                self.set_from_list(bulk_data.users, 'id', tweet_res.includes.users)
+                    # await self._storages_manager.save_users(tweet_res.includes.users, tags)
             if tweet_res.includes.places:
-                bulk_data.places = tweet_res.includes.places
+                self.set_from_list(bulk_data.places, 'id', tweet_res.includes.places)
             if tweet_res.includes.media:
-                bulk_data.media = tweet_res.includes.media
+                self.set_from_list(bulk_data.media, 'media_key', tweet_res.includes.media)
             if tweet_res.includes.polls:
-                bulk_data.polls = tweet_res.includes.polls
+                self.set_from_list(bulk_data.polls, 'id', tweet_res.includes.polls)
 
         # Convert to RestTweet standard
         tweet = RestTweet(**tweet_res.data.dict())
         # Enrich data by de-normalizing some fields
-        self._enrich_tweet(tweet, rules, bulk_data.users)
+        self._enrich_tweet(tweet, bulk_data.rules, bulk_data.users)
         # Save into bulk_data
-        bulk_data.tweets = [tweet]
-
+        self.set_from_list(bulk_data.tweets, 'id', [tweet])
 
         # send data to storage manager
         self._storages_manager.bulk_save(bulk_data, tags)
@@ -251,15 +259,15 @@ class AsyncStreamer(AsyncCollector):
     #         await self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
 
     @staticmethod
-    def _enrich_tweet(tweet: RestTweet, rules: List[StreamRule], users: List[User]):
+    def _enrich_tweet(tweet: RestTweet, rules: Dict[str, StreamRule], users: Dict[str, User]):
 
         # We save rules that triggered the tweets inside the tweet data to make sure we don't lose it
-        tweet.matching_rules = rules
+        tweet.matching_rules = [rules[key] for key in rules]
 
         # If user data is given we add author username to tweet
-        user = next((u for u in users if u.id == tweet.author_id), None)
-        if user:
-            tweet.author_username = user.username
+        if tweet.author_id:
+            if tweet.author_id in users:
+                tweet.author_username = users[tweet.author_id].username
 
     def _handle_errors(self, errors: List[dict]) -> None:
         """

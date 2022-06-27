@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from pydantic import BaseModel
 
@@ -11,18 +11,28 @@ from restweetution.models.twitter.user import User
 
 
 class BulkData(BaseModel):
-    rules: Optional[List[StreamRule]] = []
-    users: Optional[List[User]] = []
-    tweets: Optional[List[RestTweet]] = []
-    places: Optional[List[Place]] = []
-    media: Optional[List[Media]] = []
-    polls: Optional[List[Poll]] = []
+    rules: Dict[str, StreamRule] = {}
+    users: Dict[str, User] = {}
+    tweets: Dict[str, RestTweet] = {}
+    places: Dict[str, Place] = {}
+    media: Dict[str, Media] = {}
+    polls: Dict[str, Poll] = {}
 
     def __add__(self, other):
         self_dict = self.dict()
         other_dict = other.dict()
 
-        for key in self_dict:
-            self_dict[key].extend(other_dict[key])
+        for key1 in other_dict:
+            if key1 == 'rules':
+                for key2 in other_dict[key1]:
+                    if key2 not in self_dict[key1]:
+                        self_dict[key1][key2] = other_dict[key1][key2]
+                    else:
+                        self_dict[key1][key2]['tweet_ids'].extend(other_dict[key1][key2]['tweet_ids'])
+            else:
+                for key2 in other_dict[key1]:
+                    self_dict[key1][key2] = other_dict[key1][key2]
 
         return BulkData(**self_dict)
+
+
