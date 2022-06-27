@@ -12,7 +12,6 @@ class Rule(Base):
     tweets = relationship('CollectedTweet', back_populates='_parent', cascade='all, delete-orphan')
 
     def update(self, data):
-        print(data)
         data['tweets'] = [{'tweet_id': x} for x in data['tweet_ids']]
         super().update(data)
         self.update_one_to_many('tweets', CollectedTweet, data)

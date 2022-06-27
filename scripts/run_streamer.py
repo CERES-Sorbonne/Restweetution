@@ -17,4 +17,7 @@ async def launch():
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())
-loop.run_forever()
+try:
+    loop.run_forever()
+except KeyboardInterrupt as e:
+    pass

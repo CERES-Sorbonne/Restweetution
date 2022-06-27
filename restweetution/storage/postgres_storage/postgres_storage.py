@@ -58,6 +58,7 @@ class PostgresStorage(AsyncStorage):
                 await self._add_or_update_rule(session, data.rules[key])
 
             await session.commit()
+            print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
 
     @staticmethod
     async def _add_or_update_rule(session: any, rule):

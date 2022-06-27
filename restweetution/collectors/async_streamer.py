@@ -8,7 +8,7 @@ import requests
 from restweetution.collectors.async_client import AsyncClient
 from restweetution.collectors.async_collector import AsyncCollector
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.stream_rule import StreamRule, RuleResponse
+from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.tweet import TweetResponse, RestTweet
 from restweetution.models.twitter.user import User
 from restweetution.storage.async_storage_manager import AsyncStorageManager
@@ -71,25 +71,6 @@ class AsyncStreamer(AsyncCollector):
                 return True
         return False
 
-    async def _api_get_rules(self, ids: List[str] = None):
-        """
-        Return the list of rules defined to collect tweets during a stream
-        from the Twitter API
-        :param ids: an optional list of ids to fetch only specific rules
-        :return: the list of rules
-        """
-
-        uri = "tweets/search/stream/rules"
-        if ids:
-            uri += f"?ids={','.join(ids)}"
-        async with self._client.get(uri) as r:
-            res = await r.json()
-            if not res.get('data'):
-                res['data'] = []
-            res = RuleResponse(**res)
-            # print(res)
-            return res.data
-
     async def reset_stream_rules(self) -> None:
         """
         Removes all rules
@@ -131,7 +112,7 @@ class AsyncStreamer(AsyncCollector):
 
     async def add_stream_rules(self, rule_definitions: List[Dict[str, str]]) -> List[StreamRule]:
         # make api call
-        new_rules = await self._api_add_rules(rule_definitions)
+        new_rules = await self._client.add_rules(rule_definitions)
 
         # add new rules to cache
         for r in new_rules:
@@ -140,23 +121,8 @@ class AsyncStreamer(AsyncCollector):
             self._logger.info(f'Cached rule: {r["tag"]}')
         return new_rules
 
-    async def _api_add_rules(self, rules):
-        uri = "tweets/search/stream/rules"
-        async with self._client.post(uri, json={
-            "add": rules
-        }) as r:
-            res = await r.json()
-            valid_rules = []
-            if 'errors' in res:
-                errs = res['errors']
-                for err in errs:
-                    self._logger.info(f"_api_add_rules Error: {err['title']} Rule: {err['value']}")
-            if 'data' in res:
-                valid_rules = res['data']
-            return valid_rules
-
     async def remove_stream_rules(self, ids: List[str]) -> None:
-        deleted_ids = await self._api_remove_rules(ids)
+        deleted_ids = await self._client.remove_rules(ids)
         # if no ids return an error occurred
         # We have no information over the remaining rules
         # Force reload of cache to assure data integrity
@@ -168,34 +134,10 @@ class AsyncStreamer(AsyncCollector):
 
     async def _load_rule_cache(self):
         self._logger.info('Load Stream Rules from API into cache')
-        rules = await self._api_get_rules()
-        print(rules)
+        rules = await self._client.get_rules()
         self._persistent_rule_cache = {}
         for r in rules:
             self._cache_active_rule(r)
-
-    async def _api_remove_rules(self, ids: List[str]):
-        """
-                Remove rules by ids
-                :param ids: a list of ids of rules to remove
-                """
-
-        uri = "tweets/search/stream/rules"
-        async with self._client.post(uri, json={
-            "delete": {
-                "ids": ids
-            }
-        }) as r:
-            res = await r.json()
-
-            # if everything went fine we return the ids of the deleted rules
-            if "errors" not in res:
-                self._logger.info(f'Removed {res["meta"]["summary"]["deleted"]} rule(s)')
-                return ids
-
-            # if not, return no ids as we can't know what rule failed or not
-            self._logger.error(res)
-            return []
 
     # def add_storage_rule(self, rule: Dict[str, List[str]]):
     #
@@ -203,7 +145,10 @@ class AsyncStreamer(AsyncCollector):
     def _log_tweets(self, tweet: TweetResponse):
         self.tweets_count += 1
         if self._verbose:
-            self._logger.info(tweet.data.text)
+            text = tweet.data.text.split('\n')[0]
+            if len(text) > 80:
+                text = text[0:80] + '..'
+            self._logger.info(f'id: {tweet.data.id} - {text}')
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
@@ -233,7 +178,6 @@ class AsyncStreamer(AsyncCollector):
         if tweet_res.includes:
             if tweet_res.includes.users:
                 self.set_from_list(bulk_data.users, 'id', tweet_res.includes.users)
-                    # await self._storages_manager.save_users(tweet_res.includes.users, tags)
             if tweet_res.includes.places:
                 self.set_from_list(bulk_data.places, 'id', tweet_res.includes.places)
             if tweet_res.includes.media:
@@ -286,6 +230,18 @@ class AsyncStreamer(AsyncCollector):
         else:
             raise requests.RequestException()
 
+    def _handle_line_response(self, line: bytes):
+        if line:
+            txt = line.decode("utf-8")
+            if txt != '\r\n':
+                data = json.loads(txt)
+                if "errors" in data:
+                    self._handle_errors(data['errors'])
+                tweet_res = TweetResponse(**data)
+                asyncio.create_task(self._handle_tweet_response(tweet_res))
+        else:
+            self._logger.info("waiting for new tweets")
+
     async def collect(self):
         """
         Main method to collect tweets in a stream
@@ -305,30 +261,12 @@ class AsyncStreamer(AsyncCollector):
             self._logger.info(f"Collecting with following rules: ")
             self._logger.info('\n'.join([f'{r.value}, tag: {r.tag} id: {r.id}' for r in rules]))
 
-        async with self._client as session:
-            try:
-                async with session.get(
-                        "https://api.twitter.com/2/tweets/search/stream",
-                        params=self._params,
-                        timeout=5000
-                ) as resp:
-                    async for line in resp.content:
-                        if line:
-                            txt = line.decode("utf-8")
-                            # self._logger.info(txt)
-                            if txt != '\r\n':
-                                data = json.loads(txt)
-                                # self._logger.info(data)
-                                if "errors" in data:
-                                    self._handle_errors(data['errors'])
-                                tweet_res = TweetResponse(**data)
-                                asyncio.create_task(self._handle_tweet_response(tweet_res))
-                        else:
-                            self._logger.info("waiting for new tweets")
-            except aiohttp.ClientConnectorError as e:
-                self._logger.error(e)
-                self._retry_count += 1
-                if self._retry_count < self._max_retries:
-                    self._logger.error("""The collect will try to start again in 30s""")
-                    await asyncio.sleep(30)
-                    await self.collect()
+        try:
+            await self._client.connect_tweet_stream(self._params, self._handle_line_response)
+        except aiohttp.ClientConnectorError as e:
+            self._logger.error(e)
+            self._retry_count += 1
+            if self._retry_count < self._max_retries:
+                self._logger.error("""The collect will try to start again in 30s""")
+                await asyncio.sleep(30)
+                await self.collect()
