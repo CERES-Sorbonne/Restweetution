@@ -5,14 +5,15 @@ import os
 from abc import ABC
 from typing import List, Iterator
 
-from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule
+from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 from .async_filestorage_helper import AsyncFileStorageHelper
 from ..async_storage import AsyncStorage
+from ...models.bulk_data import BulkData
 
 
 class AsyncObjectStorage(AsyncStorage, ABC):
 
-    def __init__(self, storage_helper: AsyncFileStorageHelper, tags: List[str] = None):
+    def __init__(self, storage_helper: AsyncFileStorageHelper):
         """
         Generic Object Storage, like FileStorage or SSHFileStorage
         Provide a simple interface to manipulate tweets and media for all kind of Object Storages
@@ -20,8 +21,9 @@ class AsyncObjectStorage(AsyncStorage, ABC):
         :param storage_helper: a storage helper depending on the type of storage
         """
         # TODO: changer le tweet et media pour que ça soit géré par le storage manager
-        super(AsyncObjectStorage, self).__init__(tags=tags, tweet=True, media=True)
         self.storage_helper = storage_helper
+        self.name = "FileStorage"
+        super(AsyncObjectStorage, self).__init__(name=str(self))
         self.logger = logging.getLogger("Collector.Storage.ObjectStorage")
         folders = ['tweets', 'rules', 'users', 'media_links']
         # aliases to access paths easily and avoid typo mistakes
@@ -42,16 +44,25 @@ class AsyncObjectStorage(AsyncStorage, ABC):
     def has_free_space(self):
         return self.storage_helper.has_free_space
 
-    def save_tweets(self, tweets: List[TweetResponse], tags: List[str] = None):
+    async def bulk_save(self, data: BulkData):
+        await self.save_tweets(list(data.tweets.values()))
+        # await self.save_users(list(data.users.values()))
+
+
+    async def save_tweets(self, tweets: List[RestTweet]):
         """
         :param tweets: a list of tweets to save
         :param tags: the list of tags of the rules that were triggered to collect this tweet
         """
         # TODO: make this concurrent
         for tweet in tweets:
-            self.storage_helper.put(tweet.json(exclude_none=True, ensure_ascii=False), self.tweets(f"{tweet.data.id}.json"))
+            await self.storage_helper.put(tweet.json(exclude_none=True, ensure_ascii=False), self.tweets(f"{tweet.id}.json"))
 
-    def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> Iterator[TweetResponse]:
+    async def save_tweet(self, tweet: RestTweet):
+        await self.storage_helper.put(tweet.json(exclude_none=True, ensure_ascii=False),
+                                      self.tweets(f"{tweet.id}.json"))
+
+    def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> Iterator[RestTweet]:
         for f in self.storage_helper.list(self.tweets()):
             yield TweetResponse.parse_file(self.tweets(f))
 
@@ -63,10 +74,10 @@ class AsyncObjectStorage(AsyncStorage, ABC):
             else:
                 self.storage_helper.put(rule.json(), self.rules(path))
 
-    def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
+    async def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
         files = self.storage_helper.list(self.rules())
         if not files:
-            return []
+            yield []
         if ids:
             # filter all files to fetch, keep only the ones with the ids specified in parameter
             files = [f for f in files if f.split('.')[0] in ids]
@@ -76,7 +87,7 @@ class AsyncObjectStorage(AsyncStorage, ABC):
     def save_users(self, users: List[User]):
         pass
 
-    def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
+    async def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
         return await self.storage_helper.put(buffer, file_name)
 
     def get_media(self, media_key) -> io.BufferedIOBase:
@@ -98,17 +109,17 @@ class AsyncObjectStorage(AsyncStorage, ABC):
         if average:
             self.save_signature_file(media_key, average)
 
-    def save_signature_file(self, media_key, signature):
+    async def save_signature_file(self, media_key, signature):
         if not self.storage_helper.exists(self.media_links(signature)):
-            self.storage_helper.put(media_key, self.media_links(signature))
+            await self.storage_helper.put(media_key, self.media_links(signature))
         else:
             sign = await self.storage_helper.get(self.media_links(signature))
             content = sign.read().decode()
             content += "\n" + media_key
-            self.storage_helper.put(content, self.media_links(signature))
+            await self.storage_helper.put(content, self.media_links(signature))
 
 
 class AsyncFileStorage(AsyncObjectStorage):
-    def __init__(self, root: str, tags: List[str] = None, max_size: int = None):
+    def __init__(self, root: str, max_size: int = None):
         storage = AsyncFileStorageHelper(root=root, max_size=max_size)
-        super(AsyncFileStorage, self).__init__(storage_helper=storage, tags=tags)
+        super(AsyncFileStorage, self).__init__(storage_helper=storage)

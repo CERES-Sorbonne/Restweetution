@@ -10,17 +10,14 @@ from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, 
 
 
 class AsyncStorage(ABC):
-    def __init__(self, name: str = None, tags: List[str] = None,
-                 interval: int = 2, buffer_size: int = 100):
+    def __init__(self, name: str = None, interval: int = 2, buffer_size: int = 100):
         """
         Abstract Class that provides the template for every other storage
         :param name: Give a name to identify this Storage Later
-        :param tags: Store only the data gathered with the rules identified with these tags
         :param interval: Clear storage every X seconds
         :param buffer_size: Max number of data the buffer can contain
         """
         self.name = name
-        self.tags_to_save = tags
 
         self._buffer_bulk_data: BulkData = BulkData()
         self._flush_interval = interval
