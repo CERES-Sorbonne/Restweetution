@@ -47,5 +47,4 @@ class Searcher(AsyncCollector):
         if not self._rule:
             self._logger('No rule is set, please use set_rule before using collect')
             return
-
         pass

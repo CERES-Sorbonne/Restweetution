@@ -48,7 +48,6 @@ class AsyncObjectStorage(AsyncStorage, ABC):
         await self.save_tweets(list(data.tweets.values()))
         # await self.save_users(list(data.users.values()))
 
-
     async def save_tweets(self, tweets: List[RestTweet]):
         """
         :param tweets: a list of tweets to save
