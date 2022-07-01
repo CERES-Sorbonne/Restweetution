@@ -17,6 +17,9 @@ from restweetution.storage.async_storage_manager import AsyncStorageManager
 
 class AsyncStreamer(AsyncCollector):
     def __init__(self, client: AsyncClient, storage_manager: AsyncStorageManager, verbose: bool = False):
+        """
+        The Streamer is the class used to connect to the Twitter Stream API and fetch live tweets
+        """
         # Member declaration before super constructor
         self._params = None
         self._fetch_minutes = False

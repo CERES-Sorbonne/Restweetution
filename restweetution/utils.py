@@ -13,6 +13,33 @@ import requests
 from restweetution.models.twitter.media import MediaType
 
 
+def default_handler(e: Exception):
+    print("This is an error!")
+    print(e)
+
+
+ERROR_HANDLER = default_handler
+
+
+def set_error_handler(callback):
+    global ERROR_HANDLER
+    ERROR_HANDLER = callback
+
+
+def handle_error(f):
+    def wrapper(*args, **kwargs):
+        try:
+            if kwargs:
+                res = f(args, kwargs)
+            else:
+                res = f(args)
+            return res
+        except Exception as e:
+            global ERROR_HANDLER
+            ERROR_HANDLER(e)
+    return wrapper
+
+
 class TwitterDownloader:
     """
     Utility class that allows to download videos and gifs
