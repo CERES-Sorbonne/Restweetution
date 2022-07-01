@@ -2,7 +2,7 @@ import hashlib
 import io
 import logging
 from io import BytesIO
-from typing import List, Dict
+from typing import List, Dict, Callable, Optional
 
 import imagehash
 import httpx as requests
@@ -29,6 +29,8 @@ class AsyncStorageManager:
         self.media_downloader = TwitterDownloader()
         self.logger = logging.getLogger("StorageManager")
 
+        self._error_callback: Optional[Callable] = None
+
         self.average_hash = False
 
     def __str__(self):
@@ -39,6 +41,11 @@ class AsyncStorageManager:
         for m in self.get_media_storages():
             s += "- " + str(m)
         return s
+
+    def set_error_callback(self, callback: Optional[Callable]):
+        self._error_callback = callback
+        for s in self._tweet_storages:
+            s.set_error_callback(callback)
 
     def add_storage_tags(self, storage: AsyncStorage, tags: List[str]):
         name = storage.name
@@ -56,6 +63,7 @@ class AsyncStorageManager:
             self.logger.warning(f'Storage name must be unique! name: {storage.name} is already taken')
             return
         self._tweet_storages.append(storage)
+        storage.set_error_callback(self._error_callback)
         self.storage_tags[storage.name] = []
 
         if tags:
@@ -128,6 +136,10 @@ class AsyncStorageManager:
     async def save_users(self, users: List[User], tags: List[str]):
         for s in self.get_tweet_storages_by_tags(tags):
             await s.save_users(users)
+
+    async def save_error(self, error):
+        for s in self.get_tweet_storages_by_tags(['ERROR']):
+            await s.save_error(error)
 
     async def save_media(self, media_list: List[Media], tweet_id: str, tags: List[str] = None) -> None:
         # first check if we have any valid tags, otherwise there is no point of downloading the media

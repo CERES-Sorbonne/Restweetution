@@ -5,3 +5,4 @@ from .place import Place
 from .media import Media
 from .poll import Poll
 from .rule import Rule
+from .error import Error

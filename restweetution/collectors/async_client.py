@@ -27,14 +27,17 @@ class AsyncClient(aiohttp.ClientSession):
         except aiohttp.ClientResponseError as e:
             self._error_handler(str(e), e.message)
 
-    async def connect_tweet_stream(self, params, line_callback):
+    async def connect_tweet_stream(self, params, line_callback, error_callback=None):
         async with self as session:
             async with session.get("https://api.twitter.com/2/tweets/search/stream", params=params) as resp:
                 async for line in resp.content:
                     try:
                         line_callback(line)
                     except BaseException as e:
-                        print('\033[93m' + traceback.format_exc() + '\033[0m')
+                        if error_callback:
+                            error_callback(e)
+                        else:
+                            self._logger.exception(traceback.format_exc())
 
     async def remove_rules(self, ids: List[str]):
         """
@@ -92,5 +95,3 @@ class AsyncClient(aiohttp.ClientSession):
             if 'data' in res:
                 valid_rules = res['data']
             return valid_rules
-
-

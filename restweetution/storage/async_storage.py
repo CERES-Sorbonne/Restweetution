@@ -3,9 +3,10 @@ import copy
 import io
 import time
 from abc import ABC
-from typing import List, Iterator, Optional
+from typing import List, Iterator, Optional, Callable
 
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 
 
@@ -29,6 +30,11 @@ class AsyncStorage(ABC):
         self._last_buffer_flush: float = 0
 
         self._periodic_flush_task: Optional[asyncio.Task] = None
+
+        self._error_callback: Optional[Callable] = None
+
+    def set_error_callback(self, callback: Optional[Callable]):
+        self._error_callback = callback
 
     def buffered_bulk_save(self, data: BulkData):
         """
@@ -79,13 +85,35 @@ class AsyncStorage(ABC):
             await asyncio.sleep(self._flush_interval - time_diff)
 
     async def bulk_save(self, data: BulkData):
+        """
+        Saves the data to the storage
+        :param data: data to be save in BulkData format
+        """
+        try:
+            await self._bulk_save(data)
+        except BaseException as e:
+            self._handle_error(e)
+
+    async def _bulk_save(self, data: BulkData):
+        """
+        Save the data to storage
+        to be implemented in child class
+        """
         pass
+
+    def _handle_error(self, error: BaseException):
+        if self._error_callback:
+            self._error_callback(error)
+        else:
+            raise error
 
     async def save_tweet(self, tweet: RestTweet):
-        pass
+        await self.save_tweets([tweet])
 
     async def save_tweets(self, tweets: List[RestTweet]):
-        pass
+        bulk_data = BulkData()
+        bulk_data.add_tweets(tweets)
+        await self.bulk_save(bulk_data)
 
     async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
         pass
@@ -94,27 +122,33 @@ class AsyncStorage(ABC):
         pass
 
     async def save_rules(self, rules: List[StreamRule]):
-        pass
+        bulk_data = BulkData()
+        bulk_data.add_rules(rules)
+        await self.bulk_save(bulk_data)
 
     async def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
         pass
 
     async def save_users(self, users: List[User]):
-        pass
+        bulk_data = BulkData()
+        bulk_data.add_users(users)
+        await self.bulk_save(bulk_data)
 
     async def get_users(self, ids: List[str] = None) -> Iterator[User]:
         pass
 
-    async def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
-        """
-        Save a buffer to the storage and returns an uri to the stored file
-        :param file_name: the signature of the media with the file_type
-        :param buffer: the buffer to store
-        :return: an uri to the resource created
-        """
-        pass
+    async def save_media(self, media: List[Media]):
+        bulk_data = BulkData()
+        bulk_data.add_media(media)
+        await self.bulk_save(bulk_data)
 
     async def get_media(self, media_key) -> io.BufferedIOBase:
+        pass
+
+    async def save_error(self, error: any):
+        pass
+
+    async def get_error(self):
         pass
 
     def list_dir(self) -> List[str]:

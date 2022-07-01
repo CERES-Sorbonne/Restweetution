@@ -1,5 +1,6 @@
 import asyncio
 import json
+import traceback
 from typing import List, Dict
 
 import aiohttp
@@ -26,6 +27,7 @@ class AsyncStreamer(AsyncCollector):
         # use a cache to store the rules
         self._persistent_rule_cache: Dict[str, StreamRule] = {}
         self._active_rule_cache: Dict[str, StreamRule] = {}
+        self._storages_manager.set_error_callback(self._handle_storage_error)
 
     def _cache_persistent_rule(self, rule):
         self._persistent_rule_cache[rule.id] = rule
@@ -139,9 +141,6 @@ class AsyncStreamer(AsyncCollector):
         for r in rules:
             self._cache_active_rule(r)
 
-    # def add_storage_rule(self, rule: Dict[str, List[str]]):
-    #
-    #
     def _log_tweets(self, tweet: TweetResponse):
         self.tweets_count += 1
         if self._verbose:
@@ -151,6 +150,9 @@ class AsyncStreamer(AsyncCollector):
             self._logger.info(f'id: {tweet.data.id} - {text}')
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
+
+    def _handle_storage_error(self, error: BaseException):
+        self._logger.exception(traceback.format_exc())
 
     @staticmethod
     def set_from_list(target: dict, key: str, array: list):
@@ -172,9 +174,7 @@ class AsyncStreamer(AsyncCollector):
             r.tweet_ids = [tweet_res.data.id]
         self.set_from_list(bulk_data.rules, 'id', rules)
 
-        # await self._storages_manager.save_rules(rules)
-
-        # Save user is expanded data is available
+        # Set populates bulk data with includes
         if tweet_res.includes:
             if tweet_res.includes.users:
                 self.set_from_list(bulk_data.users, 'id', tweet_res.includes.users)
@@ -194,13 +194,6 @@ class AsyncStreamer(AsyncCollector):
 
         # send data to storage manager
         self._storages_manager.bulk_save(bulk_data, tags)
-        # await self._save_media(tweet_res)
-
-    # async def _save_media(self, tweet_res: TweetResponse):
-    #     tags = list(set([r.tag for r in tweet_res.matching_rules]))
-    #     # save media if there are some
-    #     if tweet_res.includes and tweet_res.includes.media:
-    #         await self._storages_manager.save_media(tweet_res.includes.media, tweet_res.data.id, tags)
 
     @staticmethod
     def _enrich_tweet(tweet: RestTweet, rules: Dict[str, StreamRule], users: Dict[str, User]):
@@ -242,6 +235,9 @@ class AsyncStreamer(AsyncCollector):
         else:
             self._logger.info("waiting for new tweets")
 
+    async def _save_error(self, error: any):
+        await self._storages_manager.save_error(error)
+
     async def collect(self):
         """
         Main method to collect tweets in a stream
@@ -262,7 +258,7 @@ class AsyncStreamer(AsyncCollector):
             self._logger.info('\n'.join([f'{r.value}, tag: {r.tag} id: {r.id}' for r in rules]))
 
         try:
-            await self._client.connect_tweet_stream(self._params, self._handle_line_response)
+            await self._client.connect_tweet_stream(self._params, self._handle_line_response, self._save_error)
         except aiohttp.ClientConnectorError as e:
             self._logger.error(e)
             self._retry_count += 1

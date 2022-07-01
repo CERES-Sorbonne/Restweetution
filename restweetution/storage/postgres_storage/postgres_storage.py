@@ -1,12 +1,10 @@
-from typing import Dict
-
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.storage.async_storage import AsyncStorage
 
-from restweetution.storage.postgres_storage.models import User, Place, Rule
+from restweetution.storage.postgres_storage.models import User, Place, Rule, Error
 from restweetution.storage.postgres_storage.models.media import Media
 from restweetution.storage.postgres_storage.models.poll import Poll
 from restweetution.storage.postgres_storage.models.rule import CollectedTweet
@@ -32,7 +30,14 @@ class PostgresStorage(AsyncStorage):
             self._engine, expire_on_commit=False, class_=AsyncSession
         )
 
-    async def bulk_save(self, data: BulkData):
+    async def save_error(self, error: any):
+        async with self._async_session() as session:
+            pg_error = Error()
+            pg_error.data = error
+            session.add(pg_error)
+            await session.commit()
+
+    async def _bulk_save(self, data: BulkData):
         async with self._async_session() as session:
             for key in data.tweets:
                 pg_tweet = Tweet()

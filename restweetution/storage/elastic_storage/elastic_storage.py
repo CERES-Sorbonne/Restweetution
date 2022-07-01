@@ -27,14 +27,14 @@ class ElasticTweetStorage(AsyncStorage):
         self.rules = {}
         self.es = AsyncElasticsearch(es_url, basic_auth=(es_user, es_pwd))
 
-    async def bulk_save(self, data: BulkData):
+    async def _bulk_save(self, data: BulkData):
         actions = []
-        actions.extend(self._rules_to_bulk_actions(data.rules))
-        actions.extend(self._users_to_bulk_actions(data.users))
-        actions.extend(self._tweet_to_bulk_actions(data.tweets))
-        actions.extend(self._media_to_bulk_actions(data.media))
-        actions.extend(self._poll_to_bulk_actions(data.polls))
-        actions.extend(self._place_to_bulk_actions(data.places))
+        actions.extend(self._rules_to_bulk_actions(list(data.rules.values())))
+        actions.extend(self._users_to_bulk_actions(list(data.users.values())))
+        actions.extend(self._tweet_to_bulk_actions(list(data.tweets.values())))
+        actions.extend(self._media_to_bulk_actions(list(data.media.values())))
+        actions.extend(self._poll_to_bulk_actions(list(data.polls.values())))
+        actions.extend(self._place_to_bulk_actions(list(data.places.values())))
 
         await helpers.async_bulk(self.es, actions)
 
@@ -97,6 +97,10 @@ class ElasticTweetStorage(AsyncStorage):
                 "_id": poll.id,
                 "_source": poll.dict()
             }
+
+    async def save_error(self, error: any):
+        await self.es.index(index='error', document=error)
+        await self.es.indices.refresh(index='error')
 
     async def save_tweet(self, tweet: RestTweet):
         await self.save_tweets([tweet])

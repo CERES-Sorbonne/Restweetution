@@ -35,4 +35,25 @@ class BulkData(BaseModel):
 
         return BulkData(**self_dict)
 
+    def add_rules(self, rules: List[StreamRule]):
+        self.set_from_list(self.rules, 'id', rules)
 
+    def add_tweets(self, tweets: List[RestTweet]):
+        self.set_from_list(self.tweets, 'id', tweets)
+
+    def add_users(self, users: List[User]):
+        self.set_from_list(self.users, 'id', users)
+
+    def add_places(self, places: List[Place]):
+        self.set_from_list(self.places, 'id', places)
+
+    def add_polls(self, polls: List[Poll]):
+        self.set_from_list(self.polls, 'id', polls)
+
+    def add_media(self, media: List[Media]):
+        self.set_from_list(self.media, 'media_key', media)
+
+    @staticmethod
+    def set_from_list(target: dict, key: str, array: list):
+        for item in array:
+            target[item.dict()[key]] = item
