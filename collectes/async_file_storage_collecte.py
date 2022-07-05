@@ -3,10 +3,10 @@ import json
 import logging
 import os
 
-from restweetution.collectors import AsyncStreamer
-from restweetution.collectors.async_client import AsyncClient
+from restweetution.collectors import Streamer
+from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.query_params_config import MEDIUM_CONFIG
-from restweetution.storage.async_storage_manager import AsyncStorageManager
+from restweetution.storage.storage_manager import StorageManager
 from restweetution.storage.object_storage.async_object_storage import AsyncFileStorage
 from restweetution.utils import set_error_handler
 
@@ -19,10 +19,10 @@ async def launch():
     with open(os.getenv("CREDENTIALS"), "r") as f:
         token = json.load(f).get('token')
 
-    stm = AsyncStorageManager()
-    client = AsyncClient(token=token)
+    stm = StorageManager()
+    client = TwitterClient(token=token)
     stm.add_storage(AsyncFileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Data')), tags=['ZM', 'IVG'])
-    s = AsyncStreamer(client, stm)
+    s = Streamer(client, stm)
     s.set_query_params(MEDIUM_CONFIG)
     set_error_handler(my_error_handler)
     s.create_error()

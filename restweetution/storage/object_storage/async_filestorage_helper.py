@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Union
 from aiofiles import open
 
-from restweetution.storage.async_storage_helper import AsyncStorageHelper
+from restweetution.storage.storage_helper import StorageHelper
 
 
-class AsyncFileStorageHelper(AsyncStorageHelper):
+class FileStorageHelper(StorageHelper):
     def __init__(self, root: str, max_size: int = None):
         super().__init__()
         self._root = root

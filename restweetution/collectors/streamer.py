@@ -6,20 +6,20 @@ from typing import List, Dict
 import aiohttp
 import requests
 
-from restweetution.collectors.async_client import AsyncClient
-from restweetution.collectors.async_collector import AsyncCollector
+from restweetution.twitter_client import TwitterClient
+from restweetution.collectors.collector import Collector
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.tweet import TweetResponse, RestTweet
 from restweetution.models.twitter.user import User
-from restweetution.storage.async_storage_manager import AsyncStorageManager
+from restweetution.storage.storage_manager import StorageManager
 from restweetution.utils import get_full_class_name
 
 
-class AsyncStreamer(AsyncCollector):
-    def __init__(self, client: AsyncClient, storage_manager: AsyncStorageManager, verbose: bool = False):
+class Streamer(Collector):
+    def __init__(self, client: TwitterClient, storage_manager: StorageManager, verbose: bool = False):
         """
         The Streamer is the class used to connect to the Twitter Stream API and fetch live tweets
         """
@@ -28,7 +28,7 @@ class AsyncStreamer(AsyncCollector):
         self._fetch_minutes = False
         self._preset_stream_rules = None  # used to preset rules in non-async context (config)
 
-        super(AsyncStreamer, self).__init__(client, storage_manager, verbose=verbose)
+        super(Streamer, self).__init__(client, storage_manager, verbose=verbose)
 
         # use a cache to store the rules
         self._persistent_rule_cache: Dict[str, StreamRule] = {}

@@ -1,15 +1,15 @@
 # from typing import List
 #
-# from restweetution.collectors import AsyncStreamer
+# from restweetution.collectors import Streamer
 # from restweetution.models.storage_config import StorageConfig
-# from restweetution.storage.async_storage_manager import AsyncStorageManager
+# from restweetution.storage.async_storage_manager import StorageManager
 # from restweetution.utils import resolve_storage
 #
 #
 # class Restweetution:
 #     def __init__(self):
-#         self._storage_manager = AsyncStorageManager()
-#         self._streamer = AsyncStreamer(self._storage_manager)
+#         self._storage_manager = StorageManager()
+#         self._streamer = Streamer(self._storage_manager)
 #
 #     def set_streamer_config(self, config: dict):
 #         self._streamer.load_config(config)

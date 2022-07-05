@@ -1,13 +1,13 @@
-from typing import List, Dict, Union
+from typing import Dict, Union
 
-from restweetution.collectors import AsyncCollector
-from restweetution.collectors.async_client import AsyncClient
+from restweetution.collectors import Collector
+from restweetution.twitter_client import TwitterClient
 from restweetution.models.tweet_config import QueryParams
-from restweetution.storage.async_storage_manager import AsyncStorageManager
+from restweetution.storage.storage_manager import StorageManager
 
 
-class Searcher(AsyncCollector):
-    def __init__(self, client: AsyncClient, storage_manager: AsyncStorageManager, verbose: bool = False):
+class Searcher(Collector):
+    def __init__(self, client: TwitterClient, storage_manager: StorageManager, verbose: bool = False):
         """
         The Searcher is used to make requests to the regular REST API
         """
@@ -17,7 +17,7 @@ class Searcher(AsyncCollector):
         self._tag = None
         self._preset_stream_rules = None  # used to preset rules in non-async context (config)
 
-        super(AsyncCollector, self).__init__(client, storage_manager, verbose=verbose)
+        super(Collector, self).__init__(client, storage_manager, verbose=verbose)
 
     def set_rule(self, rule: str, tag: str):
         self._rule = rule

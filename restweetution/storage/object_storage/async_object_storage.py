@@ -6,14 +6,14 @@ from abc import ABC
 from typing import List, Iterator
 
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
-from .async_filestorage_helper import AsyncFileStorageHelper
-from ..async_storage import AsyncStorage
+from .async_filestorage_helper import FileStorageHelper
+from ..storage import Storage
 from ...models.bulk_data import BulkData
 
 
-class AsyncObjectStorage(AsyncStorage, ABC):
+class ObjectStorage(Storage, ABC):
 
-    def __init__(self, storage_helper: AsyncFileStorageHelper):
+    def __init__(self, storage_helper: FileStorageHelper):
         """
         Generic Object Storage, like FileStorage or SSHFileStorage
         Provide a simple interface to manipulate tweets and media for all kind of Object Storages
@@ -23,7 +23,7 @@ class AsyncObjectStorage(AsyncStorage, ABC):
         # TODO: changer le tweet et media pour que ça soit géré par le storage manager
         self.storage_helper = storage_helper
         self.name = "FileStorage"
-        super(AsyncObjectStorage, self).__init__(name=str(self))
+        super(ObjectStorage, self).__init__(name=str(self))
         self.logger = logging.getLogger("Collector.Storage.ObjectStorage")
         folders = ['tweets', 'rules', 'users', 'media_links']
         # aliases to access paths easily and avoid typo mistakes
@@ -118,7 +118,7 @@ class AsyncObjectStorage(AsyncStorage, ABC):
             await self.storage_helper.put(content, self.media_links(signature))
 
 
-class AsyncFileStorage(AsyncObjectStorage):
+class AsyncFileStorage(ObjectStorage):
     def __init__(self, root: str, max_size: int = None):
-        storage = AsyncFileStorageHelper(root=root, max_size=max_size)
+        storage = FileStorageHelper(root=root, max_size=max_size)
         super(AsyncFileStorage, self).__init__(storage_helper=storage)

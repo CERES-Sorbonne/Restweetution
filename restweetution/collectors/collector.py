@@ -1,15 +1,15 @@
 import logging
 import time
 
-from restweetution.collectors.async_client import AsyncClient
+from restweetution.twitter_client import TwitterClient
 from restweetution.models.tweet_config import QueryParams
-from restweetution.storage.async_storage_manager import AsyncStorageManager
+from restweetution.storage.storage_manager import StorageManager
 
 
-class AsyncCollector:
+class Collector:
     def __init__(self,
-                 client: AsyncClient,
-                 storage_manager: AsyncStorageManager,
+                 client: TwitterClient,
+                 storage_manager: StorageManager,
                  verbose: bool = False,
                  max_retries: int = 10):
         """

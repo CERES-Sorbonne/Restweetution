@@ -3,7 +3,7 @@ from abc import ABC
 from typing import Union
 
 
-class AsyncStorageHelper(ABC):
+class StorageHelper(ABC):
     """
     Metaclass to define some generic storage methods that will be implemented in every type of storage
     """

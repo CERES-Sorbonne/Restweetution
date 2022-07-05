@@ -12,18 +12,18 @@ from PIL import Image
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.tweet import TweetResponse, Media, RestTweet
 from restweetution.models.twitter.user import User
-from restweetution.storage.async_storage import AsyncStorage
+from restweetution.storage.storage import Storage
 from restweetution.utils import TwitterDownloader
 
 
-class AsyncStorageManager:
+class StorageManager:
     def __init__(self):
         """
         Utility class to provide a single entry point to a Collector in order to perform all storages operations
         """
 
-        self._tweet_storages: List[AsyncStorage] = []
-        self._media_storages: List[AsyncStorage] = []
+        self._tweet_storages: List[Storage] = []
+        self._media_storages: List[Storage] = []
         self.storage_tags: Dict[str, List[str]] = {}
 
         # self.media_storages = [self._resolve_storage(s) for s in media_storages]
@@ -41,18 +41,18 @@ class AsyncStorageManager:
             s += "- " + str(m)
         return s
 
-    def add_storage_tags(self, storage: AsyncStorage, tags: List[str]):
+    def add_storage_tags(self, storage: Storage, tags: List[str]):
         name = storage.name
         for tag in [t for t in tags if t not in self.storage_tags[name]]:
             self.storage_tags[name].append(tag)
 
-    def remove_storage_tags(self, storage: AsyncStorage, tags: List[str]):
+    def remove_storage_tags(self, storage: Storage, tags: List[str]):
         name = storage.name
         if not self.storage_tags[name]:
             return
         self.storage_tags[name] = [s for s in self.storage_tags[name] if s not in tags]
 
-    def add_storage(self, storage: AsyncStorage, tags: List[str] = None):
+    def add_storage(self, storage: Storage, tags: List[str] = None):
         if storage.name in [s.name for s in self._tweet_storages]:
             self.logger.warning(f'Storage name must be unique! name: {storage.name} is already taken')
             return
@@ -76,7 +76,7 @@ class AsyncStorageManager:
         for s in self.get_tweet_storages_by_tags(tags):
             await s.save_tweet(tweet)
 
-    def has_tags(self, storage: AsyncStorage, tags):
+    def has_tags(self, storage: Storage, tags):
         """
         Tweet if the given storage has at least one of the tags
         """

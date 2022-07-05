@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from restweetution.errors import handle_storage_save_error
 from restweetution.models.bulk_data import BulkData
-from restweetution.storage.async_storage import AsyncStorage
+from restweetution.storage.storage import Storage
 from restweetution.storage.postgres_storage.models import User, Place, Rule, Error
 from restweetution.storage.postgres_storage.models.media import Media
 from restweetution.storage.postgres_storage.models.poll import Poll
@@ -11,7 +11,7 @@ from restweetution.storage.postgres_storage.models.rule import CollectedTweet
 from restweetution.storage.postgres_storage.models.tweet import Tweet
 
 
-class PostgresStorage(AsyncStorage):
+class PostgresStorage(Storage):
     def __init__(self,
                  name: str,
                  url: str):

@@ -2,22 +2,22 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from restweetution.collectors import AsyncStreamer
-from restweetution.collectors.async_client import AsyncClient
+from restweetution.collectors import Streamer
+from restweetution.twitter_client import TwitterClient
 from restweetution.models.tweet_config import QueryParams
-from restweetution.storage.async_storage import AsyncStorage
-from restweetution.storage.async_storage_manager import AsyncStorageManager
+from restweetution.storage.storage import Storage
+from restweetution.storage.storage_manager import StorageManager
 
 
 class MainConfig(BaseModel):
-    client: Optional[AsyncClient]
+    client: Optional[TwitterClient]
     client_token: Optional[str]
 
-    storage_manager: Optional[AsyncStorageManager]
+    storage_manager: Optional[StorageManager]
     storage_tags: Optional[dict] = []
-    storage_tweet_storages: Optional[List[AsyncStorage]] = []
+    storage_tweet_storages: Optional[List[Storage]] = []
 
-    streamer: Optional[AsyncStreamer]
+    streamer: Optional[Streamer]
     streamer_rules: Optional[List[dict]]
     streamer_query_params: Optional[QueryParams]
     streamer_verbose: Optional[bool]

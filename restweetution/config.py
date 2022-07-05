@@ -2,12 +2,12 @@ import json
 
 import yaml
 
-from restweetution.collectors import AsyncStreamer
-from restweetution.collectors.async_client import AsyncClient
+from restweetution.collectors import Streamer
+from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.main_config import MainConfig
 from restweetution.models.config.query_params_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.models.tweet_config import QueryParams
-from restweetution.storage.async_storage_manager import AsyncStorageManager
+from restweetution.storage.storage_manager import StorageManager
 from restweetution.storage.elastic_storage.elastic_storage import ElasticTweetStorage
 from restweetution.storage.postgres_storage.postgres_storage import PostgresStorage
 
@@ -68,7 +68,7 @@ def parse_streamer_config(main_conf: MainConfig, data: dict):
     :param data: raw config data
     """
     if main_conf.client and main_conf.storage_manager:
-        streamer = AsyncStreamer(client=main_conf.client, storage_manager=main_conf.storage_manager)
+        streamer = Streamer(client=main_conf.client, storage_manager=main_conf.storage_manager)
         if 'streamer' in data:
             s_data = data['streamer']
             if 'verbose' in s_data:
@@ -112,7 +112,7 @@ def parse_client_config(main_conf: MainConfig, data: dict):
     """
     if 'client' not in data:
         return
-    main_conf.client = AsyncClient(token=data['client']['token'])
+    main_conf.client = TwitterClient(token=data['client']['token'])
 
 
 def parse_storage_config(main_conf: MainConfig, data: dict):
@@ -132,13 +132,13 @@ def parse_storage_config(main_conf: MainConfig, data: dict):
     main_conf.storage_manager = create_storage_manager(main_conf)
 
 
-def create_storage_manager(main_conf: MainConfig) -> AsyncStorageManager:
+def create_storage_manager(main_conf: MainConfig) -> StorageManager:
     """
     Create a storage_manager and set parameters according to config
     :param main_conf: MainConfig
     :return: storage_manager
     """
-    manager = AsyncStorageManager()
+    manager = StorageManager()
     for storage in main_conf.storage_tweet_storages:
         manager.add_storage(storage=storage, tags=main_conf.storage_tags[storage.name])
     return manager

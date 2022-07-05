@@ -11,7 +11,7 @@ from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 
 
-class AsyncStorage(ABC):
+class Storage(ABC):
     def __init__(self, name: str = None, interval: int = 2, buffer_size: int = 100):
         """
         Abstract Class that provides the template for every other storage

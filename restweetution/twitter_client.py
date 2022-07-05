@@ -9,7 +9,7 @@ import aiohttp
 from restweetution.models.stream_rule import RuleResponse
 
 
-class AsyncClient(aiohttp.ClientSession):
+class TwitterClient(aiohttp.ClientSession):
     def __init__(self, token: str, base_url: str = "https://api.twitter.com/2/", error_handler: Callable = None):
         super().__init__()
         self.base_url = base_url

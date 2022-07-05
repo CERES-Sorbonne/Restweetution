@@ -8,11 +8,11 @@ from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
-from restweetution.storage.async_storage import AsyncStorage
+from restweetution.storage.storage import Storage
 from elasticsearch import AsyncElasticsearch
 
 
-class ElasticTweetStorage(AsyncStorage):
+class ElasticTweetStorage(Storage):
     def __init__(self,
                  name: str,
                  es_url: str,

@@ -1,2 +1,2 @@
-from restweetution.collectors.async_collector import AsyncCollector
-from restweetution.collectors.async_streamer import AsyncStreamer
+from restweetution.collectors.collector import Collector
+from restweetution.collectors.streamer import Streamer
