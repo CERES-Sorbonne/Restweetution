@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import traceback
 from typing import Callable, List
@@ -31,13 +32,7 @@ class AsyncClient(aiohttp.ClientSession):
         async with self as session:
             async with session.get("https://api.twitter.com/2/tweets/search/stream", params=params) as resp:
                 async for line in resp.content:
-                    try:
-                        line_callback(line)
-                    except BaseException as e:
-                        if error_callback:
-                            error_callback(e)
-                        else:
-                            self._logger.exception(traceback.format_exc())
+                    asyncio.create_task(line_callback(line))
 
     async def remove_rules(self, ids: List[str]):
         """

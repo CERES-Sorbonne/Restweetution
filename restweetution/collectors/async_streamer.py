@@ -8,11 +8,14 @@ import requests
 
 from restweetution.collectors.async_client import AsyncClient
 from restweetution.collectors.async_collector import AsyncCollector
+from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
+    UnreadableResponseError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.tweet import TweetResponse, RestTweet
 from restweetution.models.twitter.user import User
 from restweetution.storage.async_storage_manager import AsyncStorageManager
+from restweetution.utils import get_full_class_name
 
 
 class AsyncStreamer(AsyncCollector):
@@ -30,7 +33,8 @@ class AsyncStreamer(AsyncCollector):
         # use a cache to store the rules
         self._persistent_rule_cache: Dict[str, StreamRule] = {}
         self._active_rule_cache: Dict[str, StreamRule] = {}
-        self._storages_manager.set_error_callback(self._handle_storage_error)
+
+        set_error_handler(self._main_error_handler)
 
     def _cache_persistent_rule(self, rule):
         self._persistent_rule_cache[rule.id] = rule
@@ -154,18 +158,32 @@ class AsyncStreamer(AsyncCollector):
         if self.tweets_count % 10 == 0:
             self._logger.info(f'{self.tweets_count} tweets collected')
 
-    def _handle_storage_error(self, error: BaseException):
-        self._logger.exception(traceback.format_exc())
+    async def _main_error_handler(self, error: Exception):
+        trace = traceback.format_exc()
+        # self._logger.exception(trace)
+
+        if isinstance(error, ResponseParseError) or isinstance(error, StorageError):
+            data = error.__dict__.copy()
+            data['error_name'] = get_full_class_name(error)
+            data['traceback'] = trace
+            error_data = json.dumps(data, default=str)
+
+            await self._storages_manager.save_error(error_data)
 
     @staticmethod
     def set_from_list(target: dict, key: str, array: list):
         for item in array:
             target[item.dict()[key]] = item
 
-    async def _handle_tweet_response(self, tweet_res: TweetResponse):
+    async def _tweet_response_to_bulk_data(self, tweet_res: TweetResponse):
+        """
+        Handles one tweet response from the tweet stream
+        All data than can be saved with the storage manager is inserted in one bulk_data
+        The bulk_data is then given to the storage manager for saving
+        :params tweet_res: the tweet response object
+        """
         self._log_tweets(tweet_res)
         bulk_data = BulkData()
-
         # Get the full rule from the id in matching_rules
         rules_ref = tweet_res.matching_rules
         rule_ids = [r.id for r in rules_ref]
@@ -189,14 +207,14 @@ class AsyncStreamer(AsyncCollector):
                 self.set_from_list(bulk_data.polls, 'id', tweet_res.includes.polls)
 
         # Convert to RestTweet standard
-        tweet = RestTweet(**tweet_res.data.dict())
+        tweet = tweet_res.data
         # Enrich data by de-normalizing some fields
         self._enrich_tweet(tweet, bulk_data.rules, bulk_data.users)
         # Save into bulk_data
         self.set_from_list(bulk_data.tweets, 'id', [tweet])
 
-        # send data to storage manager
-        self._storages_manager.bulk_save(bulk_data, tags)
+        return bulk_data, tags
+
 
     @staticmethod
     def _enrich_tweet(tweet: RestTweet, rules: Dict[str, StreamRule], users: Dict[str, User]):
@@ -226,20 +244,62 @@ class AsyncStreamer(AsyncCollector):
         else:
             raise requests.RequestException()
 
-    def _handle_line_response(self, line: bytes):
-        if line:
-            txt = line.decode("utf-8")
-            if txt != '\r\n':
-                data = json.loads(txt)
-                if "errors" in data:
-                    self._handle_errors(data['errors'])
-                tweet_res = TweetResponse(**data)
-                asyncio.create_task(self._handle_tweet_response(tweet_res))
-        else:
+    @handle_error
+    async def _handle_line_response(self, line: bytes):
+        """
+        Callback for the client tweet stream function.
+        Is used to parse the line of bytes into a TweetResponse containing the tweet data
+        :param line: bytes to be parsed
+        """
+
+        # if line is empty log message
+        if not line:
             self._logger.info("waiting for new tweets")
+            return
+
+        # parse to utf-8
+        try:
+            txt = line.decode('utf-8')
+        except Exception as e:
+            raise UnreadableResponseError('Failed to parse the server response to utf-8') from e
+
+        # ignore line return
+        if txt == '\r\n':
+            return
+
+        # try parsing to json
+        try:
+            data = json.loads(txt)
+        except Exception as e:
+            raise ResponseParseError('Failed to parse the server response to json', raw_text=txt) from e
+
+        # Test for Twitter API Errors
+        if 'errors' in data:
+            raise TwitterAPIError('Streamer response has error field', data=data)
+            # self._handle_errors(data['errors'])
+
+        # Parse json object with pydantic
+        try:
+            tweet_res = TweetResponse(**data)
+        except Exception as e:
+            raise ResponseParseError('Failed to parse the json response with pydantic', data=data) from e
+
+        # Build BulkData from the TweetResponse containing all objects that can be saved
+        try:
+            bulk_data, tags = await self._tweet_response_to_bulk_data(tweet_res)
+        except Exception as e:
+            raise ResponseParseError('Unexpected Error while building BulkData from the TweetResponse', data=data) \
+                from e
+
+        # send data to storage_manager
+        try:
+            self._storages_manager.bulk_save(bulk_data, tags)
+        except Exception as e:
+            raise StorageError('Unexpected StorageManager bulk_save function error')
 
     async def _save_error(self, error: any):
-        await self._storages_manager.save_error(error)
+        print(error)
+        # await self._storages_manager.save_error(error)
 
     async def collect(self):
         """

@@ -5,6 +5,7 @@ import time
 from abc import ABC
 from typing import List, Iterator, Optional, Callable
 
+from restweetution.errors import handle_error
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
@@ -27,11 +28,6 @@ class AsyncStorage(ABC):
         self._last_buffer_flush: float = 0
 
         self._periodic_flush_task: Optional[asyncio.Task] = None
-
-        self._error_callback: Optional[Callable] = None
-
-    def set_error_callback(self, callback: Optional[Callable]):
-        self._error_callback = callback
 
     def buffered_bulk_save(self, data: BulkData):
         """
@@ -81,28 +77,13 @@ class AsyncStorage(ABC):
 
             await asyncio.sleep(self._flush_interval - time_diff)
 
+    @handle_error
     async def bulk_save(self, data: BulkData):
-        """
-        Saves the data to the storage
-        :param data: data to be save in BulkData format
-        """
-        try:
-            await self._bulk_save(data)
-        except BaseException as e:
-            self._handle_error(e)
-
-    async def _bulk_save(self, data: BulkData):
         """
         Save the data to storage
         to be implemented in child class
         """
         pass
-
-    def _handle_error(self, error: BaseException):
-        if self._error_callback:
-            self._error_callback(error)
-        else:
-            raise error
 
     async def save_tweet(self, tweet: RestTweet):
         await self.save_tweets([tweet])

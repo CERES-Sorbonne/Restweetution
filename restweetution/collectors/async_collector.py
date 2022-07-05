@@ -4,7 +4,6 @@ import time
 from restweetution.collectors.async_client import AsyncClient
 from restweetution.models.tweet_config import QueryParams
 from restweetution.storage.async_storage_manager import AsyncStorageManager
-from restweetution.utils import handle_error
 
 
 class AsyncCollector:
@@ -31,7 +30,6 @@ class AsyncCollector:
         self._logger = logging.getLogger("Collector")
 
     # TODO: remove this
-    @handle_error
     def create_error(self):
         raise Exception("This is an error ! ")
 

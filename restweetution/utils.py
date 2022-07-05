@@ -13,31 +13,11 @@ import requests
 from restweetution.models.twitter.media import MediaType
 
 
-def default_handler(e: Exception):
-    print("This is an error!")
-    print(e)
-
-
-ERROR_HANDLER = default_handler
-
-
-def set_error_handler(callback):
-    global ERROR_HANDLER
-    ERROR_HANDLER = callback
-
-
-def handle_error(f):
-    def wrapper(*args, **kwargs):
-        try:
-            if kwargs:
-                res = f(args, kwargs)
-            else:
-                res = f(args)
-            return res
-        except Exception as e:
-            global ERROR_HANDLER
-            ERROR_HANDLER(e)
-    return wrapper
+def get_full_class_name(obj):
+    module = obj.__class__.__module__
+    if module is None or module == str.__class__.__module__:
+        return obj.__class__.__name__
+    return module + '.' + obj.__class__.__name__
 
 
 class TwitterDownloader:
@@ -105,7 +85,8 @@ class TwitterDownloader:
             output = str(Path(storage) / Path('output.mp4'))
             with open(input, 'wb') as f:
                 f.write(video_file.content)
-            ffmpeg.input(input).filter('scale', 350, -2).output(output, format='mp4', vcodec='libx264', crf=18, preset='slow').overwrite_output().run()
+            ffmpeg.input(input).filter('scale', 350, -2).output(output, format='mp4', vcodec='libx264', crf=18,
+                                                                preset='slow').overwrite_output().run()
             with open(output, 'rb') as f:
                 return f.read()
 

@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import io
 import logging
@@ -29,8 +30,6 @@ class AsyncStorageManager:
         self.media_downloader = TwitterDownloader()
         self.logger = logging.getLogger("StorageManager")
 
-        self._error_callback: Optional[Callable] = None
-
         self.average_hash = False
 
     def __str__(self):
@@ -41,11 +40,6 @@ class AsyncStorageManager:
         for m in self.get_media_storages():
             s += "- " + str(m)
         return s
-
-    def set_error_callback(self, callback: Optional[Callable]):
-        self._error_callback = callback
-        for s in self._tweet_storages:
-            s.set_error_callback(callback)
 
     def add_storage_tags(self, storage: AsyncStorage, tags: List[str]):
         name = storage.name
@@ -63,7 +57,6 @@ class AsyncStorageManager:
             self.logger.warning(f'Storage name must be unique! name: {storage.name} is already taken')
             return
         self._tweet_storages.append(storage)
-        storage.set_error_callback(self._error_callback)
         self.storage_tags[storage.name] = []
 
         if tags:
@@ -121,11 +114,11 @@ class AsyncStorageManager:
 
     def bulk_save(self, bulk_data, tags: List[str]):
         for s in self.get_storages_by_tags(tags):
-            s.buffered_bulk_save(bulk_data)
+            asyncio.create_task(s.bulk_save(bulk_data))
 
     async def save_rules(self, rules: List[StreamRule]):
         """
-       Persist a list of rules if not existing
+       Saves a list of rules if not existing
        :param rules: list of rules
        :return: none
         """
