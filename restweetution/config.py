@@ -145,7 +145,7 @@ def create_storage_manager(main_conf: MainConfig) -> StorageManager:
         else:
             tags = main_conf.storage_tags[storage.name]
 
-        manager.add_storage(storage=storage, tags=tags)
+        manager.add_doc_storage(storage=storage, tags=tags)
     return manager
 
 

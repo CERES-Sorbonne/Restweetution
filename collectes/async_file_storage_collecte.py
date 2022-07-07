@@ -21,7 +21,7 @@ async def launch():
 
     stm = StorageManager()
     client = TwitterClient(token=token)
-    stm.add_storage(AsyncFileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Data')), tags=['ZM', 'IVG'])
+    stm.add_doc_storage(AsyncFileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Data')), tags=['ZM', 'IVG'])
     s = Streamer(client, stm)
     s.set_query_params(MEDIUM_CONFIG)
     set_error_handler(my_error_handler)

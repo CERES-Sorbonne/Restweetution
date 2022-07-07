@@ -44,7 +44,7 @@ class ObjectStorage(DocumentStorage, ABC):
     def has_free_space(self):
         return self.storage_helper.has_free_space
 
-    async def bulk_save(self, data: BulkData):
+    async def save_bulk(self, data: BulkData):
         await self.save_tweets(list(data.tweets.values()))
         # await self.save_users(list(data.users.values()))
 

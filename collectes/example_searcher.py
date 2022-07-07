@@ -11,6 +11,6 @@ if __name__ == "__main__":
         credentials = json.load(f)['token']
     s1 = AsyncFileStorage(root=os.getenv('ROOT_PATH'))
     m = StorageManager()
-    m.add_storage(s1)
+    m.add_doc_storage(s1)
     c = TwitterClient(token=credentials)
     s = Searcher(client=c, storage_manager=m)

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import traceback
 from typing import Callable, List
 from urllib.parse import urljoin
 
@@ -28,7 +27,7 @@ class TwitterClient(aiohttp.ClientSession):
         except aiohttp.ClientResponseError as e:
             self._error_handler(str(e), e.message)
 
-    async def connect_tweet_stream(self, params, line_callback, error_callback=None):
+    async def connect_tweet_stream(self, params, line_callback):
         async with self as session:
             async with session.get("https://api.twitter.com/2/tweets/search/stream", params=params) as resp:
                 async for line in resp.content:

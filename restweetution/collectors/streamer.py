@@ -170,7 +170,7 @@ class Streamer(Collector):
             data['traceback'] = trace
             error_data = json.dumps(data, default=str)
 
-            await self._storages_manager.save_error(error_data)
+            self._storages_manager.save_error(error_data)
 
     @staticmethod
     def set_from_list(target: dict, key: str, array: list):
@@ -296,13 +296,9 @@ class Streamer(Collector):
 
         # send data to storage_manager
         try:
-            self._storages_manager.bulk_save(bulk_data, tags)
+            self._storages_manager.save_bulk(bulk_data, tags)
         except Exception as e:
-            raise StorageError('Unexpected StorageManager bulk_save function error')
-
-    async def _save_error(self, error: any):
-        print(error)
-        # await self._storages_manager.save_error(error)
+            raise StorageError('Unexpected StorageManager bulk_save function error') from e
 
     async def collect(self):
         """
@@ -324,11 +320,11 @@ class Streamer(Collector):
             self._logger.info('\n'.join([f'{r.value}, tag: {r.tag} id: {r.id}' for r in rules]))
 
         try:
-            await self._client.connect_tweet_stream(self._params, self._handle_line_response, self._save_error)
+            await self._client.connect_tweet_stream(self._params, self._handle_line_response)
         except aiohttp.ClientConnectorError as e:
             self._logger.error(e)
             self._retry_count += 1
             if self._retry_count < self._max_retries:
                 self._logger.error("""The collect will try to start again in 30s""")
                 await asyncio.sleep(30)
-                await self.collect()
+            await self.collect()

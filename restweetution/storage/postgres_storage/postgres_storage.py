@@ -36,7 +36,7 @@ class PostgresStorage(DocumentStorage):
             await session.commit()
 
     @handle_storage_save_error()
-    async def bulk_save(self, data: BulkData):
+    async def save_bulk(self, data: BulkData):
         async with self._async_session() as session:
             for key in data.tweets:
                 pg_tweet = Tweet()

@@ -47,7 +47,7 @@ class DocumentStorage(ABC):
         self._start_periodic_flush_task()
 
     @handle_error
-    async def bulk_save(self, data: BulkData):
+    async def save_bulk(self, data: BulkData):
         """
         Save the data to storage
         to be implemented in child class
@@ -68,7 +68,7 @@ class DocumentStorage(ABC):
         """
         bulk_data = BulkData()
         bulk_data.add_tweets(tweets)
-        await self.bulk_save(bulk_data)
+        await self.save_bulk(bulk_data)
 
     async def save_rule(self, rule: StreamRule):
         """
@@ -84,7 +84,7 @@ class DocumentStorage(ABC):
         """
         bulk_data = BulkData()
         bulk_data.add_rules(rules)
-        await self.bulk_save(bulk_data)
+        await self.save_bulk(bulk_data)
 
     async def save_user(self, user: User):
         """
@@ -100,7 +100,7 @@ class DocumentStorage(ABC):
         """
         bulk_data = BulkData()
         bulk_data.add_users(users)
-        await self.bulk_save(bulk_data)
+        await self.save_bulk(bulk_data)
 
     async def save_media(self, media: Media):
         """
@@ -116,7 +116,7 @@ class DocumentStorage(ABC):
         """
         bulk_data = BulkData()
         bulk_data.add_media(medias)
-        await self.bulk_save(bulk_data)
+        await self.save_bulk(bulk_data)
 
     async def save_place(self, place: Place):
         """
@@ -132,7 +132,7 @@ class DocumentStorage(ABC):
         """
         bulk_data = BulkData()
         bulk_data.add_places(places)
-        await self.bulk_save(bulk_data)
+        await self.save_bulk(bulk_data)
 
     async def save_poll(self, poll: Poll):
         """
@@ -148,7 +148,7 @@ class DocumentStorage(ABC):
         """
         bulk_data = BulkData()
         bulk_data.add_polls(polls)
-        await self.bulk_save(bulk_data)
+        await self.save_bulk(bulk_data)
 
     async def save_error(self, error: RESTweetutionError):
         """
@@ -166,7 +166,7 @@ class DocumentStorage(ABC):
         """
         data = copy.deepcopy(self._buffer_bulk_data)
         self._clear_buffer()
-        asyncio.create_task(self.bulk_save(data))
+        asyncio.create_task(self.save_bulk(data))
         self._last_buffer_flush = time.time()
 
     def _clear_buffer(self):

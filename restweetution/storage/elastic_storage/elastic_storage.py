@@ -23,7 +23,7 @@ class ElasticTweetStorage(DocumentStorage):
         self.rules = {}
         self.es = AsyncElasticsearch(kwargs.get('url'), basic_auth=(kwargs.get('user'), kwargs.get('pwd')))
 
-    async def bulk_save(self, data: BulkData):
+    async def save_bulk(self, data: BulkData):
         actions = []
         actions.extend(self._rules_to_bulk_actions(list(data.rules.values())))
         actions.extend(self._users_to_bulk_actions(list(data.users.values())))

@@ -35,11 +35,25 @@ async def async_main():
 
 # asyncio.run(async_main())
 
-class TestClass:
-    def __init__(self, a, **kwargs):
-        self.a = kwargs.get('a')
-        self.b = kwargs.get('b')
+async def log_task(n):
+    for i in range(n):
+        print(n)
+        await asyncio.sleep(1)
 
 
-t = TestClass(a=1, b=3)
-print(t.b)
+def start(n):
+    tasks = []
+    for i in range(n):
+        tasks.append(asyncio.create_task(log_task(i)))
+    return tasks
+
+
+async def launch():
+    tasks = start(4)
+    await asyncio.gather(*tasks)
+    print('finish')
+
+
+
+asyncio.get_event_loop().create_task(launch())
+asyncio.get_event_loop().run_forever()

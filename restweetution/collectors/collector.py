@@ -29,10 +29,6 @@ class Collector:
         self._client.set_error_handler(self._error_handler)
         self._logger = logging.getLogger("Collector")
 
-    # TODO: remove this
-    def create_error(self):
-        raise Exception("This is an error ! ")
-
     def set_query_params(self, query_params: QueryParams):
         if query_params.expansions:
             self._params['expansions'] = ",".join(query_params.expansions)
