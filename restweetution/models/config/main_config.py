@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from restweetution.collectors import Streamer
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.tweet_config import QueryParams
-from restweetution.storage.storage import Storage
+from restweetution.storage.document_storage import DocumentStorage
 from restweetution.storage.storage_manager import StorageManager
 
 
@@ -15,7 +15,7 @@ class MainConfig(BaseModel):
 
     storage_manager: Optional[StorageManager]
     storage_tags: Optional[dict] = []
-    storage_tweet_storages: Optional[List[Storage]] = []
+    storage_tweet_storages: Optional[List[DocumentStorage]] = []
 
     streamer: Optional[Streamer]
     streamer_rules: Optional[List[dict]]

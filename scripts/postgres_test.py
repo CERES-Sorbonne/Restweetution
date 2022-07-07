@@ -10,7 +10,6 @@ db_string = "postgresql+asyncpg://localhost/david"
 
 db = create_engine(db_string)
 
-
 engine = create_async_engine(
     db_string,
     echo=False,
@@ -29,8 +28,18 @@ async def async_main():
 
     # async with async_session() as session:
 
-        # await session.commit()
+    # await session.commit()
 
     await engine.dispose()
 
-asyncio.run(async_main())
+
+# asyncio.run(async_main())
+
+class TestClass:
+    def __init__(self, a, **kwargs):
+        self.a = kwargs.get('a')
+        self.b = kwargs.get('b')
+
+
+t = TestClass(a=1, b=3)
+print(t.b)

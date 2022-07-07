@@ -7,11 +7,11 @@ from typing import List, Iterator
 
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 from .async_filestorage_helper import FileStorageHelper
-from ..storage import Storage
+from ..document_storage import DocumentStorage
 from ...models.bulk_data import BulkData
 
 
-class ObjectStorage(Storage, ABC):
+class ObjectStorage(DocumentStorage, ABC):
 
     def __init__(self, storage_helper: FileStorageHelper):
         """

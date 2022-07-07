@@ -1,54 +1,57 @@
-from typing import Optional
-
 from restweetution.utils import get_full_class_name
 
 
-class ResTweetutionError(Exception):
+class RESTweetutionError(Exception):
     """Base class for all Custom Errors"""
 
 
-class NetworkError(ResTweetutionError):
+class NetworkError(RESTweetutionError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.raw_text = kwargs.get('url')
 
 
-class UnreadableResponseError(ResTweetutionError):
+class UnreadableResponseError(RESTweetutionError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
 
 
-class ResponseParseError(ResTweetutionError):
+class ResponseParseError(RESTweetutionError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.raw_text = kwargs.get('raw_text')
 
 
-class TwitterAPIError(ResTweetutionError):
+class TwitterAPIError(RESTweetutionError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.data = kwargs.get('data')
 
 
-class PydanticValidationError(ResTweetutionError):
+class PydanticValidationError(RESTweetutionError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.data = kwargs.get('data')
 
 
-class TweetResponseHandleError(ResTweetutionError):
+class TweetResponseHandleError(RESTweetutionError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.data = kwargs.get('data')
 
 
-class StorageError(ResTweetutionError):
+class StorageError(RESTweetutionError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.data = kwargs.get('data')
         self.storage_name = kwargs.get('storage_name')
         self.storage_type = kwargs.get('storage_type')
         self.storage_function = kwargs.get('storage_function')
+
+
+class FunctionNotImplementedError(RESTweetutionError):
+    def __init__(self, *args):
+        super().__init__(*args)
 
 
 async def default_handler(e: Exception):
@@ -71,6 +74,7 @@ def handle_error(fn):
     default error handler for async functions that are called in a new task
     it allows catch errors in tasks that are not awaited
     """
+
     async def wrapper(*args, **kwargs):
         try:
             if kwargs:
@@ -90,6 +94,7 @@ def handle_storage_save_error(datatype='bulk'):
     special error handler for storages functions
     allows to keep trace of which storage had an error and listen to errors in un-awaited tasks
     """
+
     def inner(fn):
         @handle_error
         async def wrapper(*args, **kwargs):

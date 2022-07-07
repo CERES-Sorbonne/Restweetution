@@ -140,7 +140,12 @@ def create_storage_manager(main_conf: MainConfig) -> StorageManager:
     """
     manager = StorageManager()
     for storage in main_conf.storage_tweet_storages:
-        manager.add_storage(storage=storage, tags=main_conf.storage_tags[storage.name])
+        if not main_conf.storage_tags or not main_conf.storage_tags[storage.name]:
+            tags = []
+        else:
+            tags = main_conf.storage_tags[storage.name]
+
+        manager.add_storage(storage=storage, tags=tags)
     return manager
 
 
@@ -153,10 +158,6 @@ def create_storage(name: str, data: dict):
     """
     storage_type = data['type']
     if storage_type == 'elastic':
-        return ElasticTweetStorage(name=name,
-                                   es_url=data['url'],
-                                   es_user=data['user'],
-                                   es_pwd=data['pwd'])
+        return ElasticTweetStorage(name=name, **data)
     if storage_type == 'postgres':
-        return PostgresStorage(name=name,
-                               url=data['url'])
+        return PostgresStorage(name=name, **data)

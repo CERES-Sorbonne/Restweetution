@@ -8,24 +8,20 @@ from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
-from restweetution.storage.storage import Storage
+from restweetution.storage.document_storage import DocumentStorage
 from elasticsearch import AsyncElasticsearch
 
 
-class ElasticTweetStorage(Storage):
-    def __init__(self,
-                 name: str,
-                 es_url: str,
-                 es_user: str = "",
-                 es_pwd: str = ""):
+class ElasticTweetStorage(DocumentStorage):
+    def __init__(self, name: str, **kwargs):
         """
         Storage for Elasticsearch stack
         :param name: Name of the storage. Human friendly identifier
         """
 
-        super().__init__(name=name)
+        super().__init__(name=name, **kwargs)
         self.rules = {}
-        self.es = AsyncElasticsearch(es_url, basic_auth=(es_user, es_pwd))
+        self.es = AsyncElasticsearch(kwargs.get('url'), basic_auth=(kwargs.get('user'), kwargs.get('pwd')))
 
     async def bulk_save(self, data: BulkData):
         actions = []

@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 import traceback
 from typing import List, Dict
@@ -68,7 +69,7 @@ class Streamer(Collector):
         rules = self._persistent_rule_cache.values()
         if ids:
             rules = [r for r in rules if r.id in ids]
-        return rules.copy()
+        return copy.deepcopy(rules)
 
     def _rule_is_missing(self, ids):
         if not self._persistent_rule_cache:
@@ -160,9 +161,10 @@ class Streamer(Collector):
 
     async def _main_error_handler(self, error: Exception):
         trace = traceback.format_exc()
-        # self._logger.exception(trace)
+        self._logger.exception(trace)
 
-        if isinstance(error, ResponseParseError) or isinstance(error, StorageError):
+        if isinstance(error, ResponseParseError) or isinstance(error, StorageError) or \
+                isinstance(error, TwitterAPIError):
             data = error.__dict__.copy()
             data['error_name'] = get_full_class_name(error)
             data['traceback'] = trace
@@ -193,7 +195,7 @@ class Streamer(Collector):
 
         for r in rules:
             r.tweet_ids = [tweet_res.data.id]
-        self.set_from_list(bulk_data.rules, 'id', rules)
+        bulk_data.add_rules(rules)
 
         # Set populates bulk data with includes
         if tweet_res.includes:
@@ -205,6 +207,8 @@ class Streamer(Collector):
                 self.set_from_list(bulk_data.media, 'media_key', tweet_res.includes.media)
             if tweet_res.includes.polls:
                 self.set_from_list(bulk_data.polls, 'id', tweet_res.includes.polls)
+            if tweet_res.includes.tweets:
+                bulk_data.add_tweets(tweet_res.includes.tweets)
 
         # Convert to RestTweet standard
         tweet = tweet_res.data
@@ -214,7 +218,6 @@ class Streamer(Collector):
         self.set_from_list(bulk_data.tweets, 'id', [tweet])
 
         return bulk_data, tags
-
 
     @staticmethod
     def _enrich_tweet(tweet: RestTweet, rules: Dict[str, StreamRule], users: Dict[str, User]):

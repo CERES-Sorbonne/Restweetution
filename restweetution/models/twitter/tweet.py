@@ -115,16 +115,17 @@ class Tweet(BaseModel):
     withheld: Optional[Withheld]
 
 
+class RestTweet(Tweet):
+    matching_rules: Optional[List[StreamRule]]
+    author_username: Optional[str]
+
+
 class TweetIncludes(BaseModel):
     media: Optional[List[Media]]
     users: Optional[List[User]]
     places: Optional[List[Place]]
     polls: Optional[List[Poll]]
-
-
-class RestTweet(Tweet):
-    matching_rules: Optional[List[StreamRule]]
-    author_username: Optional[str]
+    tweets: Optional[List[RestTweet]]
 
 
 class TweetResponse(BaseModel):

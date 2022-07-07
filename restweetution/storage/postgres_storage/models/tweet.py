@@ -1,12 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
 from sqlalchemy.dialects.postgresql import ARRAY, TIMESTAMP
 from sqlalchemy.orm import relationship
-
-# class Tweet(Base):
-
-#     def __repr__(self):
-#         return "<Book(title='{}', author='{}', pages={}, published={})>" \
-#             .format(self.title, self.author, self.pages, self.published)
 from restweetution.storage.postgres_storage.models.custom_base import Base
 
 
