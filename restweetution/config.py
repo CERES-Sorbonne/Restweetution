@@ -90,8 +90,8 @@ def parse_query_params(main_conf: MainConfig, data: dict):
     :param data: query_params data from config
     """
     params = data
-    if 'pre_set' in data:
-        value = data['pre_set'].lower()
+    if 'preset' in data:
+        value = data['preset'].lower()
         if value == 'all':
             params = ALL_CONFIG
         elif value == 'medium':
