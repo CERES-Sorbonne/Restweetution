@@ -6,3 +6,9 @@ pillow
 ffmpeg-python
 m3u8
 pysftp
+elasticsearch
+aiohttp
+aiofiles
+sqlalchemy
+psycopg2
+httpx

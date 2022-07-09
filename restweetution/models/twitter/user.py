@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import Optional, List, Any
 
 from pydantic import BaseModel
 
-from .entities import Tag, Url
+from restweetution.models.twitter.entities import Tag, Url
 
 
 class UserHashtags(BaseModel):
@@ -29,7 +30,7 @@ class User(BaseModel):
     id: str
     name: str
     username: str
-    created_at: Optional[str]
+    created_at: Optional[datetime]
     description: Optional[str]
     entities: Optional[UserEntity]
     location: Optional[str]
@@ -40,9 +41,3 @@ class User(BaseModel):
     url: Optional[str]
     verified: Optional[bool]
     withheld: Any
-
-
-
-
-
-

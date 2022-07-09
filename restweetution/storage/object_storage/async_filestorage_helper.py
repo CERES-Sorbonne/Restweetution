@@ -2,6 +2,7 @@ import io
 import os
 from pathlib import Path
 from typing import Union
+from aiofiles import open
 
 from restweetution.storage.storage_helper import StorageHelper
 
@@ -11,7 +12,7 @@ class FileStorageHelper(StorageHelper):
         super().__init__()
         self._root = root
         self.max_size = max_size
-        # use this so we can override it in the ssh client
+        # use this, so we can override it in the ssh client
         self._open = open
         # same for join
         self._join_path = os.path.join
@@ -26,22 +27,22 @@ class FileStorageHelper(StorageHelper):
             self.safe_create(value)
         self._root = value
 
-    def get(self, key: str) -> io.BufferedIOBase:
-        with self._open(self._join_path(self.root, key), 'rb') as f:
-            return io.BytesIO(f.read())
+    async def get(self, key: str) -> io.BufferedIOBase:
+        async with self._open(self._join_path(self.root, key), 'rb') as f:
+            return io.BytesIO(await f.read())
 
-    def put(self, buffer: Union[io.BufferedIOBase, str], key: str) -> str:
+    async def put(self, buffer: Union[io.BufferedIOBase, str], key: str) -> str:
         # create directory if it does not exist
         dir_name = os.path.dirname(key)
         self.safe_create(dir_name)
         path = self._join_path(self.root, key)
         if isinstance(buffer, str):
-            with self._open(path, 'w', encoding='utf-8') as f:
-                f.write(buffer)
+            async with self._open(path, 'w', encoding='utf-8') as f:
+                await f.write(buffer)
         elif isinstance(buffer, io.BufferedIOBase):
             buffer.seek(0)
-            with self._open(path, 'wb') as f:
-                f.write(buffer.read())
+            async with self._open(path, 'wb') as f:
+                await f.write(buffer.read())
         return path
 
     def delete(self, key: str):

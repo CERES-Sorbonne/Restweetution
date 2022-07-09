@@ -1,10 +1,14 @@
+from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel
 
-from .entities import Annotation, Tag, Url, Mention
-from .media import Media
-from .user import User
+from restweetution.models.twitter.entities import Annotation, Tag, Url, Mention
+from restweetution.models.twitter.media import Media
+from restweetution.models.stream_rule import StreamRule
+from restweetution.models.twitter.place import Place
+from restweetution.models.twitter.poll import Poll
+from restweetution.models.twitter.user import User
 
 
 class Attachments(BaseModel):
@@ -85,16 +89,17 @@ class ReferencedTweet(BaseModel):
 class Withheld(BaseModel):
     copyright: bool
     country_codes: List[str]
+    scope: str
 
 
-class TweetData(BaseModel):
+class Tweet(BaseModel):
     id: str
     text: str
     attachments: Optional[Attachments]
-    author_id: str
+    author_id: Optional[str]
     context_annotations: Optional[List[ContextAnnotation]]
     conversation_id: Optional[str]
-    created_at: Optional[str]
+    created_at: Optional[datetime]
     entities: Optional[Entities]
     geo: Optional[Geo]
     in_reply_to_user_id: Optional[str]
@@ -110,22 +115,21 @@ class TweetData(BaseModel):
     withheld: Optional[Withheld]
 
 
+class RestTweet(Tweet):
+    matching_rules: Optional[List[StreamRule]]
+    author_username: Optional[str]
+
+
 class TweetIncludes(BaseModel):
     media: Optional[List[Media]]
     users: Optional[List[User]]
+    places: Optional[List[Place]]
+    polls: Optional[List[Poll]]
+    tweets: Optional[List[RestTweet]]
 
 
-class Rule(BaseModel):
-    id: str
-    tag: str
-
-
-class Tweet(BaseModel):
-    data: TweetData
+class TweetResponse(BaseModel):
+    data: RestTweet
     includes: Optional[TweetIncludes]
-    matching_rules: Optional[List[Rule]]
+    matching_rules: Optional[List[StreamRule]]
     errors: Optional[List[dict]]
-
-
-class StreamRule(Rule):
-    value: str

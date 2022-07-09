@@ -5,12 +5,12 @@ from typing import Union
 
 class StorageHelper(ABC):
     """
-    Meta class to define some generic storage methods that will be implemented in every type of storage
+    Metaclass to define some generic storage methods that will be implemented in every type of storage
     """
     def __init__(self, *args, **kwargs):
         self.root = None
 
-    def get(self, key: str) -> io.BufferedIOBase:
+    async def get(self, key: str) -> io.BufferedIOBase:
         """
         Return the specified object from the storage
         :param key: the key identifying the object
@@ -18,7 +18,7 @@ class StorageHelper(ABC):
         """
         pass
 
-    def put(self, buffer: Union[io.BufferedIOBase, str], key: str) -> str:
+    async def put(self, buffer: Union[io.BufferedIOBase, str], key: str) -> str:
         """
         Save to storage the object
         :param buffer: the buffer of the object to save, can be an io.BufferedIOBase kind or a string
@@ -39,8 +39,8 @@ class StorageHelper(ABC):
         """
         List all objects in the root directory
         :param prefix: used to filter the results (name, subdirectory) etc.
-        for instance, storage.list(prefix="/data") will return all objects stored under the data repository
-        :param recursive: if set to true, will recurse trough all subfolders
+        for instance, storage.list(prefix="/tweet") will return all objects stored under the tweet repository
+        :param recursive: if set to true, will recurse through all sub folders
         :return: a list of strings containing the keys of the objects
         """
         pass
@@ -54,7 +54,7 @@ class StorageHelper(ABC):
 
     def has_free_space(self) -> bool:
         """
-        Is there still enough space in the storage to store data ?
+        Is there still enough space in the storage to store tweet ?
         :return: a boolean
         """
         pass
