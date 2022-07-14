@@ -1,8 +1,8 @@
 import asyncio
-import hashlib
+import io
 import logging
 from io import BytesIO
-from typing import List, Dict
+from typing import List, Dict, Union
 
 import imagehash
 from PIL import Image
@@ -14,7 +14,8 @@ from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.models.twitter.user import User
 from restweetution.storage.document_storage import DocumentStorage
-from restweetution.utils import TwitterDownloader
+from restweetution.storage.object_storage.object_storage import FileStorage
+from restweetution.utils import MediaDownloader
 
 
 class StorageManager:
@@ -24,10 +25,10 @@ class StorageManager:
         """
 
         self._doc_storages: List[DocumentStorage] = []
-        # self._media_storages: List[DocumentStorage] = []
+        self._media_storage: Union[FileStorage, None] = None
         self._doc_storage_tags: Dict[str, List[str]] = {}
 
-        self.media_downloader = TwitterDownloader()
+        self.media_downloader = MediaDownloader(self.media_callback)
         self.logger = logging.getLogger("StorageManager")
 
         self.average_hash = False
@@ -40,6 +41,15 @@ class StorageManager:
         # for m in self.get_media_storages():
         #     s += "- " + str(m)
         return s
+
+    def media_callback (self, media: Media, sha1: str, bytes_image: bytes = None, media_format: str = None):
+        """
+        Callback that will be passed to the media downloader to save the media once the download is finished
+        """
+        if bytes_image:
+            await self._media_storage.save_media(f'{sha1}.{media_format}', io.BytesIO(bytes_image))
+        await self._media_storage.save_media_link(media.media_key, sha1)
+        # TODO: save more information in the document storage ?
 
     # Storage functions
     def add_doc_storage(self, storage: DocumentStorage, tags: List[str] = None):
@@ -56,6 +66,9 @@ class StorageManager:
 
         if tags:
             self.add_doc_storage_tags(storage, tags)
+
+    def set_media_storage(self, storage: FileStorage) -> None:
+        self._media_storage = storage
 
     def remove_doc_storages(self, names: List[str]):
         """
@@ -206,17 +219,6 @@ class StorageManager:
             tasks.append(asyncio.create_task(s.save_places(places)))
         return tasks
 
-    def save_medias(self, medias: List[Media], tags: List[str]):
-        """
-        Save medias
-        :param medias: List of medias
-        :param tags: List of tags
-        """
-        tasks = []
-        for s in self.get_doc_storages_listening_to_tags(tags):
-            tasks.append(asyncio.create_task(s.save_medias(medias)))
-        return tasks
-
     # private utils
     def _has_tags(self, storage: DocumentStorage, tags):
         """
@@ -235,19 +237,14 @@ class StorageManager:
     #         for r in await s.get_tweets(tags=tags, ids=ids):
     #             yield r
 
-    @staticmethod
-    def _get_file_type(file_type: str) -> str:
-        if file_type == "video":
-            return "mp4"
-        elif file_type == "photo":
-            return "jpeg"
-        else:
-            # store gif files as mp4 because it's the way there are downloaded
-            return "gif"
+    async def save_media(self, media_list: List[Media]) -> None:
+        """
+        Take a media list, send them to the media downloader
+        """
+        for media in media_list:
+            await self.media_downloader.download_media(media)
 
-    @staticmethod
-    def _compute_signature(buffer: bytes):
-        return hashlib.sha1(buffer).hexdigest()
+
 
     @staticmethod
     def _computer_average_signature(buffer: bytes):

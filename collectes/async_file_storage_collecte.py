@@ -7,8 +7,7 @@ from restweetution.collectors import Streamer
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.query_params_config import MEDIUM_CONFIG
 from restweetution.storage.storage_manager import StorageManager
-from restweetution.storage.object_storage.async_object_storage import AsyncFileStorage
-from restweetution.utils import set_error_handler
+from restweetution.storage.object_storage.object_storage import FileStorage
 
 
 def my_error_handler(e: Exception):
@@ -21,11 +20,9 @@ async def launch():
 
     stm = StorageManager()
     client = TwitterClient(token=token)
-    stm.add_doc_storage(AsyncFileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Data')), tags=['ZM', 'IVG'])
+    stm.add_doc_storage(FileStorage(root=os.path.join(os.getenv('ROOT_PATH'), 'Data')), tags=['ZM', 'IVG'])
     s = Streamer(client, stm)
     s.set_query_params(MEDIUM_CONFIG)
-    set_error_handler(my_error_handler)
-    s.create_error()
     asyncio.create_task(s.collect())
 
 if __name__ == "__main__":

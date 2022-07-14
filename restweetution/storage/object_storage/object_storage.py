@@ -6,7 +6,7 @@ from abc import ABC
 from typing import List, Iterator
 
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
-from .async_filestorage_helper import FileStorageHelper
+from .filestorage_helper import FileStorageHelper
 from ..document_storage import DocumentStorage
 from ...models.bulk_data import BulkData
 
@@ -118,7 +118,7 @@ class ObjectStorage(DocumentStorage, ABC):
             await self.storage_helper.put(content, self.media_links(signature))
 
 
-class AsyncFileStorage(ObjectStorage):
+class FileStorage(ObjectStorage):
     def __init__(self, root: str, max_size: int = None):
         storage = FileStorageHelper(root=root, max_size=max_size)
-        super(AsyncFileStorage, self).__init__(storage_helper=storage)
+        super(FileStorage, self).__init__(storage_helper=storage)
