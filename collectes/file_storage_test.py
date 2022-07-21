@@ -2,12 +2,12 @@ import asyncio
 import tempfile
 
 from restweetution.models.twitter.tweet import RestTweet, Tweet
-from restweetution.storage.object_storage.async_object_storage import AsyncFileStorage
+from restweetution.storage.object_storage.object_storage import FileStorage
 
 
 async def launch():
     with tempfile.TemporaryDirectory() as tdir:
-        s1 = AsyncFileStorage(root=tdir)
+        s1 = FileStorage(root=tdir)
         await s1.save_tweets([RestTweet(**{'id': 123, 'text': 'toto', 'author_id': 1234})])
         print("toto")
 
