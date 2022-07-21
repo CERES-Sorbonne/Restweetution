@@ -73,7 +73,6 @@ class MediaDownloader:
         Check if the url was already downloaded
         """
         if await self._update_media_from_cache(media):
-            print('already downloaded')
             return
         await self._download_by_type(media)
 
