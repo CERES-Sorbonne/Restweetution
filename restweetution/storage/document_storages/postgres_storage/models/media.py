@@ -2,7 +2,7 @@ from sqlalchemy import Integer, Column, String, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import relationship
 
-from restweetution.storage.postgres_storage.models import Base
+from restweetution.storage.document_storages.postgres_storage.models import Base
 
 
 class MediaNonPublicMetrics(Base):
@@ -86,6 +86,9 @@ class Media(Base):
     width = Column(Integer, nullable=True)
     alt_text = Column(String, nullable=True)
     variants = Column(ARRAY(JSONB), nullable=True)
+
+    sha1 = Column(String, nullable=True)
+    format = Column(String, nullable=True)
 
     def update(self, data):
         super().update(data)

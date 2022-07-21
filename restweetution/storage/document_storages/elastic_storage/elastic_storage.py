@@ -8,11 +8,11 @@ from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
-from restweetution.storage.document_storage import DocumentStorage
+from restweetution.storage.document_storages.document_storage import Storage
 from elasticsearch import AsyncElasticsearch
 
 
-class ElasticTweetStorage(DocumentStorage):
+class ElasticTweetStorage(Storage):
     def __init__(self, name: str, **kwargs):
         """
         Storage for Elasticsearch stack
@@ -28,7 +28,7 @@ class ElasticTweetStorage(DocumentStorage):
         actions.extend(self._rules_to_bulk_actions(list(data.rules.values())))
         actions.extend(self._users_to_bulk_actions(list(data.users.values())))
         actions.extend(self._tweet_to_bulk_actions(list(data.tweets.values())))
-        actions.extend(self._media_to_bulk_actions(list(data.media.values())))
+        actions.extend(self._media_to_bulk_actions(list(data.medias.values())))
         actions.extend(self._poll_to_bulk_actions(list(data.polls.values())))
         actions.extend(self._place_to_bulk_actions(list(data.places.values())))
 
@@ -106,7 +106,7 @@ class ElasticTweetStorage(DocumentStorage):
             await self.es.index(index="tweet", id=tweet.id, document=tweet.dict())
         await self.es.indices.refresh(index="tweet")
 
-    async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[TweetResponse]:
+    async def get_tweets(self, ids: List[str] = None, no_ids=None) -> List[TweetResponse]:
         pass
 
     async def save_rule(self, rule: StreamRule):

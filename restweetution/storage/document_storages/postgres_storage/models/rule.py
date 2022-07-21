@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from restweetution.storage.postgres_storage.models import Base
+from restweetution.storage.document_storages.postgres_storage.models import Base
 
 
 class Rule(Base):

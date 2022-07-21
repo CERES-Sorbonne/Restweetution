@@ -15,7 +15,7 @@ class BulkData(BaseModel):
     users: Dict[str, User] = {}
     tweets: Dict[str, RestTweet] = {}
     places: Dict[str, Place] = {}
-    media: Dict[str, Media] = {}
+    medias: Dict[str, Media] = {}
     polls: Dict[str, Poll] = {}
 
     def __add__(self, other):
@@ -51,7 +51,7 @@ class BulkData(BaseModel):
         self.set_from_list(self.polls, 'id', polls)
 
     def add_media(self, media: List[Media]):
-        self.set_from_list(self.media, 'media_key', media)
+        self.set_from_list(self.medias, 'media_key', media)
 
     @staticmethod
     def set_from_list(target: dict, key: str, array: list):

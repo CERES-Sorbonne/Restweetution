@@ -181,6 +181,7 @@ class Streamer(Collector):
         :params tweet_res: the tweet response object
         """
         self._log_tweets(tweet_res)
+
         bulk_data = BulkData()
         # Get the full rule from the id in matching_rules
         rules_ref = tweet_res.matching_rules
@@ -203,7 +204,7 @@ class Streamer(Collector):
             if tweet_res.includes.places:
                 self.set_from_list(bulk_data.places, 'id', tweet_res.includes.places)
             if tweet_res.includes.media:
-                self.set_from_list(bulk_data.media, 'media_key', tweet_res.includes.media)
+                self.set_from_list(bulk_data.medias, 'media_key', tweet_res.includes.media)
             if tweet_res.includes.polls:
                 self.set_from_list(bulk_data.polls, 'id', tweet_res.includes.polls)
             if tweet_res.includes.tweets:

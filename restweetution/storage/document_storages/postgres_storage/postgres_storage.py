@@ -11,15 +11,15 @@ from restweetution.models.bulk_data import BulkData
 from restweetution.models.error import ErrorModel
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.tweet import RestTweet
-from restweetution.storage.document_storage import DocumentStorage
-from restweetution.storage.postgres_storage.models import User, Place, Rule, Error
-from restweetution.storage.postgres_storage.models.media import Media
-from restweetution.storage.postgres_storage.models.poll import Poll
-from restweetution.storage.postgres_storage.models.rule import CollectedTweet
-from restweetution.storage.postgres_storage.models.tweet import Tweet
+from restweetution.storage.document_storages.document_storage import Storage
+from restweetution.storage.document_storages.postgres_storage.models import User, Place, Rule, Error
+from restweetution.storage.document_storages.postgres_storage.models.media import Media
+from restweetution.storage.document_storages.postgres_storage.models.poll import Poll
+from restweetution.storage.document_storages.postgres_storage.models.rule import CollectedTweet
+from restweetution.storage.document_storages.postgres_storage.models.tweet import Tweet
 
 
-class PostgresStorage(DocumentStorage):
+class PostgresStorage(Storage):
     def __init__(self, name: str, **kwargs):
         """
         Storage for postgres
@@ -61,9 +61,9 @@ class PostgresStorage(DocumentStorage):
                     pg_place = Place()
                     pg_place.update(data.places[key].dict())
                     await session.merge(pg_place)
-                for key in data.media:
+                for key in data.medias:
                     pg_media = Media()
-                    pg_media.update(data.media[key].dict())
+                    pg_media.update(data.medias[key].dict())
                     await session.merge(pg_media)
                 for key in data.polls:
                     pg_poll = Poll()
@@ -73,14 +73,26 @@ class PostgresStorage(DocumentStorage):
                     await self._add_or_update_rule(session, data.rules[key])
 
                 await session.commit()
-                print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
+                await self._emit_save_event(bulk_data=data)
+                # print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
+
+    # Update functions
+    async def update_medias(self, medias: List[Media]):
+        async with self._async_session() as session:
+            db_medias = await self._get_medias(session, ids=[m.media_key for m in medias])
+            for media, db_media in zip(medias, db_medias):
+                db_media.update(media.dict())
+                await session.merge(db_media)
+            await session.commit()
 
     # get functions
-    async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[RestTweet]:
+    async def get_tweets(self, ids: List[str] = None, no_ids: List[str] = None) -> List[RestTweet]:
         async with self._async_session() as session:
             stmt = select(Tweet)
             if ids:
                 stmt = stmt.filter(Tweet.id.in_(ids))
+            if no_ids:
+                stmt = stmt.filter(Tweet.id.notin_(no_ids))
             stmt = stmt.options(joinedload('*'))
             res = await session.execute(stmt)
             res = res.unique().scalars().all()
@@ -88,66 +100,83 @@ class PostgresStorage(DocumentStorage):
             res = [RestTweet(**r.to_dict()) for r in res]
             return res
 
-    async def get_users(self, ids: List[str] = None) -> Iterator[User]:
+    async def get_users(self, ids: List[str] = None, no_ids: List[str] = None) -> Iterator[User]:
         async with self._async_session() as session:
             stmt = select(User)
             if ids:
                 stmt = stmt.filter(User.id.in_(ids))
+            if no_ids:
+                stmt = stmt.filter(User.id.notin_(no_ids))
             stmt = stmt.options(joinedload('*'))
             res = await session.execute(stmt)
             res = res.unique().scalars().all()
             res = [twitter.User(**r.to_dict()) for r in res]
             return res
 
-    async def get_polls(self, ids: List[str] = None) -> Iterator[Poll]:
+    async def get_polls(self, ids: List[str] = None, no_ids: List[str] = None) -> Iterator[Poll]:
         async with self._async_session() as session:
             stmt = select(Poll)
             if ids:
                 stmt = stmt.filter(Poll.id.in_(ids))
+            if no_ids:
+                stmt = stmt.filter(Poll.id.notin_(no_ids))
             stmt = stmt.options(joinedload('*'))
             res = await session.execute(stmt)
             res = res.unique().scalars().all()
             res = [twitter.Poll(**r.to_dict()) for r in res]
             return res
 
-    async def get_places(self, ids: List[str] = None) -> Iterator[Place]:
+    async def get_places(self, ids: List[str] = None, no_ids: List[str] = None) -> Iterator[Place]:
         async with self._async_session() as session:
             stmt = select(Place)
             if ids:
                 stmt = stmt.filter(Place.id.in_(ids))
+            if no_ids:
+                stmt = stmt.filter(Place.id.notin_(no_ids))
             stmt = stmt.options(joinedload('*'))
             res = await session.execute(stmt)
             res = res.unique().scalars().all()
             res = [twitter.Place(**r.to_dict()) for r in res]
             return res
 
-    async def get_medias(self, ids: List[str] = None) -> List[Media]:
+    async def get_medias(self, ids: List[str] = None, no_ids: List[str] = None) -> List[twitter.Media]:
         async with self._async_session() as session:
-            stmt = select(Media)
-            if ids:
-                stmt = stmt.filter(Media.media_key.in_(ids))
-            stmt = stmt.options(joinedload('*'))
-            res = await session.execute(stmt)
-            res = res.unique().scalars().all()
+            res = await self._get_medias(session, ids=ids, no_ids=no_ids)
             res = [twitter.Media(**r.to_dict()) for r in res]
             return res
 
-    async def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
+    @staticmethod
+    async def _get_medias(session, ids: List[str] = None, no_ids: List[str] = None) -> List[Media]:
+        stmt = select(Media)
+        if ids:
+            stmt = stmt.filter(Media.media_key.in_(ids))
+        if no_ids:
+            stmt = stmt.filter(Media.media_key.notin_(no_ids))
+        stmt = stmt.options(joinedload('*'))
+        res = await session.execute(stmt)
+        res = res.unique().scalars().all()
+        return res
+
+    async def get_rules(self, ids: List[str] = None, no_ids: List[str] = None) -> List[StreamRule]:
         async with self._async_session() as session:
             stmt = select(Rule)
             if ids:
                 stmt = stmt.filter(Rule.id.in_(ids))
+            if no_ids:
+                stmt = stmt.filter(Tweet.id.notin_(no_ids))
             stmt = stmt.options(joinedload('*'))
             res = await session.execute(stmt)
             res = res.unique().scalars().all()
             res = [twitter.StreamRule(**r.to_dict()) for r in res]
             return res
 
-    async def get_errors(self, ids: List[str] = None) -> List[ErrorModel]:
+    async def get_errors(self, ids: List[str] = None, no_ids: List[str] = None) -> List[ErrorModel]:
         async with self._async_session() as session:
             stmt = select(Error)
             if ids:
                 stmt = stmt.filter(Error.id.in_(ids))
+            if no_ids:
+                stmt = stmt.filter(Tweet.id.notin_(no_ids))
             stmt = stmt.options(joinedload('*'))
             res = await session.execute(stmt)
             res = res.unique().scalars().all()

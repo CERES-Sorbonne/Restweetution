@@ -10,16 +10,13 @@ logging.root.setLevel(logging.INFO)
 
 main_conf = config.get_config_from_file(os.getenv('CONFIG'))
 
+async def listener(data):
+    print(data)
 
 async def launch():
     streamer = main_conf.streamer
+    # main_conf.storage_tweet_storages[0].listen_save_event(listener)
     await streamer.collect()
-    # main_conf.storage_manager.save_tweets([tweet1, tweet2], tags=[])
-    # main_conf.storage_manager.save_tweets([tweet1, tweet2], tags=[])
-    # main_conf.storage_manager.save_tweets([tweet1, tweet2], tags=[])
-    # main_conf.storage_manager.save_tweets([tweet1, tweet2], tags=[])
-    # main_conf.storage_manager.save_tweets([tweet1, tweet2], tags=[])
-
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())

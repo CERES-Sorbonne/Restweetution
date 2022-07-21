@@ -18,6 +18,42 @@ import requests
 from restweetution.models.twitter.media import MediaType, Media
 
 
+class Event(list):
+    """Event subscription.
+
+    A list of callable objects. Calling an instance of this will cause a
+    call to each item in the list in ascending order by index.
+
+    # Example Usage:
+    # >>> def f(x):
+    # ...     print 'f(%s)' % x
+    # >>> def g(x):
+    # ...     print 'g(%s)' % x
+    # >>> e = Event()
+    # >>> e()
+    # >>> e.append(f)
+    # >>> e(123)
+    # f(123)
+    # >>> e.remove(f)
+    # >>> e()
+    # >>> e += (f, g)
+    # >>> e(10)
+    # f(10)
+    # g(10)
+    # >>> del e[0]
+    # >>> e(2)
+    # g(2)
+
+    """
+
+    async def __call__(self, *args, **kwargs):
+        for f in self:
+            await f(*args, **kwargs)
+
+    def __repr__(self):
+        return "Event(%s)" % list.__repr__(self)
+
+
 def get_full_class_name(obj):
     module = obj.__class__.__module__
     if module is None or module == str.__class__.__module__:
@@ -26,7 +62,7 @@ def get_full_class_name(obj):
 
 
 class DownloadCallback(Protocol):
-    def __call__(self, media: Media, sha1: str, bytes_image: bytes, image_type: str) -> None: ...
+    async def __call__(self, media: Media, sha1: str, bytes_image: bytes, media_format: str) -> None: ...
 
 
 class MediaDownloader:
@@ -39,7 +75,7 @@ class MediaDownloader:
         self._download_queue = asyncio.Queue()
         self.download_callback: DownloadCallback = after_download
         self._logger = logging.getLogger("restweetution")
-        asyncio.create_task(self._process_queue())
+        # asyncio.create_task(self._process_queue())
 
     async def _process_queue(self):
         """

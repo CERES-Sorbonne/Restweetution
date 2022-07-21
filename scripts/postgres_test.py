@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from restweetution.storage.postgres_storage.models import Base, Rule
+from restweetution.storage.document_storages.postgres_storage.models import Base
 
 db_string = "postgresql+asyncpg://localhost/david"
 

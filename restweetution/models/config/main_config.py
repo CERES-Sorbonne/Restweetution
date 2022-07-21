@@ -3,9 +3,10 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 from restweetution.collectors import Streamer
+from restweetution.media_downloader import MediaDownloader
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.tweet_config import QueryParams
-from restweetution.storage.document_storage import DocumentStorage
+from restweetution.storage.document_storages.document_storage import Storage
 from restweetution.storage.storage_manager import StorageManager
 
 
@@ -15,7 +16,11 @@ class MainConfig(BaseModel):
 
     storage_manager: Optional[StorageManager]
     storage_tags: Optional[dict] = []
-    storage_tweet_storages: Optional[List[DocumentStorage]] = []
+    storages: Optional[List[Storage]] = []
+    main_storage: Storage = None
+
+    download_media: bool = True
+    media_root_dir: str = None
 
     streamer: Optional[Streamer]
     streamer_rules: Optional[List[dict]]

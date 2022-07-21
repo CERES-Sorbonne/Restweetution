@@ -11,9 +11,10 @@ from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import User, StreamRule, RestTweet
+from restweetution.utils import Event
 
 
-class DocumentStorage(ABC):
+class Storage(ABC):
     def __init__(self, name: str = None, interval: int = 0, buffer_size: int = 0, **kwargs):
         """
         Abstract Class that provides the template for every other storage
@@ -24,7 +25,6 @@ class DocumentStorage(ABC):
         :param buffer_size: Optional. Max number of data the buffer can contain
         """
         self.name = name
-        self.is_error_storage = kwargs.get('save_errors')
 
         self._buffer_bulk_data: BulkData = BulkData()
         self._flush_interval = interval
@@ -33,6 +33,34 @@ class DocumentStorage(ABC):
         self._last_buffer_flush: float = 0
 
         self._periodic_flush_task: Optional[asyncio.Task] = None
+
+        self._save_event = Event()
+
+    # Events
+
+    def listen_save_event(self, callback):
+        self._save_event.append(callback)
+
+    def remove_save_listener(self, callback):
+        self._save_event.remove(callback)
+
+    async def _emit_save_event(self, **kwargs):
+        data = BulkData()
+        if kwargs.get('bulk_data'):
+            data = kwargs.get('bulk_data')
+        if kwargs.get('tweets'):
+            data.add_tweets(kwargs.get('tweets'))
+        if kwargs.get('users'):
+            data.add_users(kwargs.get('users'))
+        if kwargs.get('rules'):
+            data.add_rules(kwargs.get('rules'))
+        if kwargs.get('polls'):
+            data.add_polls(kwargs.get('polls'))
+        if kwargs.get('places'):
+            data.add_places(kwargs.get('places'))
+        if kwargs.get('medias'):
+            data.add_medias(kwargs.get('medias'))
+        await self._save_event(data)
 
     # Save
 
@@ -159,6 +187,11 @@ class DocumentStorage(ABC):
         """
         raise FunctionNotImplementedError('Save Error function not implemented')
 
+    # Update
+
+    async def update_medias(self, medias: List[Media]):
+        raise NotImplementedError('Function update_medias is not implemented')
+
     # buffer utils
 
     def _flush_buffer(self):
@@ -208,19 +241,19 @@ class DocumentStorage(ABC):
     async def get_users(self, ids: List[str] = None) -> Iterator[User]:
         pass
 
-    async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[RestTweet]:
+    async def get_tweets(self, ids: List[str] = None, no_ids: List[str] = None) -> List[RestTweet]:
         pass
 
-    async def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
+    async def get_rules(self, ids: List[str] = None, no_ids: List[str] = None) -> List[StreamRule]:
         pass
 
-    async def get_polls(self, ids: List[str] = None) -> List[Poll]:
+    async def get_polls(self, ids: List[str] = None, no_ids: List[str] = None) -> List[Poll]:
         pass
 
-    async def get_places(self, ids: List[str] = None) -> List[Place]:
+    async def get_places(self, ids: List[str] = None, no_ids: List[str] = None) -> List[Place]:
         pass
 
-    async def get_medias(self, media_keys: List[str]) -> List[Media]:
+    async def get_medias(self, ids: List[str] = None, no_ids: List[str] = None) -> List[Media]:
         pass
 
     async def get_errors(self) -> List[ErrorModel]:

@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Boolean, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import TIMESTAMP, ARRAY
 from sqlalchemy.orm import relationship
 
-from restweetution.storage.postgres_storage.models.custom_base import Base
+from restweetution.storage.document_storages.postgres_storage.models.custom_base import Base
 
 
 class User(Base):

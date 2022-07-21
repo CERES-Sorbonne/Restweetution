@@ -22,6 +22,10 @@ class CustomBase(object):
                 data[k] = [i.to_dict() for i in items]
             elif items:
                 data[k] = items.to_dict()
+        # remove None values from data
+        for k in data.copy():
+            if data[k] is None:
+                data.pop(k)
         return data
 
     @staticmethod

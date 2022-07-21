@@ -65,7 +65,7 @@ ERROR_HANDLER = default_handler
 
 def set_error_handler(callback):
     global ERROR_HANDLER
-    print('set error handler')
+    # print('set error handler')
     ERROR_HANDLER = callback
 
 

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union
 from aiofiles import open
 
-from restweetution.storage.storage_helper import StorageHelper
+from restweetution.storage.document_storages.object_storage.storage_helper import StorageHelper
 
 
 class FileStorageHelper(StorageHelper):
