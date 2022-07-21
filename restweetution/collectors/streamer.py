@@ -7,10 +7,11 @@ from typing import List, Dict
 import aiohttp
 import requests
 
+from restweetution.models.error import ErrorModel
 from restweetution.twitter_client import TwitterClient
 from restweetution.collectors.collector import Collector
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
-    UnreadableResponseError
+    UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.tweet import TweetResponse, RestTweet
@@ -163,13 +164,8 @@ class Streamer(Collector):
         trace = traceback.format_exc()
         self._logger.exception(trace)
 
-        if isinstance(error, ResponseParseError) or isinstance(error, StorageError) or \
-                isinstance(error, TwitterAPIError):
-            data = error.__dict__.copy()
-            data['error_name'] = get_full_class_name(error)
-            data['traceback'] = trace
-            error_data = json.dumps(data, default=str)
-
+        if isinstance(error, RESTweetutionError):
+            error_data = ErrorModel(error=error, traceback=trace)
             self._storages_manager.save_error(error_data)
 
     @staticmethod
@@ -195,6 +191,9 @@ class Streamer(Collector):
 
         for r in rules:
             r.tweet_ids = [tweet_res.data.id]
+            if tweet_res.includes and tweet_res.includes.tweets:
+                r.tweet_ids.extend([t.id for t in tweet_res.includes.tweets])
+
         bulk_data.add_rules(rules)
 
         # Set populates bulk data with includes

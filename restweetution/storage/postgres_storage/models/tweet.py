@@ -129,6 +129,11 @@ class Geo(Base):
         self.update_value('coordinates.type', data)
         self.update_value('coordinates.coordinates', data)
 
+    def to_dict(self):
+        data = super().to_dict()
+        self.prefix_to_dict(data, 'coordinates')
+        return data
+
 
 class Attachment(Base):
     __tablename__ = 'attachment'
@@ -231,11 +236,12 @@ class Entity(Base):
 
 class ContextAnnotation(Base):
     __tablename__ = 'context_annotation'
-    __id = Column(Integer, primary_key=True)  # internal id for ORM
-    tweet_id = Column(String, ForeignKey('tweet.id'))
-    domain_id = Column(String, ForeignKey('domain.id'))
+    _id = Column(Integer, primary_key=True)  # internal id for ORM
+    _tweet_id = Column(String, ForeignKey('tweet.id'))
+    _domain_id = Column(String, ForeignKey('domain.id'))
+    _entity_id = Column(String, ForeignKey('entity.id'))
+
     domain = relationship('Domain')
-    entity_id = Column(String, ForeignKey('entity.id'))
     entity = relationship('Entity')
 
     def update(self, data):
@@ -246,7 +252,8 @@ class ContextAnnotation(Base):
 
 class ReferencedTweet(Base):
     __tablename__ = 'referenced_tweet'
-    __id = Column(Integer, primary_key=True)  # internal id for ORM
+    _id = Column(Integer, primary_key=True)  # internal id for ORM
+    _parent_id = Column(String, ForeignKey('tweet.id'))
+
     type = Column(String)
     id = Column(String)
-    parent_id = Column(String, ForeignKey('tweet.id'))

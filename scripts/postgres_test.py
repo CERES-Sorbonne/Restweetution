@@ -23,7 +23,7 @@ async def async_main():
     global engine, async_session
 
     async with engine.begin() as conn:
-        # await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     # async with async_session() as session:
@@ -54,6 +54,5 @@ async def launch():
     print('finish')
 
 
-
-asyncio.get_event_loop().create_task(launch())
+asyncio.get_event_loop().create_task(async_main())
 asyncio.get_event_loop().run_forever()

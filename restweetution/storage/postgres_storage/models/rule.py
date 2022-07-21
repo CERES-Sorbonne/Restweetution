@@ -16,6 +16,10 @@ class Rule(Base):
         super().update(data)
         self.update_one_to_many('tweets', CollectedTweet, data)
 
+    def to_dict(self):
+        data = super().to_dict()
+        data['tweet_ids'] = [t.tweet_id for t in self.tweets]
+        return data
 
 class CollectedTweet(Base):
     __tablename__ = 'collected_tweet'

@@ -6,6 +6,7 @@ from typing import List, Iterator, Optional
 
 from restweetution.errors import handle_error, RESTweetutionError, FunctionNotImplementedError
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.error import ErrorModel
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
@@ -222,7 +223,7 @@ class DocumentStorage(ABC):
     async def get_medias(self, media_keys: List[str]) -> List[Media]:
         pass
 
-    async def get_errors(self) -> List[RESTweetutionError]:
+    async def get_errors(self) -> List[ErrorModel]:
         pass
 
     # def list_dir(self) -> List[str]:

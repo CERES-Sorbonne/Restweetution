@@ -1,5 +1,7 @@
+from collections.abc import Sequence
 from datetime import datetime
 
+from sqlalchemy import inspect
 from sqlalchemy.orm import declarative_base
 
 
@@ -9,6 +11,18 @@ class CustomBase(object):
             if self._is_basic_value(value) or self._is_basic_array(value):
                 if hasattr(self, key):
                     setattr(self, key, value)
+
+    def to_dict(self):
+        data = {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs if c.key[0] != '_'}
+        for k, v in inspect(self).mapper.relationships.items():
+            if k == '_parent':
+                continue
+            items = getattr(self, k)
+            if isinstance(items, Sequence):
+                data[k] = [i.to_dict() for i in items]
+            elif items:
+                data[k] = items.to_dict()
+        return data
 
     @staticmethod
     def _is_empty_dict(data: any):
@@ -50,6 +64,20 @@ class CustomBase(object):
                 return None
         return value
 
+    @staticmethod
+    def prefix_to_dict(data: dict, prefix: str):
+        keys = list(data.keys())
+        p_len = len(prefix) + 1  # prefix length + 1 for the underscore
+        keys_with_prefix = [k for k in keys if k.startswith(prefix + '_')]
+
+        if keys_with_prefix:
+            dico = {}
+            for k in keys_with_prefix:
+                new_key = k[p_len:]  # key without prefix
+                dico[new_key] = data[k]
+                data.pop(k)
+            data[prefix] = dico
+
     def update_one_to_one(self, key, sqa_model, data):
         self.update_many_to_one(key, sqa_model, data)
 
@@ -76,7 +104,6 @@ class CustomBase(object):
         attr = getattr(self, db_key)
 
         for args in nested_data:
-
             sqa_model_object = sqa_model()
             sqa_model_object.update(args)
             attr.append(sqa_model_object)

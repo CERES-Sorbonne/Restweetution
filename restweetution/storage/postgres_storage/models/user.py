@@ -7,6 +7,7 @@ from restweetution.storage.postgres_storage.models.custom_base import Base
 
 class User(Base):
     __tablename__ = 'user'
+
     id = Column(String, primary_key=True)
     name = Column(String)
     username = Column(String)
@@ -41,6 +42,12 @@ class User(Base):
         self.update_one_to_one('entities.description', UserDescriptionEntities, data)
         self.update_one_to_one('public_metrics', UserPublicMetrics, data)
         self.update_one_to_one('withheld', UserWithheld, data)
+
+    def to_dict(self):
+        data = super().to_dict()
+        self.prefix_to_dict(data, 'entities_url')
+        self.prefix_to_dict(data, 'entities')
+        return data
 
 
 class UrlUrl(Base):
