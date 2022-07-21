@@ -1,21 +1,6 @@
-import asyncio
-import hashlib
-import logging
-import re
-import shutil
-import sys
-import tempfile
-import urllib.parse
-from pathlib import Path
-from queue import SimpleQueue
-from typing import Callable, Dict, Protocol
+from typing import Protocol
 
-import aiohttp
-import ffmpeg
-import m3u8
-import requests
-
-from restweetution.models.twitter.media import MediaType, Media
+from restweetution.models.twitter.media import Media
 
 
 class Event(list):
@@ -64,76 +49,6 @@ def get_full_class_name(obj):
 class DownloadCallback(Protocol):
     async def __call__(self, media: Media, sha1: str, bytes_image: bytes, media_format: str) -> None: ...
 
-
-class MediaDownloader:
-    def __init__(self, after_download: DownloadCallback):
-        """
-        Utility class to queue the images download
-        """
-        self._downloaded_urls = set()
-        self._urls_to_sha1: Dict[str: str] = {}
-        self._download_queue = asyncio.Queue()
-        self.download_callback: DownloadCallback = after_download
-        self._logger = logging.getLogger("restweetution")
-        # asyncio.create_task(self._process_queue())
-
-    async def _process_queue(self):
-        """
-        Loop to empty the queue
-        """
-        while True:
-            media = await self._download_queue.get()
-            await self._download(media)
-
-    def download_media(self, media: Media):
-        """
-        Main method that just adds a media to the download queue
-        """
-        self._download_queue.put_nowait(media)
-
-    async def _download(self, media: Media):
-        """
-        Check if the url was already downloaded
-        """
-        if media.url and media.url in self._downloaded_urls:
-            self.download_callback(media, self._urls_to_sha1[media.url])
-        else:
-            await self._download_by_type(media)
-
-    async def _download_by_type(self, media):
-        """
-        Download the media and compute its signature
-        """
-        session = aiohttp.ClientSession()
-        if media.type == 'photo':
-            media_format = media.url.split('.')[-1]
-            try:
-                res = await session.get(media.url)
-                bytes_image: bytes = await res.content.read()
-                sha1 = self._compute_signature(bytes_image)
-                self._urls_to_sha1[media.url] = sha1
-                self.download_callback(media, sha1, bytes_image, media_format)
-            except aiohttp.ClientResponseError as e:
-                self._logger.warning(f"There was an error downloading image {media.url}: " + str(e))
-                # TODO: add an error handler here ?
-                return
-        else:
-            # TODO: use the video downloader
-            pass
-
-    @staticmethod
-    def _get_file_type(file_type: str) -> str:
-        if file_type == "video":
-            return "mp4"
-        elif file_type == "photo":
-            return "jpeg"
-        else:
-            # store gif files as mp4 because it's the way there are downloaded
-            return "gif"
-
-    @staticmethod
-    def _compute_signature(buffer: bytes):
-        return hashlib.sha1(buffer).hexdigest()
 
 # class TwitterDownloader:
 #     """

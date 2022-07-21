@@ -1,13 +1,10 @@
 import asyncio
-import json
 import logging
 import os
 
 import restweetution.config as config
-from restweetution.media_downloader import MediaDownloader
-from restweetution.models import twitter
+from restweetution.storage.media_downloader import MediaDownloader
 from restweetution.models.twitter import Media
-from restweetution.storage.extractor import BaseExtractor
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)

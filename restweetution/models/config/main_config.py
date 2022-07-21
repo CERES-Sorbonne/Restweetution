@@ -3,7 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 from restweetution.collectors import Streamer
-from restweetution.media_downloader import MediaDownloader
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.tweet_config import QueryParams
 from restweetution.storage.document_storages.document_storage import Storage

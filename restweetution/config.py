@@ -4,7 +4,6 @@ from typing import Optional
 import yaml
 
 from restweetution.collectors import Streamer
-from restweetution.media_downloader import MediaDownloader
 from restweetution.storage.document_storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.main_config import MainConfig

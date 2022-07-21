@@ -6,7 +6,7 @@ from typing import List, Dict
 import imagehash
 from PIL import Image
 
-from restweetution.media_downloader import MediaDownloader
+from restweetution.storage.media_downloader import MediaDownloader
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.media import Media
@@ -58,7 +58,6 @@ class StorageManager:
         Add Storage to the storage manager. In order to listen to specific tags a list of tags can be given
         :param storage: Storage
         :param tags: List of tags
-        :param main: Boolean to define this storage as the main storage
         """
         if storage.name in [s.name for s in self._storages]:
             self.logger.warning(f'Storage name must be unique! name: {storage.name} is already taken')

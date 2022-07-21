@@ -99,7 +99,6 @@ class MediaDownloader:
             if m.sha1:
                 self._cache_media(m)
 
-
     async def _download_by_type(self, media):
         """
         Download the media and compute its signature
