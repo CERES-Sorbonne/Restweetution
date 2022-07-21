@@ -34,6 +34,7 @@ class StorageManager:
         self.add_storage(storage=main_storage, tags=main_tags)
 
         self._download_media = download_media
+        self.media_downloader = None
         if media_root_dir:
             self.media_downloader = MediaDownloader(root=media_root_dir,
                                                     storage=self._main_storage,
@@ -47,7 +48,7 @@ class StorageManager:
         s = "    Tweets, Users and Rules stored at: \n                "
         for t in self.get_storages():
             s += "- " + str(t) + "\n                "
-        if self.media_downloader:
+        if self.media_downloader and self._download_media:
             s += f"Pictures, Gif and Videos stored at: {self.media_downloader.get_root()}\n"
         return s
 

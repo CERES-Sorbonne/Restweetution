@@ -135,11 +135,13 @@ def parse_storage_config(main_conf: MainConfig, data: dict):
 
 
 def parse_storage_manager_config(main_conf: MainConfig, data: dict):
+    tags = {}
     if 'storage_tags' in data:
-        main_conf.storage_tags = data['storage_tags']
-        for storage in main_conf.storages:
-            if storage.name not in main_conf.storage_tags:
-                main_conf.storage_tags[storage.name] = []
+        tags = data['storage_tags']
+    for storage in main_conf.storages:
+        if storage.name not in tags:
+            tags[storage.name] = []
+    main_conf.storage_tags = tags
     main_conf.storage_manager = create_storage_manager(main_conf)
 
 
