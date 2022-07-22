@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from pydantic import BaseModel
 
@@ -13,12 +13,13 @@ class MainConfig(BaseModel):
     client: Optional[TwitterClient]
     client_token: Optional[str]
 
+    storages: Dict[str, Storage] = {}
+    storage_list: List[Storage] = []
+
     storage_manager: Optional[StorageManager]
     storage_tags: Optional[dict] = []
-    storages: Optional[List[Storage]] = []
-    main_storage: Storage = None
 
-    download_media: bool = True
+    media_download: bool = True
     media_root_dir: str = None
 
     streamer: Optional[Streamer]

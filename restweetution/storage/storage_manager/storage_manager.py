@@ -6,6 +6,7 @@ from typing import List, Dict
 import imagehash
 from PIL import Image
 
+from restweetution import utils
 from restweetution.storage.media_downloader import MediaDownloader
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.stream_rule import StreamRule
@@ -47,7 +48,12 @@ class StorageManager:
     def __str__(self):
         s = "    Tweets, Users and Rules stored at: \n                "
         for t in self.get_storages():
-            s += "- " + str(t) + "\n                "
+            s += "- " + t.name + ': [' + t.__class__.__name__ + "] "
+            if self._storage_tags[t.name]:
+                s += "Tags: " + str(self._storage_tags[t.name])
+            else:
+                s += "All tags"
+            s += "\n                "
         if self.media_downloader and self._download_media:
             s += f"Pictures, Gif and Videos stored at: {self.media_downloader.get_root()}\n"
         return s

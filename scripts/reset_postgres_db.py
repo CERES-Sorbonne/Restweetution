@@ -26,33 +26,7 @@ async def async_main():
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
-    # async with async_session() as session:
-
-    # await session.commit()
-
     await engine.dispose()
 
 
-# asyncio.run(async_main())
-
-async def log_task(n):
-    for i in range(n):
-        print(n)
-        await asyncio.sleep(1)
-
-
-def start(n):
-    tasks = []
-    for i in range(n):
-        tasks.append(asyncio.create_task(log_task(i)))
-    return tasks
-
-
-async def launch():
-    tasks = start(4)
-    await asyncio.gather(*tasks)
-    print('finish')
-
-
-asyncio.get_event_loop().create_task(async_main())
-asyncio.get_event_loop().run_forever()
+asyncio.run(async_main())

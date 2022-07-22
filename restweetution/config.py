@@ -57,7 +57,6 @@ def build_config(data: dict):
 
     parse_client_config(main_conf, data)
     parse_storage_config(main_conf, data)
-    parse_media_config(main_conf, data)
     parse_storage_manager_config(main_conf, data)
     parse_streamer_config(main_conf, data)
 
@@ -127,58 +126,57 @@ def parse_storage_config(main_conf: MainConfig, data: dict):
     if 'storages' in data:
         for key, value in data['storages'].items():
             storage = create_storage(key, value)
-            main_conf.storages.append(storage)
-            if 'main_storage' in value:
-                if value['main_storage']:
-                    main_conf.main_storage = storage
+            main_conf.storage_list.append(storage)
+            main_conf.storages[storage.name] = storage
 
 
 def parse_storage_manager_config(main_conf: MainConfig, data: dict):
-    tags = {}
-    if 'storage_tags' in data:
-        tags = data['storage_tags']
-    for storage in main_conf.storages:
-        if storage.name not in tags:
-            tags[storage.name] = []
-    main_conf.storage_tags = tags
-    main_conf.storage_manager = create_storage_manager(main_conf)
+    if 'storage_manager' not in data:
+        return
+    data = data['storage_manager']
+    if data is None:
+        return
+
+    if 'main_storage' not in data:
+        return
+
+    main_storage_name = data['main_storage']
+
+    storage_tags = {main_storage_name: []}  # default value
+    if 'tags' in data and data['tags']:
+        for s_name in data['tags']:
+            tags = data['tags'][s_name]
+            if tags is True:
+                tags = []
+            storage_tags[s_name] = tags
+
+    if 'media_download' in data:
+        main_conf.media_download = data['media_download']
+    if 'media_root_dir' in data:
+        main_conf.media_root_dir = data['media_root_dir']
+
+    main_conf.storage_tags = storage_tags
+    main_conf.storage_manager = create_storage_manager(main_conf, main_storage_name)
 
 
-def parse_media_config(main_conf: MainConfig, data: dict):
-    """
-    Parsing of media options
-    :param main_conf: MainConfig
-    :param data: raw config data
-    """
-    if 'media' in data and data['media']:
-        conf = data['media']
-        if 'download' in conf:
-            main_conf.download_media = conf['download']
-        if 'root_dir' in conf:
-            main_conf.media_root_dir = conf['root_dir']
-
-
-def create_storage_manager(main_conf: MainConfig) -> Optional[StorageManager]:
+def create_storage_manager(main_conf: MainConfig, main_storage_name: str) -> Optional[StorageManager]:
     """
     Create a storage_manager and set parameters according to config
     :param main_conf: MainConfig
+    :param main_storage_name: name of the main storage
     :return: storage_manager
     """
-    if not main_conf.main_storage:
-        return None
+    main_storage = main_conf.storages[main_storage_name]
 
-    manager = StorageManager(main_storage=main_conf.main_storage,
-                             main_tags=main_conf.storage_tags[main_conf.main_storage.name],
+    manager = StorageManager(main_storage=main_storage,
+                             main_tags=main_conf.storage_tags[main_storage.name],
                              media_root_dir=main_conf.media_root_dir,
-                             download_media=main_conf.download_media)
-    for storage in main_conf.storages:
-        if storage.name == main_conf.main_storage.name:
+                             download_media=main_conf.media_download)
+    for s_name in main_conf.storage_tags:
+        if s_name == main_storage_name:
             continue
-        if not main_conf.storage_tags or not main_conf.storage_tags[storage.name]:
-            tags = []
-        else:
-            tags = main_conf.storage_tags[storage.name]
-
+        storage = main_conf.storages[s_name]
+        tags = main_conf.storage_tags[s_name]
         manager.add_storage(storage=storage, tags=tags)
     return manager
 
