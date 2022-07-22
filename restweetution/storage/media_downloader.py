@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import io
 import logging
-from typing import Dict
+from typing import Dict, List
 
 import aiohttp
 from pydantic import BaseModel
@@ -20,7 +20,7 @@ class MediaCache(BaseModel):
 
 class MediaDownloader:
 
-    def __init__(self, root: str, storage: Storage, listen=False):
+    def __init__(self, root: str, storage: Storage, listen=True):
         """
         Utility class to queue the images download
         """
@@ -37,10 +37,13 @@ class MediaDownloader:
         self._download_queue = asyncio.Queue()
         self._process_queue_task = None
 
+    async def save_medias(self, medias: List[Media]):
+        await self._storage.save_medias(medias)
+
     def get_root(self):
         return self._file_helper.root
 
-    def download_media(self, media: Media):
+    def _add_download_task(self, media: Media):
         """
         Main method that just adds a media to the download queue
         """
@@ -51,7 +54,7 @@ class MediaDownloader:
     async def _download_medias_from_event(self, data: BulkData):
         medias = list(data.medias.values())
         for m in medias:
-            self.download_media(m)
+            self._add_download_task(m)
 
     async def _process_queue(self):
         """

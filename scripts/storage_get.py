@@ -22,7 +22,7 @@ async def launch():
     # print(len(res))
     d = MediaDownloader(root='/Users/david/Restweetution/collectes', storage=storage)
     media = Media(media_key='3_1550132976524341250', type='photo', url='https://pbs.twimg.com/media/FYMtuqxaMAIf9Ok.jpg')
-    d.download_media(media)
+    await d.save_medias([media])
 
 
 
