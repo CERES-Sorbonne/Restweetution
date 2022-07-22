@@ -7,7 +7,7 @@ from typing import List, Iterator
 
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 from .filestorage_helper import FileStorageHelper
-from restweetution.storage.document_storages.document_storage import Storage
+from restweetution.storage.storages.storage import Storage
 from restweetution.models.bulk_data import BulkData
 
 

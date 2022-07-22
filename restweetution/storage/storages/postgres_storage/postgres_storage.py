@@ -11,12 +11,12 @@ from restweetution.models.bulk_data import BulkData
 from restweetution.models.error import ErrorModel
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.tweet import RestTweet
-from restweetution.storage.document_storages.document_storage import Storage
-from restweetution.storage.document_storages.postgres_storage.models import User, Place, Rule, Error
-from restweetution.storage.document_storages.postgres_storage.models.media import Media
-from restweetution.storage.document_storages.postgres_storage.models.poll import Poll
-from restweetution.storage.document_storages.postgres_storage.models.rule import CollectedTweet
-from restweetution.storage.document_storages.postgres_storage.models.tweet import Tweet
+from restweetution.storage.storages.storage import Storage
+from restweetution.storage.storages.postgres_storage.models import User, Place, Rule, Error
+from restweetution.storage.storages.postgres_storage.models.media import Media
+from restweetution.storage.storages.postgres_storage.models.poll import Poll
+from restweetution.storage.storages.postgres_storage.models.rule import CollectedTweet
+from restweetution.storage.storages.postgres_storage.models.tweet import Tweet
 
 
 class PostgresStorage(Storage):
@@ -96,7 +96,6 @@ class PostgresStorage(Storage):
             stmt = stmt.options(joinedload('*'))
             res = await session.execute(stmt)
             res = res.unique().scalars().all()
-            # print(res[0].to_dict())
             res = [RestTweet(**r.to_dict()) for r in res]
             return res
 

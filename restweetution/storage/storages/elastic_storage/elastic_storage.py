@@ -8,7 +8,7 @@ from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
-from restweetution.storage.document_storages.document_storage import Storage
+from restweetution.storage.storages.storage import Storage
 from elasticsearch import AsyncElasticsearch
 
 

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 
-from restweetution.storage.document_storages.postgres_storage.models import Base
+from restweetution.storage.storages.postgres_storage.models import Base
 
 
 class Error(Base):

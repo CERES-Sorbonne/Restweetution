@@ -16,8 +16,7 @@ from restweetution.models.bulk_data import BulkData
 from restweetution.models.stream_rule import StreamRule
 from restweetution.models.twitter.tweet import TweetResponse, RestTweet
 from restweetution.models.twitter.user import User
-from restweetution.storage.storage_manager import StorageManager
-from restweetution.utils import get_full_class_name
+from restweetution.storage.storage_manager.storage_manager import StorageManager
 
 
 class Streamer(Collector):

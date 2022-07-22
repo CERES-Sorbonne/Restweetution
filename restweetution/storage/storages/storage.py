@@ -2,7 +2,7 @@ import asyncio
 import copy
 import time
 from abc import ABC
-from typing import List, Iterator, Optional
+from typing import List, Optional
 
 from restweetution.errors import handle_error, RESTweetutionError, FunctionNotImplementedError
 from restweetution.models.bulk_data import BulkData
@@ -240,35 +240,23 @@ class Storage(ABC):
             await asyncio.sleep(self._flush_interval - time_diff)
 
     # get functions
-    async def get_users(self, ids: List[str] = None) -> Iterator[User]:
+    async def get_users(self, **kwargs) -> List[User]:
         pass
 
-    async def get_tweets(self, ids: List[str] = None, no_ids: List[str] = None) -> List[RestTweet]:
+    async def get_tweets(self, **kwargs) -> List[RestTweet]:
         pass
 
-    async def get_rules(self, ids: List[str] = None, no_ids: List[str] = None) -> List[StreamRule]:
+    async def get_rules(self, **kwargs) -> List[StreamRule]:
         pass
 
-    async def get_polls(self, ids: List[str] = None, no_ids: List[str] = None) -> List[Poll]:
+    async def get_polls(self, **kwargs) -> List[Poll]:
         pass
 
-    async def get_places(self, ids: List[str] = None, no_ids: List[str] = None) -> List[Place]:
+    async def get_places(self, **kwargs) -> List[Place]:
         pass
 
-    async def get_medias(self, ids: List[str] = None, no_ids: List[str] = None) -> List[Media]:
+    async def get_medias(self, **kwargs) -> List[Media]:
         pass
 
-    async def get_errors(self) -> List[ErrorModel]:
+    async def get_errors(self, **kwargs) -> List[ErrorModel]:
         pass
-
-    # def list_dir(self) -> List[str]:
-    #     pass
-    #
-    # def has_free_space(self) -> bool:
-    #     pass
-    #
-    # async def save_media_link(self, media_key, signature, average_signature):
-    #     """
-    #     Save the match between the media_key and the computed signature of the media
-    #     """
-    #     pass

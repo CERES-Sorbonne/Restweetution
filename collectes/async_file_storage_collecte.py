@@ -6,8 +6,8 @@ import os
 from restweetution.collectors import Streamer
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.query_params_config import MEDIUM_CONFIG
-from restweetution.storage.storage_manager import StorageManager
-from restweetution.storage.document_storages.object_storage import FileStorage
+from restweetution.storage.storage_manager.storage_manager import StorageManager
+from restweetution.storage.storages.object_storage import FileStorage
 
 
 def my_error_handler(e: Exception):

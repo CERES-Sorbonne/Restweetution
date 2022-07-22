@@ -9,8 +9,8 @@ from pydantic import BaseModel
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.twitter.media import Media
-from restweetution.storage.document_storages.document_storage import Storage
-from restweetution.storage.document_storages.object_storage.filestorage_helper import FileStorageHelper
+from restweetution.storage.storages.storage import Storage
+from restweetution.storage.storages.object_storage.filestorage_helper import FileStorageHelper
 
 
 class MediaCache(BaseModel):

@@ -14,7 +14,8 @@ from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.models.twitter.user import User
-from restweetution.storage.document_storages.document_storage import Storage
+from restweetution.storage.storage_manager.storage_join import FirstFoundJoin
+from restweetution.storage.storages.storage import Storage
 
 
 class StorageManager:
@@ -40,7 +41,7 @@ class StorageManager:
                                                     auto_download=self._download_media)
 
         self.logger = logging.getLogger("StorageManager")
-
+        self._join_storage = FirstFoundJoin
         self.average_hash = False
 
     def __str__(self):
@@ -139,7 +140,7 @@ class StorageManager:
         """
         return self._storages
 
-    # saving functions
+    # Save functions
     def save_bulk(self, bulk_data: BulkData, tags: List[str]):
         """
         Save data in bulk
@@ -228,6 +229,61 @@ class StorageManager:
             tasks.append(asyncio.create_task(self._main_storage.save_medias(medias)))
         return tasks
 
+    # Get functions
+    async def get_error(self, **kwargs):
+        """
+        Get system errors from and only from the main storage
+        """
+        return await self._main_storage.get_errors(**kwargs)
+
+    async def get_tweets(self, tags: List[str] = None, **kwargs):
+        """
+        Get tweets
+        :param tags: List of tags
+        """
+        storages = self.get_storages_listening_to_tags(tags)
+        return await self._join_storage.get_tweets(storages=storages, **kwargs)
+
+    async def get_users(self, tags: List[str] = None, **kwargs):
+        """
+        Get users
+        :param tags: List of tags
+        """
+        storages = self.get_storages_listening_to_tags(tags)
+        return await self._join_storage.get_users(storages=storages, **kwargs)
+
+    async def get_rules(self, tags: List[str] = None, **kwargs):
+        """
+        Get rules
+        :param tags: List of tags
+        """
+        storages = self.get_storages_listening_to_tags(tags)
+        return await self._join_storage.get_rules(storages=storages, **kwargs)
+
+    async def get_polls(self, tags: List[str] = None, **kwargs):
+        """
+        Get polls
+        :param tags: List of tags
+        """
+        storages = self.get_storages_listening_to_tags(tags)
+        return await self._join_storage.get_polls(storages=storages, **kwargs)
+
+    async def get_places(self, tags: List[str] = None, **kwargs):
+        """
+        Get places
+        :param tags: List of tags
+        """
+        storages = self.get_storages_listening_to_tags(tags)
+        return await self._join_storage.get_places(storages=storages, **kwargs)
+
+    async def get_medias(self, tags: List[str] = None, **kwargs):
+        """
+        Get Medias
+        """
+        storages = [s for s in self.get_storages_listening_to_tags(tags) if s is not self._main_storage]
+        storages = [self._main_storage, *storages]
+
+        return await self._join_storage.get_medias(storages=storages, **kwargs)
 
     # private utils
     def _has_tags(self, storage: Storage, tags):
