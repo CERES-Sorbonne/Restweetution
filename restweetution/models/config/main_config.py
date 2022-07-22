@@ -18,7 +18,7 @@ class MainConfig(BaseModel):
     storages: Optional[List[Storage]] = []
     main_storage: Storage = None
 
-    download_media: bool = False
+    download_media: bool = True
     media_root_dir: str = None
 
     streamer: Optional[Streamer]

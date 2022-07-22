@@ -36,9 +36,8 @@ class StorageManager:
         self._download_media = download_media
         self.media_downloader = None
         if media_root_dir:
-            self.media_downloader = MediaDownloader(root=media_root_dir,
-                                                    storage=self._main_storage,
-                                                    listen=self._download_media)
+            self.media_downloader = MediaDownloader(root=media_root_dir, storage=self._main_storage,
+                                                    auto_download=self._download_media)
 
         self.logger = logging.getLogger("StorageManager")
 
@@ -217,24 +216,6 @@ class StorageManager:
             tasks.append(asyncio.create_task(s.save_places(places)))
         return tasks
 
-    # private utils
-    def _has_tags(self, storage: Storage, tags):
-        """
-        Tweet if the given storage has at least one of the tags
-        """
-        shared = [t for t in self._storage_tags[storage.name] if t in tags]
-        return len(shared) > 0
-
-    def _has_no_tags(self, storage: Storage):
-        return self._storage_tags[storage.name] == []
-
-    # async def get_tweets(self, tags: List[str] = None, ids: List[str] = None, duplicate: bool = False) -> Iterator[
-    #     TweetResponse]:
-    #     storages = [self.tweets_storages[0]] if not duplicate else self.tweets_storages
-    #     for s in storages:
-    #         for r in await s.get_tweets(tags=tags, ids=ids):
-    #             yield r
-
     def save_media(self, medias: List[Media], tags: List[str]):
         """
         Take a media list, send them to the media downloader
@@ -246,6 +227,18 @@ class StorageManager:
         if self._main_storage not in storages and self._download_media:
             tasks.append(asyncio.create_task(self._main_storage.save_medias(medias)))
         return tasks
+
+
+    # private utils
+    def _has_tags(self, storage: Storage, tags):
+        """
+        Tweet if the given storage has at least one of the tags
+        """
+        shared = [t for t in self._storage_tags[storage.name] if t in tags]
+        return len(shared) > 0
+
+    def _has_no_tags(self, storage: Storage):
+        return self._storage_tags[storage.name] == []
 
     @staticmethod
     def _computer_average_signature(buffer: bytes):

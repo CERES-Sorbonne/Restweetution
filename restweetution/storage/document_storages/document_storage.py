@@ -39,10 +39,12 @@ class Storage(ABC):
     # Events
 
     def listen_save_event(self, callback):
-        self._save_event.append(callback)
+        if callback not in self._save_event:
+            self._save_event.append(callback)
 
     def remove_save_listener(self, callback):
-        self._save_event.remove(callback)
+        if callback in self._save_event:
+            self._save_event.remove(callback)
 
     async def _emit_save_event(self, **kwargs):
         data = BulkData()

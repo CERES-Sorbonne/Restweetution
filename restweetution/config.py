@@ -150,7 +150,7 @@ def parse_media_config(main_conf: MainConfig, data: dict):
     :param main_conf: MainConfig
     :param data: raw config data
     """
-    if 'media' in data:
+    if 'media' in data and data['media']:
         conf = data['media']
         if 'download' in conf:
             main_conf.download_media = conf['download']
