@@ -147,7 +147,7 @@ class Storage(ABC):
         :param medias: medias
         """
         bulk_data = BulkData()
-        bulk_data.add_media(medias)
+        bulk_data.add_medias(medias)
         await self.save_bulk(bulk_data)
 
     async def save_place(self, place: Place):

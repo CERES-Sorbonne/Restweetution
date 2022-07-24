@@ -11,7 +11,20 @@ from restweetution.models.storage.twitter import Media
 from restweetution.models.storage.twitter import Poll
 from restweetution.models.storage.twitter.place import Place
 from restweetution.models.storage.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
+from restweetution.storage.storages.elastic_storage.bulk_actions import SaveAction, UpdateAction
 from restweetution.storage.storages.storage import Storage
+
+STORAGE_PREFIX = 'storage_'
+MEDIA_INDEX = STORAGE_PREFIX + 'media'
+PLACE_INDEX = STORAGE_PREFIX + 'place'
+POLL_INDEX = STORAGE_PREFIX + 'poll'
+TWEET_INDEX = STORAGE_PREFIX + 'tweet'
+USER_INDEX = STORAGE_PREFIX + 'user'
+RULE_INDEX = STORAGE_PREFIX + 'rule'
+
+
+def CUSTOM_INDEX(key):
+    return 'custom_data_' + key
 
 
 class ElasticStorage(Storage):
@@ -36,82 +49,46 @@ class ElasticStorage(Storage):
         actions.extend(self._media_to_bulk_actions(list(data.medias.values())))
         actions.extend(self._poll_to_bulk_actions(list(data.polls.values())))
         actions.extend(self._place_to_bulk_actions(list(data.places.values())))
+        actions.extend(self._custom_data_to_bulk_actions(list(data.custom_datas.values())))
 
         await helpers.async_bulk(self.es, actions)
+
+    # Private
 
     @staticmethod
     def _rules_to_bulk_actions(rules: List[StreamRule]):
         for rule in rules:
-            yield {
-                "_op_type": 'index',
-                "_index": "rule",
-                "_id": rule.id,
-                "_doc": rule.dict()
-            }
+            yield SaveAction(index=RULE_INDEX, id_=rule.id, doc=rule.dict())
 
     @staticmethod
     def _users_to_bulk_actions(users: List[User]):
         for user in users:
-            yield {
-                "_op_type": 'index',
-                "_index": "user",
-                "_id": user.id,
-                "_doc": user.dict()
-            }
+            yield SaveAction(index=USER_INDEX, id_=user.id, doc=user.dict())
 
     @staticmethod
     def _tweet_to_bulk_actions(tweets: List[RestTweet]):
         for tweet in tweets:
-            yield {
-                "_op_type": 'index',
-                "_index": "tweet",
-                "_id": tweet.id,
-                "_source": tweet.dict()
-            }
+            yield SaveAction(index=TWEET_INDEX, id_=tweet.id, doc=tweet.dict())
 
     @staticmethod
     def _media_to_bulk_actions(medias: List[Media]):
         for media in medias:
-            yield {
-                "_op_type": 'index',
-                "_index": "media",
-                "_id": media.media_key,
-                "_source": media.dict()
-            }
+            yield SaveAction(index=MEDIA_INDEX, id_=media.media_key, doc=media.dict())
 
     @staticmethod
     def _place_to_bulk_actions(places: List[Place]):
         for place in places:
-            yield {
-                "_op_type": 'index',
-                "_index": "place",
-                "_id": place.id,
-                "_source": place.dict()
-            }
+            yield SaveAction(index=PLACE_INDEX, id_=place.id, doc=place.dict())
 
     @staticmethod
     def _poll_to_bulk_actions(polls: List[Poll]):
         for poll in polls:
-            yield {
-                "_op_type": 'index',
-                "_index": "poll",
-                "_id": poll.id,
-                "_source": poll.dict()
-            }
+            yield SaveAction(index=POLL_INDEX, id_=poll.id, doc=poll.dict())
 
     @staticmethod
     def _custom_data_to_bulk_actions(datas: List[CustomData]):
         for data in datas:
-            yield {
-                "_op_type": 'index',
-                "_index": ElasticStorage._custom_key(data.key),
-                "_id": data.id,
-                "_source": data.data
-            }
-
-    @staticmethod
-    def _custom_key(key: str):
-        return 'custom_data_' + key
+            yield SaveAction(index=CUSTOM_INDEX(data.key), id_=data.id, doc=data.data)
 
     async def save_error(self, error: ErrorModel):
         await self.es.index(index='error', document=error.dict())
@@ -155,10 +132,27 @@ class ElasticStorage(Storage):
         await helpers.async_bulk(self.es, self._custom_data_to_bulk_actions(datas))
 
     async def get_custom_datas(self, key: str) -> List[CustomData]:
-        res = []
-        async for doc in helpers.async_scan(self.es, index=self._custom_key(key)):
-            res.append(doc)
-        return [CustomData(key=key, id=d['_id'], data=d['_source']) for d in res]
+        docs = await self._get_documents(CUSTOM_INDEX(key))
+        return [CustomData(key=key, id=d['_id'], data=d['_source']) for d in docs]
+
+    async def get_medias(self, **kwargs) -> List[Media]:
+        docs = await self._get_documents(MEDIA_INDEX)
+        return [Media(**d['_source']) for d in docs]
+
+    async def update_medias(self, medias: List[Media], delete: List[str] = None):
+        await self._bulk(self._media_update_actions(medias, delete))
 
     async def del_custom_datas(self, key: str):
-        await self.es.delete_by_query(index=self._custom_key(key), body={"query": {"match_all": {}}})
+        await self.es.delete_by_query(index=CUSTOM_INDEX(key),
+                                      body={"query": {"match_all": {}}})
+
+    async def _get_documents(self, index: str):
+        return [doc async for doc in helpers.async_scan(self.es, index=index)]
+
+    @staticmethod
+    def _media_update_actions(medias: List[Media], delete: List[str] = None):
+        for media in medias:
+            yield UpdateAction(index=MEDIA_INDEX, id_=media.media_key, doc=media.dict(), delete=delete)
+
+    async def _bulk(self, actions):
+        await helpers.async_bulk(self.es, actions)
