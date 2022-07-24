@@ -159,3 +159,6 @@ class ElasticStorage(Storage):
         async for doc in helpers.async_scan(self.es, index=self._custom_key(key)):
             res.append(doc)
         return [CustomData(key=key, id=d['_id'], data=d['_source']) for d in res]
+
+    async def del_custom_datas(self, key: str):
+        await self.es.delete_by_query(index=self._custom_key(key), body={"query": {"match_all": {}}})

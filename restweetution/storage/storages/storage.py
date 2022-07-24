@@ -266,5 +266,8 @@ class Storage(ABC):
         pass
 
     async def get_custom_datas(self, key: str) -> List[CustomData]:
-        raise NotImplementedError('get_custom_data function is not implemented')
+        raise NotImplementedError('get_custom_datas function is not implemented')
+
+    async def del_custom_datas(self, key: str):
+        raise NotImplementedError('del_custom_datas function is not implemented')
 

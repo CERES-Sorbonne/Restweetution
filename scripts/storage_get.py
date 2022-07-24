@@ -16,8 +16,8 @@ main_conf = config.get_config_from_file(os.getenv('CONFIG'))
 
 
 async def launch():
-    storage: PostgresStorage = main_conf.storages['local_postgres']
-    elastic: ElasticStorage = main_conf.storages['ceres_elastic']
+    postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
+    elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
     # data = CustomData(key='test', id=3, data={'CHOUPI': True})
     # data2 = CustomData(key='test', id=1, data={'Luffy': True})
@@ -30,12 +30,14 @@ async def launch():
     # for x in await storage.get_tweets():
     #     print(x.attachments)
 
-    view = ElasticView(storage, elastic)
-    # await view.load()
-    # await view.save()
+    view = ElasticView(in_storage=postgres_storage, out_storage=elastic_storage)
+    await view.load()
+    await view.save()
 
-    res = await elastic.get_custom_datas('elastic')
-    print(len(res))
+    # res = await elastic.get_custom_datas('elastic')
+    # print(len(res))
+
+    # await elastic.del_custom_datas('elastic')
 
 
 asyncio.run(launch())
