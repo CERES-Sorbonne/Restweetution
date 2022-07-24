@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 
 import aiohttp
 
-from restweetution.models.stream_rule import RuleResponse
+from restweetution.models.storage.stream_rule import RuleResponse
 
 
 class TwitterClient(aiohttp.ClientSession):

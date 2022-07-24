@@ -5,12 +5,13 @@ from abc import ABC
 from typing import List, Optional
 
 from restweetution.errors import handle_error, RESTweetutionError, FunctionNotImplementedError
-from restweetution.models.bulk_data import BulkData
-from restweetution.models.error import ErrorModel
-from restweetution.models.twitter.media import Media
-from restweetution.models.twitter.place import Place
-from restweetution.models.twitter.poll import Poll
-from restweetution.models.twitter.tweet import User, StreamRule, RestTweet
+from restweetution.models.storage.bulk_data import BulkData
+from restweetution.models.storage.custom_data import CustomData
+from restweetution.models.storage.error import ErrorModel
+from restweetution.models.storage.twitter.media import Media
+from restweetution.models.storage.twitter.place import Place
+from restweetution.models.storage.twitter.poll import Poll
+from restweetution.models.storage.twitter.tweet import User, StreamRule, RestTweet
 from restweetution.utils import Event
 
 
@@ -181,13 +182,16 @@ class Storage(ABC):
         bulk_data.add_polls(polls)
         await self.save_bulk(bulk_data)
 
-    async def save_error(self, error: RESTweetutionError):
+    async def save_error(self, error: ErrorModel):
         """
         Save RESTweetutionError. This function doesn't use bulk_data and should be used locally to avoid
         saving fails
         :param error: RESTweetutionError object
         """
         raise FunctionNotImplementedError('Save Error function not implemented')
+
+    async def save_custom_datas(self, datas: List[CustomData]):
+        raise NotImplementedError('save_custom_data function is not implemented')
 
     # Update
 
@@ -260,3 +264,7 @@ class Storage(ABC):
 
     async def get_errors(self, **kwargs) -> List[ErrorModel]:
         pass
+
+    async def get_custom_datas(self, key: str) -> List[CustomData]:
+        raise NotImplementedError('get_custom_data function is not implemented')
+

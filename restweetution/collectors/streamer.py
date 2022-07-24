@@ -7,15 +7,15 @@ from typing import List, Dict
 import aiohttp
 import requests
 
-from restweetution.models.error import ErrorModel
+from restweetution.models.storage.error import ErrorModel
 from restweetution.twitter_client import TwitterClient
 from restweetution.collectors.collector import Collector
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError, RESTweetutionError
-from restweetution.models.bulk_data import BulkData
-from restweetution.models.stream_rule import StreamRule
-from restweetution.models.twitter.tweet import TweetResponse, RestTweet
-from restweetution.models.twitter.user import User
+from restweetution.models.storage.bulk_data import BulkData
+from restweetution.models.storage.stream_rule import StreamRule
+from restweetution.models.storage.twitter.tweet import TweetResponse, RestTweet
+from restweetution.models.storage.twitter.user import User
 from restweetution.storage.storage_manager.storage_manager import StorageManager
 
 

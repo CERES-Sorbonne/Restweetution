@@ -8,9 +8,9 @@ from restweetution.storage.storages.postgres_storage.postgres_storage import Pos
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.main_config import MainConfig
 from restweetution.models.config.query_params_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
-from restweetution.models.tweet_config import QueryParams
+from restweetution.models.config.tweet_config import QueryParams
 from restweetution.storage.storage_manager.storage_manager import StorageManager
-from restweetution.storage.storages.elastic_storage.elastic_storage import ElasticTweetStorage
+from restweetution.storage.storages.elastic_storage.elastic_storage import ElasticStorage
 
 
 def get_config_from_file(file_path: str):
@@ -190,6 +190,6 @@ def create_storage(name: str, data: dict):
     """
     storage_type = data['type']
     if storage_type == 'elastic':
-        return ElasticTweetStorage(name=name, **data)
+        return ElasticStorage(name=name, **data)
     if storage_type == 'postgres':
         return PostgresStorage(name=name, **data)

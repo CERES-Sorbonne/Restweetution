@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from restweetution.models.twitter.media import Media
+from restweetution.models.storage.twitter import Media
 
 
 class Event(list):

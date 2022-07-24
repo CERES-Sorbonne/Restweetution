@@ -5,10 +5,10 @@ import os
 from abc import ABC
 from typing import List, Iterator
 
-from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
+from restweetution.models.storage.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 from .filestorage_helper import FileStorageHelper
 from restweetution.storage.storages.storage import Storage
-from restweetution.models.bulk_data import BulkData
+from restweetution.models.storage.bulk_data import BulkData
 
 
 class ObjectStorage(Storage, ABC):

@@ -1,7 +1,7 @@
 import asyncio
 import tempfile
 
-from restweetution.models.twitter.tweet import RestTweet
+from restweetution.models.storage.twitter.tweet import RestTweet
 from restweetution.storage.storages.object_storage import FileStorage
 
 

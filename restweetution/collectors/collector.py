@@ -2,7 +2,7 @@ import logging
 import time
 
 from restweetution.twitter_client import TwitterClient
-from restweetution.models.tweet_config import QueryParams
+from restweetution.models.config.tweet_config import QueryParams
 from restweetution.storage.storage_manager.storage_manager import StorageManager
 
 

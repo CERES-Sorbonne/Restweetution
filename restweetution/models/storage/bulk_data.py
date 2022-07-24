@@ -1,13 +1,13 @@
-from typing import List, Optional, Dict
+from typing import List, Dict
 
 from pydantic import BaseModel
 
-from restweetution.models.twitter.media import Media
-from restweetution.models.twitter.place import Place
-from restweetution.models.twitter.poll import Poll
-from restweetution.models.stream_rule import StreamRule
-from restweetution.models.twitter.tweet import RestTweet
-from restweetution.models.twitter.user import User
+from restweetution.models.storage.twitter import Media
+from restweetution.models.storage.twitter.place import Place
+from restweetution.models.storage.twitter import Poll
+from restweetution.models.storage.stream_rule import StreamRule
+from restweetution.models.storage.twitter.tweet import RestTweet
+from restweetution.models.storage.twitter.user import User
 
 
 class BulkData(BaseModel):

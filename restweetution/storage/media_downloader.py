@@ -7,8 +7,8 @@ from typing import Dict, List
 import aiohttp
 from pydantic import BaseModel
 
-from restweetution.models.bulk_data import BulkData
-from restweetution.models.twitter.media import Media
+from restweetution.models.storage.bulk_data import BulkData
+from restweetution.models.storage.twitter.media import Media
 from restweetution.storage.storages.storage import Storage
 from restweetution.storage.storages.object_storage.filestorage_helper import FileStorageHelper
 

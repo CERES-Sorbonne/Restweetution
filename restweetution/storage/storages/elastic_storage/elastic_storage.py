@@ -1,18 +1,20 @@
-import io
+import asyncio
 from typing import List
 
+from elasticsearch import AsyncElasticsearch
 from elasticsearch import helpers
 
-from restweetution.models.bulk_data import BulkData
-from restweetution.models.twitter.media import Media
-from restweetution.models.twitter.place import Place
-from restweetution.models.twitter.poll import Poll
-from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
+from restweetution.models.storage.bulk_data import BulkData
+from restweetution.models.storage.custom_data import CustomData
+from restweetution.models.storage.error import ErrorModel
+from restweetution.models.storage.twitter import Media
+from restweetution.models.storage.twitter import Poll
+from restweetution.models.storage.twitter.place import Place
+from restweetution.models.storage.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 from restweetution.storage.storages.storage import Storage
-from elasticsearch import AsyncElasticsearch
 
 
-class ElasticTweetStorage(Storage):
+class ElasticStorage(Storage):
     def __init__(self, name: str, **kwargs):
         """
         Storage for Elasticsearch stack
@@ -22,6 +24,9 @@ class ElasticTweetStorage(Storage):
         super().__init__(name=name, **kwargs)
         self.rules = {}
         self.es = AsyncElasticsearch(kwargs.get('url'), basic_auth=(kwargs.get('user'), kwargs.get('pwd')))
+
+    def __del__(self):
+        asyncio.run(self.es.close())
 
     async def save_bulk(self, data: BulkData):
         actions = []
@@ -94,8 +99,22 @@ class ElasticTweetStorage(Storage):
                 "_source": poll.dict()
             }
 
-    async def save_error(self, error: any):
-        await self.es.index(index='error', document=error)
+    @staticmethod
+    def _custom_data_to_bulk_actions(datas: List[CustomData]):
+        for data in datas:
+            yield {
+                "_op_type": 'index',
+                "_index": ElasticStorage._custom_key(data.key),
+                "_id": data.id,
+                "_source": data.data
+            }
+
+    @staticmethod
+    def _custom_key(key: str):
+        return 'custom_data_' + key
+
+    async def save_error(self, error: ErrorModel):
+        await self.es.index(index='error', document=error.dict())
         await self.es.indices.refresh(index='error')
 
     async def save_tweet(self, tweet: RestTweet):
@@ -127,26 +146,16 @@ class ElasticTweetStorage(Storage):
             await self.es.index(index="user", id=user.id, document=user.dict())
         await self.es.indices.refresh(index="user")
 
-    def save_media(self, file_name: str, buffer: io.BufferedIOBase) -> str:
-        """
-        Save a buffer to the storage and returns an uri to the stored file
-        :param file_name: the signature of the media with the file_type
-        :param buffer: the buffer to store
-        :return: an uri to the resource created
-        """
-        pass
+    async def save_medias(self, medias: List[Media]):
+        for media in medias:
+            await self.es.index(index="media", id=media.media_key, document=media.dict())
+        await self.es.indices.refresh(index="media")
 
-    def get_media(self, media_key) -> io.BufferedIOBase:
-        pass
+    async def save_custom_datas(self, datas: List[CustomData]):
+        await helpers.async_bulk(self.es, self._custom_data_to_bulk_actions(datas))
 
-    def list_dir(self) -> List[str]:
-        pass
-
-    def has_free_space(self) -> bool:
-        return True
-
-    def save_media_link(self, media_key, signature, average_signature):
-        """
-        Save the match between the media_key and the computed signature of the media
-        """
-        pass
+    async def get_custom_datas(self, key: str) -> List[CustomData]:
+        res = []
+        async for doc in helpers.async_scan(self.es, index=self._custom_key(key)):
+            res.append(doc)
+        return [CustomData(key=key, id=d['_id'], data=d['_source']) for d in res]
