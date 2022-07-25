@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import Lock
 from typing import List, Iterator
 
@@ -70,10 +71,10 @@ class PostgresStorage(Storage):
                     await session.merge(pg_poll)
                 for key in data.rules:
                     await self._add_or_update_rule(session, data.rules[key])
-
+                    # print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
                 await session.commit()
-                await self._emit_save_event(bulk_data=data)
-                # print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
+        #  emit event outside of lock !!
+        await self._emit_save_event(bulk_data=data)
 
     async def save_custom_datas(self, datas: List[CustomData]):
         async with self._async_session() as session:
@@ -85,12 +86,14 @@ class PostgresStorage(Storage):
 
     # Update functions
     async def update_medias(self, medias: List[Media]):
-        async with self._async_session() as session:
-            db_medias = await self._get_medias(session, ids=[m.media_key for m in medias])
-            for media, db_media in zip(medias, db_medias):
-                db_media.update(media.dict())
-                await session.merge(db_media)
-            await session.commit()
+        async with self.lock:
+            async with self._async_session() as session:
+                db_medias = await self._get_medias(session, ids=[m.media_key for m in medias])
+                for media, db_media in zip(medias, db_medias):
+                    db_media.update(media.dict())
+                    await session.merge(db_media)
+                await session.commit()
+        await self.update_event(medias=medias)
 
     # get functions
     async def get_tweets(self, ids: List[str] = None, no_ids: List[str] = None) -> List[RestTweet]:
@@ -205,7 +208,6 @@ class PostgresStorage(Storage):
                 stmt = stmt.filter(models.CustomData.id.in_(ids))
             res = await session.execute(stmt)
             await session.commit()
-
 
     # private utils
 

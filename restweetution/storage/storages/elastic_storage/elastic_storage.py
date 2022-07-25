@@ -147,7 +147,7 @@ class ElasticStorage(Storage):
                                       body={"query": {"match_all": {}}})
 
     async def _get_documents(self, index: str):
-        return [doc async for doc in helpers.async_scan(self.es, index=index)]
+        return [doc async for doc in helpers.async_scan(self.es, index=index, size=10000)]
 
     @staticmethod
     def _media_update_actions(medias: List[Media], delete: List[str] = None):

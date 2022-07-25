@@ -21,21 +21,24 @@ class BulkData(BaseModel):
     custom_datas: Dict[str, CustomData] = {}
 
     def __add__(self, other):
-        self_dict = self.dict()
-        other_dict = other.dict()
-
-        for key1 in other_dict:
-            if key1 == 'rules':
-                for key2 in other_dict[key1]:
-                    if key2 not in self_dict[key1]:
-                        self_dict[key1][key2] = other_dict[key1][key2]
-                    else:
-                        self_dict[key1][key2]['tweet_ids'].extend(other_dict[key1][key2]['tweet_ids'])
+        for k in other.tweets:
+            self.tweets[k] = other.tweets[k]
+        for k in other.users:
+            self.users[k] = other.users[k]
+        for k in other.places:
+            self.places[k] = other.places[k]
+        for k in other.medias:
+            self.medias[k] = other.medias[k]
+        for k in other.polls:
+            self.polls[k] = other.polls[k]
+        for k in other.custom_datas:
+            self.custom_datas[k] = other.custom_datas[k]
+        for k in other.rules:
+            if k not in self.rules:
+                self.rules[k] = other.rules[k]
             else:
-                for key2 in other_dict[key1]:
-                    self_dict[key1][key2] = other_dict[key1][key2]
-
-        return BulkData(**self_dict)
+                self.rules[k].tweet_ids.extend(other.rules[k].tweet_ids)
+        return self
 
     def add_rules(self, rules: List[StreamRule]):
         self.set_from_list(self.rules, rules)
@@ -57,6 +60,9 @@ class BulkData(BaseModel):
 
     def set_custom_datas(self, datas: List[CustomData]):
         self.set_from_list(self.custom_datas, datas, id_lambda=lambda d: d.unique_id())
+
+    def get_tweets(self):
+        return list(self.tweets.values())
 
     @staticmethod
     def set_from_list(target: dict, array: list, id_lambda=lambda x: x.id):

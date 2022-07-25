@@ -4,7 +4,7 @@ import time
 from abc import ABC
 from typing import List, Optional
 
-from restweetution.errors import handle_error, RESTweetutionError, FunctionNotImplementedError
+from restweetution.errors import handle_error, FunctionNotImplementedError
 from restweetution.models.storage.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
@@ -35,17 +35,10 @@ class Storage(ABC):
 
         self._periodic_flush_task: Optional[asyncio.Task] = None
 
-        self._save_event = Event()
+        self.save_event = Event()
+        self.update_event = Event()
 
     # Events
-
-    def listen_save_event(self, callback):
-        if callback not in self._save_event:
-            self._save_event.append(callback)
-
-    def remove_save_listener(self, callback):
-        if callback in self._save_event:
-            self._save_event.remove(callback)
 
     async def _emit_save_event(self, **kwargs):
         data = BulkData()
@@ -63,7 +56,7 @@ class Storage(ABC):
             data.add_places(kwargs.get('places'))
         if kwargs.get('medias'):
             data.add_medias(kwargs.get('medias'))
-        await self._save_event(data)
+        await self.save_event(data)
 
     # Save
 
@@ -270,4 +263,3 @@ class Storage(ABC):
 
     async def del_custom_datas(self, key: str):
         raise NotImplementedError('del_custom_datas function is not implemented')
-

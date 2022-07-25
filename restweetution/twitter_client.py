@@ -4,13 +4,14 @@ from typing import Callable, List
 from urllib.parse import urljoin
 
 import aiohttp
+from aiohttp import ClientTimeout
 
 from restweetution.models.storage.stream_rule import RuleResponse
 
 
 class TwitterClient(aiohttp.ClientSession):
     def __init__(self, token: str, base_url: str = "https://api.twitter.com/2/", error_handler: Callable = None):
-        super().__init__()
+        super().__init__(timeout=ClientTimeout(total=300, sock_read=300))
         self.base_url = base_url
         self.headers.update({"Authorization": f"Bearer {token}"})
         self._error_handler = error_handler
