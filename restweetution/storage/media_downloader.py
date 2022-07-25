@@ -57,9 +57,9 @@ class MediaDownloader:
         """
         self._auto_download = value
         if self._auto_download:
-            self._storage.listen_save_event(self._medias_save_event_handler)
-        else:
-            self._storage.remove_save_listener(self._medias_save_event_handler)
+            self._storage.save_event.add(self._medias_save_event_handler)
+        elif self._medias_save_event_handler in self._storage.save_event:
+            self._storage.save_event.remove(self._medias_save_event_handler)
 
     def get_root(self):
         return self._file_helper.root
@@ -77,7 +77,7 @@ class MediaDownloader:
         """
         self._download_queue.put_nowait(media)
         if not self._process_queue_task:
-            asyncio.create_task(self._process_queue())
+            self._process_queue_task = asyncio.create_task(self._process_queue())
 
     async def _process_queue(self):
         """
@@ -95,7 +95,6 @@ class MediaDownloader:
         """
         filename = media.sha1 + '.' + media.format
         await self._file_helper.put(key=filename, buffer=media.raw_data)
-        self._cache_media(media)
         self._logger.info(f' Downloaded image | sha1: {media.sha1}')
 
     async def _update_media_from_cache(self, media: Media):
@@ -108,6 +107,7 @@ class MediaDownloader:
             cache = self._url_cache[media.url]
             media.sha1 = cache.sha1
             media.format = cache.format
+            self._cache_media(media)
             await self._storage.update_medias([media])
             return True
         return False
@@ -116,6 +116,9 @@ class MediaDownloader:
         """
         Cache media
         """
+        # print(type(media.url))
+        # if media.url is None:
+        #     print(media)
         cache = MediaCache(sha1=media.sha1, format=media.format)
         self._media_key_cache[media.media_key] = cache
         self._url_cache[media.url] = cache
@@ -124,9 +127,10 @@ class MediaDownloader:
         """
         Load Media cache from storage
         """
+        # print('load cache from storage')
         medias = await self._storage.get_medias()
         for m in medias:
-            if m.sha1:
+            if m.sha1 and m.url:
                 self._cache_media(m)
 
     async def _safe_download(self, media: Media):
@@ -150,14 +154,16 @@ class MediaDownloader:
 
                     bytes_image: bytes = await res.content.read()
                     buffer = io.BytesIO(bytes_image)
-                    sha1 = self._compute_signature(bytes_image)
+                    media.sha1 = self._compute_signature(bytes_image)
+                    media.format = media_format
 
                     updated = Media(media_key=media.media_key,
-                                    sha1=sha1,
+                                    sha1=media.sha1,
                                     format=media_format,
                                     raw_data=buffer)
 
                     await self._write_media(updated)
+                    self._cache_media(media)
                     await self._storage.update_medias([updated])
                 except aiohttp.ClientResponseError as e:
                     self._logger.warning(f"There was an error downloading image {media.url}: " + str(e))
