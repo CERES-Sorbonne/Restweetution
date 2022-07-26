@@ -1,7 +1,7 @@
 from asyncio import Lock
 from typing import List, Iterator
 
-from sqlalchemy import delete
+from sqlalchemy import delete, exists
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker, joinedload
@@ -61,6 +61,9 @@ class PostgresStorage(Storage):
                     pg_place.update(data.places[key].dict())
                     await session.merge(pg_place)
                 for key in data.medias:
+                    if await self._media_exist(session, data.medias[key].media_key):
+                        print('already in storage')
+                        continue
                     pg_media = models.Media()
                     pg_media.update(data.medias[key].dict())
                     await session.merge(pg_media)
@@ -152,6 +155,12 @@ class PostgresStorage(Storage):
             res = await self._get_medias(session, ids=ids, no_ids=no_ids)
             res = [twitter.Media(**r.to_dict()) for r in res]
             return res
+
+    @staticmethod
+    async def _media_exist(session, media_key: str):
+        res = await session.execute(exists(select().where(models.Media.media_key == media_key)).select())
+        exist = res.scalar()
+        return exist
 
     @staticmethod
     async def _get_medias(session, ids: List[str] = None, no_ids: List[str] = None) -> List[models.Media]:
