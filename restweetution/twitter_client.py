@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import traceback
 from typing import Callable, List
 from urllib.parse import urljoin
 
@@ -11,7 +12,7 @@ from restweetution.models.storage.stream_rule import RuleResponse
 
 class TwitterClient(aiohttp.ClientSession):
     def __init__(self, token: str, base_url: str = "https://api.twitter.com/2/", error_handler: Callable = None):
-        super().__init__(timeout=ClientTimeout(total=300, sock_read=300))
+        super().__init__(timeout=ClientTimeout(total=300, sock_read=300, connect=300, sock_connect=300))
         self.base_url = base_url
         self.headers.update({"Authorization": f"Bearer {token}"})
         self._error_handler = error_handler
@@ -29,10 +30,17 @@ class TwitterClient(aiohttp.ClientSession):
             self._error_handler(str(e), e.message)
 
     async def connect_tweet_stream(self, params, line_callback):
-        async with self as session:
-            async with session.get("https://api.twitter.com/2/tweets/search/stream", params=params) as resp:
-                async for line in resp.content:
-                    asyncio.create_task(line_callback(line))
+        while True:
+            try:
+                async with self as session:
+                    async with session.get("https://api.twitter.com/2/tweets/search/stream", params=params) as resp:
+                        async for line in resp.content:
+                            asyncio.create_task(line_callback(line))
+            except Exception as e:
+                trace = traceback.format_exc()
+                self._logger.exception(trace)
+                self._logger.exception(e)
+
 
     async def remove_rules(self, ids: List[str]):
         """
