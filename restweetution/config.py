@@ -29,6 +29,8 @@ def read_conf(file_path: str):
     :param file_path: path to config file
     :return: parsed value as Dict
     """
+    if not file_path:
+        raise ValueError('Config file path is empty ! You can set the path with CONFIG=<path>')
     if file_path.split('.')[-1] == 'json':
         try:
             with open(file_path, 'r') as f:
