@@ -93,7 +93,6 @@ class ElasticView(DataView):
         return res
 
     async def update(self, bulk_data: BulkData):
-        print('update')
         tweets = [t for t in bulk_data.get_tweets() if t.id not in self._cache.tweets]
         self._cache += bulk_data
 
