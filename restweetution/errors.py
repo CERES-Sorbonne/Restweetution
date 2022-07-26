@@ -20,6 +20,7 @@ class ResponseParseError(RESTweetutionError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.raw_text = kwargs.get('raw_text')
+        self.data = kwargs.get('data')
 
 
 class TwitterAPIError(RESTweetutionError):

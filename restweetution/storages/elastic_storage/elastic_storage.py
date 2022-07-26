@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import List
 
 from elasticsearch import AsyncElasticsearch
@@ -13,6 +14,9 @@ from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
 from restweetution.storages.elastic_storage.bulk_actions import SaveAction, UpdateAction
 from restweetution.storages.storage import Storage
+
+es_logger = logging.getLogger('elasticsearch')
+es_logger.setLevel(logging.WARNING)
 
 STORAGE_PREFIX = 'storage_'
 MEDIA_INDEX = STORAGE_PREFIX + 'media'
