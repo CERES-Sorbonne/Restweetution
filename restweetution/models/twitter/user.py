@@ -3,7 +3,7 @@ from typing import Optional, List, Any
 
 from pydantic import BaseModel
 
-from restweetution.models.storage.twitter.entities import Tag, Url
+from restweetution.models.twitter.entities import Tag, Url
 
 
 class UserHashtags(BaseModel):

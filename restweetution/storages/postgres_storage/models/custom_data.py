@@ -3,7 +3,7 @@ import json
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import JSONB
 
-from restweetution.storage.storages.postgres_storage.models import Base
+from restweetution.storages.postgres_storage.models import Base
 
 
 class CustomData(Base):

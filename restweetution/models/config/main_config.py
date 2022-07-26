@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from restweetution.collectors import Streamer
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.tweet_config import QueryParams
-from restweetution.storage.storages.storage import Storage
-from restweetution.storage.storage_manager.storage_manager import StorageManager
+from restweetution.storages.storage import Storage
+from restweetution.storage_manager import StorageManager
 
 
 class MainConfig(BaseModel):

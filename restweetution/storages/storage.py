@@ -5,13 +5,13 @@ from abc import ABC
 from typing import List, Optional
 
 from restweetution.errors import handle_error, FunctionNotImplementedError
-from restweetution.models.storage.bulk_data import BulkData
+from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.storage.twitter.media import Media
-from restweetution.models.storage.twitter.place import Place
-from restweetution.models.storage.twitter.poll import Poll
-from restweetution.models.storage.twitter.tweet import User, StreamRule, RestTweet
+from restweetution.models.twitter.media import Media
+from restweetution.models.twitter.place import Place
+from restweetution.models.twitter.poll import Poll
+from restweetution.models.twitter.tweet import User, StreamRule, RestTweet
 from restweetution.utils import Event
 
 

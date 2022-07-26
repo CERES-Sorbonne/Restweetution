@@ -3,8 +3,8 @@ import os
 
 from restweetution.twitter_client import TwitterClient
 from restweetution.collectors.searcher import Searcher
-from restweetution.storage.storage_manager.storage_manager import StorageManager
-from restweetution.storage.storages.object_storage import FileStorage
+from restweetution.storage_manager import StorageManager
+from restweetution.storages import FileStorage
 
 if __name__ == "__main__":
     with open(os.getenv('CREDENTIALS'), 'r') as f:

@@ -2,7 +2,7 @@ from sqlalchemy import Integer, Column, String, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import relationship
 
-from restweetution.storage.storages.postgres_storage.models import Base
+from restweetution.storages.postgres_storage.models import Base
 
 
 class MediaNonPublicMetrics(Base):

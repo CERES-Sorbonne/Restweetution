@@ -1,7 +1,6 @@
-import asyncio
 from typing import Protocol
 
-from restweetution.models.storage.twitter import Media
+from restweetution.models.twitter import Media
 
 
 class Event(set):

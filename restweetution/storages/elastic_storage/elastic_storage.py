@@ -4,15 +4,15 @@ from typing import List
 from elasticsearch import AsyncElasticsearch
 from elasticsearch import helpers
 
-from restweetution.models.storage.bulk_data import BulkData
+from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.storage.twitter import Media
-from restweetution.models.storage.twitter import Poll
-from restweetution.models.storage.twitter.place import Place
-from restweetution.models.storage.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
-from restweetution.storage.storages.elastic_storage.bulk_actions import SaveAction, UpdateAction
-from restweetution.storage.storages.storage import Storage
+from restweetution.models.twitter import Media
+from restweetution.models.twitter import Poll
+from restweetution.models.twitter.place import Place
+from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
+from restweetution.storages.elastic_storage.bulk_actions import SaveAction, UpdateAction
+from restweetution.storages.storage import Storage
 
 STORAGE_PREFIX = 'storage_'
 MEDIA_INDEX = STORAGE_PREFIX + 'media'

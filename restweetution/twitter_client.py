@@ -6,7 +6,7 @@ from typing import Callable, List
 import aiohttp
 from aiohttp import ClientTimeout
 
-from restweetution.models.storage.stream_rule import RuleResponse
+from restweetution.models.twitter.rule import RuleResponse
 
 default_timeout = ClientTimeout(total=300, sock_read=300, connect=300, sock_connect=300)
 

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
 from sqlalchemy.dialects.postgresql import ARRAY, TIMESTAMP
 from sqlalchemy.orm import relationship
-from restweetution.storage.storages.postgres_storage.models.custom_base import Base
+from restweetution.storages.postgres_storage.models.custom_base import Base
 
 
 class Tweet(Base):

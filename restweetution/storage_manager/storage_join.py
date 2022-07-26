@@ -1,6 +1,6 @@
-from typing import List, Protocol, Any, Callable
+from typing import List, Protocol
 
-from restweetution.storage.storages.storage import Storage
+from restweetution.storages.storage import Storage
 
 
 class StorageJoinFunction(Protocol):

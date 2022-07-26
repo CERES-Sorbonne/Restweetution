@@ -12,7 +12,7 @@ class NetworkError(RESTweetutionError):
 
 
 class UnreadableResponseError(RESTweetutionError):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args):
         super().__init__(*args)
 
 
@@ -101,7 +101,7 @@ def handle_storage_save_error(datatype='bulk'):
             try:
                 result = await fn(*args, **kwargs)
                 return result
-            except Exception as e:
+            except Exception:
                 to_save = args[1].dict()
                 if datatype and datatype != 'bulk':
                     to_save = {datatype: to_save}

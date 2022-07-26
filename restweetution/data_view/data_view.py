@@ -3,10 +3,10 @@ from abc import ABC
 from collections import defaultdict
 from typing import List, Dict
 
-from restweetution.models.storage.bulk_data import BulkData
+from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
-from restweetution.models.storage.twitter import Media, RestTweet
-from restweetution.storage.storages.storage import Storage
+from restweetution.models.twitter import Media, RestTweet
+from restweetution.storages.storage import Storage
 
 
 class DataUnit(dict):

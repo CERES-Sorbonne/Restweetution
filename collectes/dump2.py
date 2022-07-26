@@ -1,4 +1,4 @@
-from restweetution.models.storage.twitter import RestTweet
+from restweetution.models.twitter import RestTweet
 
 tweet1 = RestTweet(**{
     "id": "15498701902124444",

@@ -3,12 +3,12 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from restweetution.models.storage.twitter.entities import Annotation, Tag, Url, Mention
-from restweetution.models.storage.twitter.media import Media
-from restweetution.models.storage.stream_rule import StreamRule
-from restweetution.models.storage.twitter.place import Place
-from restweetution.models.storage.twitter.poll import Poll
-from restweetution.models.storage.twitter.user import User
+from restweetution.models.twitter.entities import Annotation, Tag, Url, Mention
+from restweetution.models.twitter.media import Media
+from restweetution.models.twitter.rule import StreamRule
+from restweetution.models.twitter.place import Place
+from restweetution.models.twitter.poll import Poll
+from restweetution.models.twitter.user import User
 
 
 class Attachments(BaseModel):

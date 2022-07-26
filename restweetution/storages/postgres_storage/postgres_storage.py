@@ -1,4 +1,3 @@
-import asyncio
 from asyncio import Lock
 from typing import List, Iterator
 
@@ -8,14 +7,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker, joinedload
 
 from restweetution.errors import handle_storage_save_error
-from restweetution.models.storage import twitter
-from restweetution.models.storage.bulk_data import BulkData
+from ...models import twitter
+from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.storage.stream_rule import StreamRule
-from restweetution.models.storage.twitter import Media, User, Poll, Place
-from restweetution.models.storage.twitter.tweet import RestTweet
-from restweetution.storage.storages.storage import Storage
+from restweetution.models.twitter.rule import StreamRule
+from restweetution.models.twitter import Media, User, Poll, Place
+from restweetution.models.twitter.tweet import RestTweet
+from restweetution.storages.storage import Storage
 from . import models
 
 

@@ -1,9 +1,9 @@
 import logging
 import time
 
+from restweetution.storage_manager.storage_manager import StorageManager
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.tweet_config import QueryParams
-from restweetution.storage.storage_manager.storage_manager import StorageManager
 
 
 class Collector:

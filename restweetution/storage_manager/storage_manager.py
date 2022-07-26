@@ -6,16 +6,16 @@ from typing import List, Dict
 import imagehash
 from PIL import Image
 
-from restweetution.storage.media_downloader import MediaDownloader
-from restweetution.models.storage.bulk_data import BulkData
-from restweetution.models.storage.stream_rule import StreamRule
-from restweetution.models.storage.twitter.media import Media
-from restweetution.models.storage.twitter.place import Place
-from restweetution.models.storage.twitter.poll import Poll
-from restweetution.models.storage.twitter.tweet import RestTweet
-from restweetution.models.storage.twitter.user import User
-from restweetution.storage.storage_manager.storage_join import FirstFoundJoin
-from restweetution.storage.storages.storage import Storage
+from restweetution.media_downloader import MediaDownloader
+from restweetution.models.bulk_data import BulkData
+from restweetution.models.twitter.rule import StreamRule
+from restweetution.models.twitter.media import Media
+from restweetution.models.twitter.place import Place
+from restweetution.models.twitter.poll import Poll
+from restweetution.models.twitter.tweet import RestTweet
+from restweetution.models.twitter.user import User
+from restweetution.storage_manager.storage_join import FirstFoundJoin
+from restweetution.storages.storage import Storage
 
 
 class StorageManager:

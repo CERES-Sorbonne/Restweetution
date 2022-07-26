@@ -4,13 +4,13 @@ from typing import Optional
 import yaml
 
 from restweetution.collectors import Streamer
-from restweetution.storage.storages.postgres_storage.postgres_storage import PostgresStorage
+from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.main_config import MainConfig
 from restweetution.models.config.query_params_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.models.config.tweet_config import QueryParams
-from restweetution.storage.storage_manager.storage_manager import StorageManager
-from restweetution.storage.storages.elastic_storage.elastic_storage import ElasticStorage
+from restweetution.storage_manager import StorageManager
 
 
 def get_config_from_file(file_path: str):

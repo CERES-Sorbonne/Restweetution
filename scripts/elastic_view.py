@@ -3,8 +3,8 @@ import logging
 import os
 import restweetution.config as config
 from restweetution.data_view.data_view import ElasticView
-from restweetution.storage.storages.elastic_storage.elastic_storage import ElasticStorage
-from restweetution.storage.storages.postgres_storage.postgres_storage import PostgresStorage
+from restweetution.storages import ElasticStorage
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)

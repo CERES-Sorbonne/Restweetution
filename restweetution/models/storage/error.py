@@ -3,7 +3,7 @@ from typing import Optional, Any
 
 from pydantic import BaseModel
 
-from restweetution.errors import RESTweetutionError, ResponseParseError, StorageError, TwitterAPIError
+from restweetution.errors import ResponseParseError, StorageError, TwitterAPIError
 from restweetution.utils import get_full_class_name
 
 
