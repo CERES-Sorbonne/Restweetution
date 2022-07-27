@@ -26,16 +26,19 @@ class TwitterClient:
         self._error_handler = error_handler
 
     async def connect_tweet_stream(self, params, line_callback):
+        self._logger.info('Connect to stream')
         while True:
             try:
                 async with self._get_client() as session:
                     async with session.get("/2/tweets/search/stream", params=params) as resp:
                         async for line in resp.content:
+                            print(resp.headers)
                             asyncio.create_task(line_callback(line))
             except Exception as e:
                 trace = traceback.format_exc()
                 self._logger.exception(trace)
                 self._logger.exception(e)
+                await asyncio.sleep(0.3)
 
     async def remove_rules(self, ids: List[str]):
         """

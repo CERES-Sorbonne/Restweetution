@@ -278,7 +278,6 @@ class Streamer(Collector):
         # Test for Twitter API Errors
         if 'errors' in data:
             raise TwitterAPIError('Streamer response has error field', data=data)
-            # self._handle_errors(data['errors'])
 
         # Parse json object with pydantic
         try:
