@@ -4,11 +4,9 @@ import logging
 from typing import Callable, List
 
 import aiohttp
-from aiohttp import ClientTimeout
+from aiohttp import ClientTimeout, TCPConnector
 
 from restweetution.models.twitter.rule import RuleResponse
-
-default_timeout = ClientTimeout(sock_read=30)
 
 
 class TwitterClient:
@@ -18,9 +16,13 @@ class TwitterClient:
         self._headers = {"Authorization": f"Bearer {token}"}
         self._error_handler = error_handler
         self._logger = logging.getLogger("ApiClient")
+        self._client = None
 
     def _get_client(self):
-        return aiohttp.ClientSession(headers=self._headers, timeout=default_timeout, base_url=self.base_url)
+        self._client = aiohttp.ClientSession(headers=self._headers,
+                                             timeout=ClientTimeout(),
+                                             base_url=self.base_url)
+        return self._client
 
     def set_error_handler(self, error_handler: Callable):
         self._error_handler = error_handler
@@ -30,15 +32,19 @@ class TwitterClient:
         wait_time = 0
         while True:
             try:
+                # session = self._get_client()
                 async with self._get_client() as session:
                     async with session.get("/2/tweets/search/stream", params=params) as resp:
                         async for line in resp.content:
                             # print(resp.headers)
                             asyncio.create_task(line_callback(line))
-            except Exception as e:
-                print('Timeout (probably)', datetime.datetime.now())
-                await asyncio.sleep(wait_time)
-                wait_time = min(max(wait_time*2, 1), 30)
+            except KeyboardInterrupt as e:
+                raise e
+            except BaseException as e:
+                self._logger.warning(f'Tweet Stream {type(e)}')
+            print('wait: ', wait_time)
+            await asyncio.sleep(wait_time)
+            wait_time = min(max(wait_time * 2, 1), 30)
 
     async def remove_rules(self, ids: List[str]):
         """
@@ -47,6 +53,7 @@ class TwitterClient:
                 """
 
         uri = "/2/tweets/search/stream/rules"
+        # session = self._get_client()
         async with self._get_client() as session:
             async with session.post(uri, json={"delete": {"ids": ids}}) as r:
                 res = await r.json()
@@ -58,7 +65,6 @@ class TwitterClient:
 
                 # if not, return no ids as we can't know what rule failed or not
                 self._logger.error(res)
-            # await session.close()
             return []
 
     async def get_rules(self, ids: List[str] = None):
@@ -72,6 +78,7 @@ class TwitterClient:
         uri = "/2/tweets/search/stream/rules"
         if ids:
             uri += f"?ids={','.join(ids)}"
+        # session = self._get_client()
         async with self._get_client() as session:
             async with session.get(uri) as r:
                 res = await r.json()
@@ -83,6 +90,7 @@ class TwitterClient:
 
     async def add_rules(self, rules):
         uri = "/2/tweets/search/stream/rules"
+        # session = self._get_client()
         async with self._get_client() as session:
             async with session.post(uri, json={"add": rules}) as r:
                 res = await r.json()
