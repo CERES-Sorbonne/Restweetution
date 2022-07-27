@@ -67,6 +67,9 @@ class ElasticView(DataView):
         user_list = await self.input.get_users()
         self._cache.add_users(user_list)
 
+        media_list = await self.input.get_medias()
+        self._cache.add_medias(media_list)
+
         datas = self._compute_data(tweet_list)
         self._add_datas(datas)
 
@@ -82,6 +85,12 @@ class ElasticView(DataView):
                 for ref in tweet.referenced_tweets:
                     if ref.type == 'retweeted':
                         is_retweet = self._cache.users[self._cache.tweets[ref.id].author_id].username
+            sha1 = []
+            for media_key in tweet.attachments.media_keys:
+                if media_key in self._cache.medias:
+                    media = self._cache.medias[media_key]
+                    if media.sha1:
+                        sha1.append(media.sha1)
 
             data = DataUnit(id_=tweet.id,
                             text=tweet.text,
@@ -89,7 +98,8 @@ class ElasticView(DataView):
                             created_at=tweet.created_at,
                             has_media=has_media,
                             is_retweet=is_retweet,
-                            rule_tags=list(tweet_to_rules[tweet.id]))
+                            rule_tags=list(tweet_to_rules[tweet.id]),
+                            sha1=sha1)
             res.append(data)
         return res
 
