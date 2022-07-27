@@ -62,7 +62,6 @@ class PostgresStorage(Storage):
                     await session.merge(pg_place)
                 for key in data.medias:
                     if await self._media_exist(session, data.medias[key].media_key):
-                        print('already in storage')
                         continue
                     pg_media = models.Media()
                     pg_media.update(data.medias[key].dict())

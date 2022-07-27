@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import traceback
 from typing import Callable, List
@@ -8,7 +9,7 @@ from aiohttp import ClientTimeout
 
 from restweetution.models.twitter.rule import RuleResponse
 
-default_timeout = ClientTimeout(total=300, sock_read=300, connect=300, sock_connect=300)
+default_timeout = ClientTimeout(sock_read=30)
 
 
 class TwitterClient:
@@ -32,13 +33,10 @@ class TwitterClient:
                 async with self._get_client() as session:
                     async with session.get("/2/tweets/search/stream", params=params) as resp:
                         async for line in resp.content:
-                            print(resp.headers)
+                            # print(resp.headers)
                             asyncio.create_task(line_callback(line))
             except Exception as e:
-                trace = traceback.format_exc()
-                self._logger.exception(trace)
-                self._logger.exception(e)
-                await asyncio.sleep(0.3)
+                print('Timeout (probably)', datetime.datetime.now())
 
     async def remove_rules(self, ids: List[str]):
         """

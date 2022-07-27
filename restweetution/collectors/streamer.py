@@ -161,8 +161,8 @@ class Streamer(Collector):
 
     async def _main_error_handler(self, error: Exception):
         trace = traceback.format_exc()
-        self._logger.exception(trace)
-
+        # self._logger.exception(error)
+        self._logger.warning(f'Error: {type(error)}')
         if isinstance(error, RESTweetutionError):
             error_data = ErrorModel(error=error, traceback=trace)
             self._storages_manager.save_error(error_data)
