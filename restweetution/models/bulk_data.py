@@ -64,6 +64,9 @@ class BulkData(BaseModel):
     def get_tweets(self):
         return list(self.tweets.values())
 
+    def get_rules(self):
+        return list(self.rules.values())
+
     @staticmethod
     def set_from_list(target: dict, array: list, id_lambda=lambda x: x.id):
         for item in array:

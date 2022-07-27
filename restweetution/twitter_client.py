@@ -1,10 +1,9 @@
 import asyncio
-import datetime
 import logging
 from typing import Callable, List
 
 import aiohttp
-from aiohttp import ClientTimeout, TCPConnector
+from aiohttp import ClientTimeout
 
 from restweetution.models.twitter.rule import RuleResponse
 

@@ -1,11 +1,10 @@
-import datetime
 from abc import ABC
 from collections import defaultdict
 from typing import List, Dict
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
-from restweetution.models.twitter import Media, RestTweet
+from restweetution.models.twitter import Media, RestTweet, StreamRule
 from restweetution.storages.storage import Storage
 
 
@@ -71,7 +70,10 @@ class ElasticView(DataView):
         datas = self._compute_data(tweet_list)
         self._add_datas(datas)
 
-    def _compute_data(self, tweet_list, collected=False):
+    def _compute_data(self, tweet_list, tweet_to_rules=None):
+        if tweet_to_rules is None:
+            tweet_to_rules = defaultdict(set)
+
         res = []
         for tweet in tweet_list:
             has_media = len(tweet.attachments.media_keys) > 0
@@ -86,9 +88,8 @@ class ElasticView(DataView):
                             author=self._cache.users[tweet.author_id].username,
                             created_at=tweet.created_at,
                             has_media=has_media,
-                            is_retweet=is_retweet)
-            if collected:
-                data['collected_at'] = datetime.datetime.now()
+                            is_retweet=is_retweet,
+                            rule_tags=list(tweet_to_rules[tweet.id]))
             res.append(data)
         return res
 
@@ -98,10 +99,18 @@ class ElasticView(DataView):
 
         self._cache_media_to_tweet(tweets)
 
-        datas = self._compute_data(tweets, collected=True)
+        datas = self._compute_data(tweets, tweet_to_rules=self._compute_tweet_to_rules(bulk_data.get_rules()))
         self._add_datas(datas)
 
         await self._save_data_(datas)
+
+    @staticmethod
+    def _compute_tweet_to_rules(rules: List[StreamRule]):
+        tweet_to_rules = defaultdict(set)
+        for rule in rules:
+            for tweet_id in rule.tweet_ids:
+                tweet_to_rules[tweet_id].add(rule.tag)
+        return tweet_to_rules
 
     async def _save_data_(self, datas: List[DataUnit]):
         to_save = [self._custom_data(d) for d in datas]
