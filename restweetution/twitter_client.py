@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import logging
-import traceback
 from typing import Callable, List
 
 import aiohttp
@@ -28,6 +27,7 @@ class TwitterClient:
 
     async def connect_tweet_stream(self, params, line_callback):
         self._logger.info('Connect to stream')
+        wait_time = 0
         while True:
             try:
                 async with self._get_client() as session:
@@ -37,6 +37,8 @@ class TwitterClient:
                             asyncio.create_task(line_callback(line))
             except Exception as e:
                 print('Timeout (probably)', datetime.datetime.now())
+                await asyncio.sleep(wait_time)
+                wait_time = min(max(wait_time*2, 1), 30)
 
     async def remove_rules(self, ids: List[str]):
         """
