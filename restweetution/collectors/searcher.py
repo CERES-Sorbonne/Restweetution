@@ -1,50 +1,47 @@
-from typing import Dict, Union
+import asyncio
+import logging
 
-from restweetution.collectors import Collector
-from restweetution.twitter_client import TwitterClient
-from restweetution.models.config.tweet_config import QueryParams
+from tweepy.asynchronous import AsyncClient
+
+from restweetution.collectors.response_parser import parse_includes
+from restweetution.models.bulk_data import BulkData
+from restweetution.models.twitter import RestTweet, TweetIncludes
 from restweetution.storage_manager import StorageManager
 
 
-class Searcher(Collector):
-    def __init__(self, client: TwitterClient, storage_manager: StorageManager, verbose: bool = False):
-        """
-        The Searcher is used to make requests to the regular REST API
-        """
-        # Member declaration before super constructor
-        self._params = {}
-        self._rule = None
-        self._tag = None
-        self._preset_stream_rules = None  # used to preset rules in non-async context (config)
+class Searcher(AsyncClient):
+    def __init__(self, storage: StorageManager, bearer_token=None, **kwargs):
+        super().__init__(bearer_token=bearer_token, **kwargs)
 
-        super(Collector, self).__init__(client, storage_manager, verbose=verbose)
+        self.storage_manager = storage
+        self._logger = logging.getLogger('Searcher')
 
-    def set_rule(self, rule: str, tag: str):
-        self._rule = rule
-        self._tag = tag
+    async def search_loop_recent(self, query, **kwargs):
+        self._logger.info('Start search loop')
 
-    def set_dates(self, start=None, end=None):
-        if start:
-            self._params['start_time'] = start
-        if end:
-            self._params['end_time'] = end
+        count = await self.get_recent_tweets_count(query)
+        sum_count = sum([c['tweet_count'] for c in count.data])
+        self._logger.info(f'Retrieving {sum_count} tweets')
 
-    def set_params(self, params: Union[Dict, QueryParams]):
-        if isinstance(params, dict):
-            parsed_params = QueryParams(**params).dict()
-        else:
-            parsed_params = params.dict()
-        self._params = parsed_params
+        next_token = None
+        running = True
+        while running:
+            self._logger.info('loop')
+            if next_token:
+                res = await self.search_recent_tweets(query=query, next_token=next_token, **kwargs)
+            else:
+                res = await self.search_recent_tweets(query=query, **kwargs)
 
-    def count(self):
-        """
-        Use this method to know how much data will be fetched by the searcher
-        """
-        pass
+            bulk_data = BulkData()
 
-    async def collect(self):
-        super(Searcher, self).collect()
-        if not self._rule:
-            self._logger('No rule is set, please use set_rule before using collect')
-            return
-        pass
+            tweets = [RestTweet(**t) for t in res.data]
+            bulk_data.add_tweets(tweets)
+
+            parse_includes(bulk_data, (TweetIncludes(**res.includes)))
+
+            self.storage_manager.save_bulk(bulk_data, [])
+
+            next_token = res.meta['next_token']
+            running = next_token
+            self._logger.info(f'Next token: {next_token}')
+            await asyncio.sleep(1)
