@@ -7,6 +7,28 @@ from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.twitter import Media, RestTweet, StreamRule
 from restweetution.storages.storage import Storage
 
+minimum_fields = [
+    'id',
+    'text',
+    'created_at',
+    'author_id',
+    # 'conversation_id',
+    # 'in_reply_to_user_id',
+    # 'referenced_tweets',
+    'attachments',
+    # 'geo',
+    # 'context_annotations',
+    # 'entities',
+    # 'withheld',
+    # 'public_metrics',
+    # 'organic_metrics',
+    # 'promoted_metrics',
+    # 'possibly_sensitive',
+    # 'lang',
+    # 'source',
+    # 'reply_settings'
+]
+
 
 class DataUnit(dict):
     def __init__(self, id_: str, **kwargs):
@@ -60,7 +82,9 @@ class ElasticView(DataView):
     async def load(self):
         await super().load()
 
-        tweet_list = await self.input.get_tweets()
+        tweet_list = await self.input.get_tweets(fields=minimum_fields)
+        tweet_list = [t for t in tweet_list if t.created_at]
+
         self._cache.add_tweets(tweet_list)
         self._cache_media_to_tweet(tweet_list)
 

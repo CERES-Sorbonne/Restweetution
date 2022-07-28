@@ -5,7 +5,7 @@ import os
 
 from restweetution.collectors import Streamer
 from restweetution.twitter_client import TwitterClient
-from restweetution.models.config.query_params_config import MEDIUM_CONFIG
+from restweetution.models.config.stream_query_params import MEDIUM_CONFIG
 from restweetution.storage_manager import StorageManager
 from restweetution.storages import FileStorage
 

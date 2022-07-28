@@ -13,9 +13,13 @@ class CustomBase(object):
                     setattr(self, key, value)
 
     def to_dict(self):
-        data = {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs if c.key[0] != '_'}
+        ignore = inspect(self).unloaded
+        data = {c.key: getattr(self, c.key)
+                for c in inspect(self).mapper.column_attrs
+                if c.key[0] != '_' and c.key not in ignore}
+
         for k, v in inspect(self).mapper.relationships.items():
-            if k == '_parent':
+            if k == '_parent' or k in ignore:
                 continue
             items = getattr(self, k)
             if isinstance(items, Sequence):

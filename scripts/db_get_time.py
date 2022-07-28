@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import os
 import restweetution.config as config
@@ -17,11 +18,11 @@ async def launch():
     elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
     view = ElasticView(in_storage=postgres_storage, out_storage=elastic_storage)
+    last = datetime.datetime.now().second
+    # print(last)
     await view.load()
+    print(datetime.datetime.now().second - last)
     # await view.save()
-
-    streamer = main_conf.streamer
-    await streamer.collect()
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())

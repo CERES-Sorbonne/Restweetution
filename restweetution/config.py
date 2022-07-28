@@ -8,7 +8,7 @@ from restweetution.storages.elastic_storage.elastic_storage import ElasticStorag
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.main_config import MainConfig
-from restweetution.models.config.query_params_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
+from restweetution.models.config.stream_query_params import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.models.config.tweet_config import QueryParams
 from restweetution.storage_manager import StorageManager
 
@@ -117,6 +117,7 @@ def parse_client_config(main_conf: MainConfig, data: dict):
     if 'client' not in data:
         return
     main_conf.client = TwitterClient(token=data['client']['token'])
+    main_conf.client_token = data['client']['token']
 
 
 def parse_storage_config(main_conf: MainConfig, data: dict):

@@ -37,11 +37,17 @@ class BulkData(BaseModel):
             if k not in self.rules:
                 self.rules[k] = other.rules[k]
             else:
-                self.rules[k].tweet_ids.extend(other.rules[k].tweet_ids)
+                self.rules[k].tweet_ids.update(other.rules[k].tweet_ids)
         return self
 
-    def add_rules(self, rules: List[StreamRule]):
-        self.set_from_list(self.rules, rules)
+    def add_rules(self, rules: List[StreamRule], collected=False):
+        for rule in rules:
+            if rule.id not in self.rules:
+                self.rules[rule.id] = rule
+            else:
+                self.rules[rule.id].tweet_ids.update(rule.tweet_ids)
+            if collected:
+                self.rules[rule.id].tweet_ids.update(self.tweets.keys())
 
     def add_tweets(self, tweets: List[RestTweet]):
         self.set_from_list(self.tweets, tweets)

@@ -2,20 +2,22 @@ from asyncio import Lock
 from typing import List, Iterator
 
 from sqlalchemy import delete, exists
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, joinedload
 
 from restweetution.errors import handle_storage_save_error
-from ...models import twitter
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter import Media, User, Poll, Place
+from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.storages.storage import Storage
 from . import models
+from .mapper import set_query_params
+from ..query_params import tweet_fields
+from ...models import twitter
 
 
 class PostgresStorage(Storage):
@@ -97,14 +99,20 @@ class PostgresStorage(Storage):
         await self.update_event(medias=medias)
 
     # get functions
-    async def get_tweets(self, ids: List[str] = None, no_ids: List[str] = None) -> List[RestTweet]:
+    async def get_tweets(self,
+                         ids: List[str] = None,
+                         no_ids: List[str] = None,
+                         fields: List[str] = tweet_fields
+                         ) -> List[RestTweet]:
         async with self._async_session() as session:
+
             stmt = select(models.Tweet)
             if ids:
                 stmt = stmt.filter(models.Tweet.id.in_(ids))
             if no_ids:
                 stmt = stmt.filter(models.Tweet.id.notin_(no_ids))
-            stmt = stmt.options(joinedload('*'))
+
+            stmt = set_query_params(stmt, fields)
             res = await session.execute(stmt)
             res = res.unique().scalars().all()
             res = [RestTweet(**r.to_dict()) for r in res]

@@ -192,16 +192,8 @@ class Streamer(Collector):
 
         rule_tags = [r.tag for r in rules]
 
-        for r in rules:
-            r.tweet_ids = [tweet_res.data.id]
-            if tweet_res.includes and tweet_res.includes.tweets:
-                r.tweet_ids.extend([t.id for t in tweet_res.includes.tweets])
-
-        bulk_data.add_rules(rules)
-
-
-
-
+        # Add rules and mark tweet as collected
+        bulk_data.add_rules(rules, collected=True)
 
         return bulk_data, rule_tags
 

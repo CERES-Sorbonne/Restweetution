@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set
 from pydantic import BaseModel
 
 
@@ -9,7 +9,10 @@ class RuleRef(BaseModel):
 
 class StreamRule(RuleRef):
     value: Optional[str]
-    tweet_ids: List[str] = []
+    tweet_ids: Set[str] = set()
+
+    def get_tweet_ids(self):
+        return list(self.tweet_ids)
 
 
 class RuleResponseMeta(BaseModel):
