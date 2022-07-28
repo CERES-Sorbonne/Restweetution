@@ -1,17 +1,13 @@
 import asyncio
 import logging
-from io import BytesIO
 from typing import List, Dict
-
-import imagehash
-from PIL import Image
 
 from restweetution.media_downloader import MediaDownloader
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
+from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.models.twitter.user import User
 from restweetution.storage_manager.storage_join import FirstFoundJoin
@@ -300,8 +296,3 @@ class StorageManager:
 
     def _has_no_tags(self, storage: Storage):
         return self._storage_tags[storage.name] == []
-
-    @staticmethod
-    def _computer_average_signature(buffer: bytes):
-        img = Image.open(BytesIO(buffer))
-        return str(imagehash.average_hash(img))

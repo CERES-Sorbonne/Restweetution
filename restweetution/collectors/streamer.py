@@ -7,6 +7,7 @@ from typing import List, Dict
 import aiohttp
 import requests
 
+from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.storage.error import ErrorModel
 from restweetution.twitter_client import TwitterClient
 from restweetution.collectors.collector import Collector
@@ -167,11 +168,6 @@ class Streamer(Collector):
             error_data = ErrorModel(error=error, traceback=trace)
             self._storages_manager.save_error(error_data)
 
-    @staticmethod
-    def set_from_list(target: dict, key: str, array: list):
-        for item in array:
-            target[item.dict()[key]] = item
-
     async def _tweet_response_to_bulk_data(self, tweet_res: TweetResponse):
         """
         Handles one tweet response from the tweet stream
@@ -182,12 +178,19 @@ class Streamer(Collector):
         self._log_tweets(tweet_res)
 
         bulk_data = BulkData()
-        # Get the full rule from the id in matching_rules
-        rules_ref = tweet_res.matching_rules
-        rule_ids = [r.id for r in rules_ref]
 
+        # Add collected tweet
+        tweet = tweet_res.data
+        bulk_data.add_tweets([tweet])
+
+        # Add includes
+        parse_includes(bulk_data, tweet_res.includes)
+
+        # Get the full rule from the id in matching_rules
+        rule_ids = [r.id for r in tweet_res.matching_rules]
         rules = await self.get_rules_from_cache(rule_ids)
-        tags = [r.tag for r in rules]
+
+        rule_tags = [r.tag for r in rules]
 
         for r in rules:
             r.tweet_ids = [tweet_res.data.id]
@@ -196,38 +199,22 @@ class Streamer(Collector):
 
         bulk_data.add_rules(rules)
 
-        # Set populates bulk data with includes
-        if tweet_res.includes:
-            if tweet_res.includes.users:
-                self.set_from_list(bulk_data.users, 'id', tweet_res.includes.users)
-            if tweet_res.includes.places:
-                self.set_from_list(bulk_data.places, 'id', tweet_res.includes.places)
-            if tweet_res.includes.media:
-                self.set_from_list(bulk_data.medias, 'media_key', tweet_res.includes.media)
-            if tweet_res.includes.polls:
-                self.set_from_list(bulk_data.polls, 'id', tweet_res.includes.polls)
-            if tweet_res.includes.tweets:
-                bulk_data.add_tweets(tweet_res.includes.tweets)
 
-        # Convert to RestTweet standard
-        tweet = tweet_res.data
-        # Enrich data by de-normalizing some fields
-        self._enrich_tweet(tweet, bulk_data.rules, bulk_data.users)
-        # Save into bulk_data
-        self.set_from_list(bulk_data.tweets, 'id', [tweet])
 
-        return bulk_data, tags
 
-    @staticmethod
-    def _enrich_tweet(tweet: RestTweet, rules: Dict[str, StreamRule], users: Dict[str, User]):
 
-        # We save rules that triggered the tweets inside the tweet data to make sure we don't lose it
-        tweet.matching_rules = [rules[key] for key in rules]
+        return bulk_data, rule_tags
 
-        # If user data is given we add author username to tweet
-        if tweet.author_id:
-            if tweet.author_id in users:
-                tweet.author_username = users[tweet.author_id].username
+    # @staticmethod
+    # def _enrich_tweet(tweet: RestTweet, rules: Dict[str, StreamRule], users: Dict[str, User]):
+    #
+    #     # We save rules that triggered the tweets inside the tweet data to make sure we don't lose it
+    #     tweet.matching_rules = [rules[key] for key in rules]
+    #
+    #     # If user data is given we add author username to tweet
+    #     if tweet.author_id:
+    #         if tweet.author_id in users:
+    #             tweet.author_username = users[tweet.author_id].username
 
     def _handle_errors(self, errors: List[dict]) -> None:
         """
