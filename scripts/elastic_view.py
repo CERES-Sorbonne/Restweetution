@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 import restweetution.config as config
-from restweetution.data_view.data_view import ElasticView
+from restweetution.data_view.elastic_dashboard import ElasticDashboard
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
@@ -16,7 +16,7 @@ async def launch():
     postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
     elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
-    view = ElasticView(in_storage=postgres_storage, out_storage=elastic_storage)
+    view = ElasticDashboard(in_storage=postgres_storage, out_storage=elastic_storage)
     await view.load()
     # await view.save()
 
