@@ -108,7 +108,8 @@ class ElasticDashboard(DataView):
         to_save = [self._custom_data(d) for d in datas]
         await self.output.save_custom_datas(to_save)
 
-    async def _update_sha1(self, medias: List[Media]):
+    async def _update_sha1(self, bulk_data: BulkData):
+        medias = bulk_data.get_medias()
         updated = []
         for media in medias:
             if media.sha1:

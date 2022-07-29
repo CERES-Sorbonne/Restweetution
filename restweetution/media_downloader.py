@@ -66,8 +66,8 @@ class MediaDownloader:
 
     # Internal
 
-    async def _medias_save_event_handler(self, data: BulkData):
-        medias = list(data.medias.values())
+    async def _medias_save_event_handler(self, bulk_data: BulkData):
+        medias = list(bulk_data.medias.values())
         for m in medias:
             self._add_download_task(m)
 

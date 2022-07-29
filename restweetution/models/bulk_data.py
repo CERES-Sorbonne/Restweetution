@@ -52,6 +52,22 @@ class BulkData(BaseModel):
 
         return other
 
+    def add(self,
+            tweets: List[RestTweet] = [],
+            users: List[User] = [],
+            medias: List[Media] = [],
+            places: List[Place] = [],
+            polls: List[Poll] = [],
+            rules: List[StreamRule] = [],
+            datas: List[CustomData] = []):
+        self.add_tweets(tweets)
+        self.add_users(users)
+        self.add_places(places)
+        self.add_medias(medias)
+        self.add_polls(polls)
+        self.add_rules(rules)
+        self.add_datas(datas)
+
     def add_rules(self, rules: List[StreamRule], collected=False):
         for rule in rules:
             if rule.id not in self.rules:
@@ -76,7 +92,7 @@ class BulkData(BaseModel):
     def add_medias(self, medias: List[Media]):
         self.set_from_list(self.medias, medias, id_lambda=lambda m: m.media_key)
 
-    def set_custom_datas(self, datas: List[CustomData]):
+    def add_datas(self, datas: List[CustomData]):
         self.set_from_list(self.custom_datas, datas, id_lambda=lambda d: d.unique_id())
 
     def get_tweets(self):
