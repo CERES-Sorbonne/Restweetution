@@ -140,7 +140,7 @@ class PostgresStorage(Storage):
         async with self._async_session() as session:
             fields = fields.copy()
             if 'tweet_ids' in fields:
-                fields.remove('tweets_ids')
+                fields.remove('tweet_ids')
                 fields.append('tweets')
 
             res = await self._get_helper(session, models.Rule, ids, no_ids, fields)

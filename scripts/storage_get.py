@@ -24,8 +24,8 @@ async def launch():
 
     # res = await postgres_storage.get_rules()
     # res = await postgres_storage.get_tweets(ids=['1553022889955414016'])
-    res = await postgres_storage.get_medias()
-    print(len(res))
+    res = await postgres_storage.get_rules(ids=['1553146116572647424'])
+    print(len(res[0].tweet_ids))
     # res = [t for t in res if t.context_annotations]
     #
     # dd = None
