@@ -11,15 +11,16 @@ class Rule(Base):
     value = Column(String)
     tweets = relationship('CollectedTweet', back_populates='_parent', cascade='all, delete-orphan')
 
-    def update(self, data):
+    def update(self, data, **kwargs):
         data['tweets'] = [{'tweet_id': x} for x in data['tweet_ids']]
-        super().update(data)
+        super().update(data, **kwargs)
         self.update_one_to_many('tweets', CollectedTweet, data)
 
     def to_dict(self):
         data = super().to_dict()
         data['tweet_ids'] = [t.tweet_id for t in self.tweets]
         return data
+
 
 class CollectedTweet(Base):
     __tablename__ = 'collected_tweet'

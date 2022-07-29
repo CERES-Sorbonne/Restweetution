@@ -3,7 +3,6 @@ import logging
 import os
 
 import restweetution.config as config
-from restweetution.collectors.searcher import Searcher
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
@@ -17,14 +16,27 @@ async def launch():
     postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
     elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
-    searcher = Searcher(storage=main_conf.storage_manager, bearer_token=main_conf.client_token)
-    await searcher.search_loop_recent(query="#cat", max_results=100, expansions=['referenced_tweets.id'])
+    # searcher = Searcher(storage=main_conf.storage_manager, bearer_token=main_conf.client_token)
+    # await searcher.search_loop_recent(query="#cat", max_results=100, expansions=['referenced_tweets.id'])
     # res = await postgres_storage.get_medias(ids=['7_1551705587511074816'])
     # print(res[0].url is None)
     # res = await elastic_storage.get_medias()
 
-    res = await postgres_storage.get_rules()
-    print(res)
+    # res = await postgres_storage.get_rules()
+    # res = await postgres_storage.get_tweets(ids=['1553022889955414016'])
+    res = await postgres_storage.get_medias()
+    print(len(res))
+    # res = [t for t in res if t.context_annotations]
+    #
+    # dd = None
+    # for r in res:
+    #     print(r.id)
+    #     print(r.context_annotations)
+    #     r.context_annotations = []
+    #     dd = RestTweet(id=r.id)
+    #     dd.text = 'troll'
+    # await postgres_storage.save_tweets([dd])
+
 
     # data = CustomData(key='test', id=3, data={'CHOUPI': True})
     # data2 = CustomData(key='test', id=1, data={'Luffy': True})

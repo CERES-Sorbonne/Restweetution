@@ -40,6 +40,18 @@ class BulkData(BaseModel):
                 self.rules[k].tweet_ids.update(other.rules[k].tweet_ids)
         return self
 
+    def copy(self, **kwargs):
+        other = BulkData()
+        other.tweets = self.tweets.copy()
+        other.users = self.users.copy()
+        other.medias = self.medias.copy()
+        other.rules = self.rules.copy()
+        other.polls = self.polls.copy()
+        other.places = self.places.copy()
+        other.custom_datas = self.custom_datas.copy()
+
+        return other
+
     def add_rules(self, rules: List[StreamRule], collected=False):
         for rule in rules:
             if rule.id not in self.rules:
@@ -72,6 +84,18 @@ class BulkData(BaseModel):
 
     def get_rules(self):
         return list(self.rules.values())
+
+    def get_users(self):
+        return list(self.users.values())
+
+    def get_medias(self):
+        return list(self.medias.values())
+
+    def get_polls(self):
+        return list(self.polls.values())
+
+    def get_places(self):
+        return list(self.places.values())
 
     @staticmethod
     def set_from_list(target: dict, array: list, id_lambda=lambda x: x.id):

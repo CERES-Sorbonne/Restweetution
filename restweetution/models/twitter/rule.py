@@ -9,7 +9,7 @@ class RuleRef(BaseModel):
 
 class StreamRule(RuleRef):
     value: Optional[str]
-    tweet_ids: Set[str] = set()
+    tweet_ids: Optional[Set[str]] = set()
 
     def get_tweet_ids(self):
         return list(self.tweet_ids)

@@ -61,8 +61,8 @@ class Tweet(Base):
     source = Column(String, nullable=True)
     reply_settings = Column(String, nullable=True)
 
-    def update(self, data):
-        super().update(data)
+    def update(self, data, **kwargs):
+        super().update(data, **kwargs)
         self.update_one_to_many('referenced_tweets', ReferencedTweet, data)
         self.update_one_to_one('attachments', Attachment, data)
         self.update_one_to_one('geo', Geo, data)

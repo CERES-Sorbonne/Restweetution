@@ -90,8 +90,8 @@ class Media(Base):
     sha1 = Column(String, nullable=True)
     format = Column(String, nullable=True)
 
-    def update(self, data):
-        super().update(data)
+    def update(self, data, **kwargs):
+        super().update(data, **kwargs)
         self.update_one_to_one('non_public_metrics', MediaNonPublicMetrics, data)
         self.update_one_to_one('organic_metrics', MediaOrganicMetrics, data)
         self.update_one_to_one('promoted_metrics', MediaPromotedMetrics, data)

@@ -1,7 +1,8 @@
 import asyncio
-import datetime
 import logging
 import os
+from datetime import datetime
+
 import restweetution.config as config
 from restweetution.data_view.elastic_dashboard import ElasticDashboard
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
@@ -18,15 +19,14 @@ async def launch():
     elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
     view = ElasticDashboard(in_storage=postgres_storage, out_storage=elastic_storage)
-    last = datetime.datetime.now().second
+    last = datetime.now().second
     # print(last)
     await view.load()
-    print(datetime.datetime.now().second - last)
-    # await view.save()
+    print(datetime.now().second - last)
+    await view.save()
 
-loop = asyncio.get_event_loop()
-loop.create_task(launch())
+
 try:
-    loop.run_forever()
+    asyncio.run(launch())
 except KeyboardInterrupt as e:
     pass

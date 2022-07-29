@@ -186,11 +186,6 @@ class Storage(ABC):
     async def save_custom_datas(self, datas: List[CustomData]):
         raise NotImplementedError('save_custom_data function is not implemented')
 
-    # Update
-
-    async def update_medias(self, medias: List[Media]):
-        raise NotImplementedError('Function update_medias is not implemented')
-
     # buffer utils
 
     def _flush_buffer(self):

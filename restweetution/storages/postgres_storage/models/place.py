@@ -15,6 +15,6 @@ class Place(Base):
     name = Column(String, nullable=True)
     place_type = Column(String, nullable=True)
 
-    def update(self, data):
-        super().update(data)
+    def update(self, data, **kwargs):
+        super().update(data, **kwargs)
         self.geo = data['geo']

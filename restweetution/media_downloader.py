@@ -108,7 +108,7 @@ class MediaDownloader:
             media.sha1 = cache.sha1
             media.format = cache.format
             self._cache_media(media)
-            await self._storage.update_medias([media])
+            await self._storage.save_medias([media])
             return True
         return False
 
@@ -116,9 +116,6 @@ class MediaDownloader:
         """
         Cache media
         """
-        # print(type(media.url))
-        # if media.url is None:
-        #     print(media)
         cache = MediaCache(sha1=media.sha1, format=media.format)
         self._media_key_cache[media.media_key] = cache
         self._url_cache[media.url] = cache
@@ -127,7 +124,6 @@ class MediaDownloader:
         """
         Load Media cache from storage
         """
-        # print('load cache from storage')
         medias = await self._storage.get_medias()
         for m in medias:
             if m.sha1 and m.url:
@@ -164,7 +160,7 @@ class MediaDownloader:
 
                     await self._write_media(updated)
                     self._cache_media(media)
-                    await self._storage.update_medias([updated])
+                    await self._storage.save_medias([updated])
                 except aiohttp.ClientResponseError as e:
                     self._logger.warning(f"There was an error downloading image {media.url}: " + str(e))
                     # TODO: add an error handler here ?
