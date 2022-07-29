@@ -16,7 +16,7 @@ from restweetution.models.twitter.tweet import RestTweet
 from restweetution.storages.storage import Storage
 from . import models
 from .mapper import set_query_params, fields_by_type
-from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields
+from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 from ...models import twitter
 
 
@@ -140,17 +140,18 @@ class PostgresStorage(Storage):
         exist = res.scalar()
         return exist
 
-    async def get_rules(self, ids: List[str] = None, no_ids: List[str] = None) -> List[StreamRule]:
+    async def get_rules(self,
+                        ids: List[str] = None,
+                        no_ids: List[str] = None,
+                        fields: List[str] = rule_fields) -> List[StreamRule]:
         async with self._async_session() as session:
-            stmt = select(models.Rule)
-            if ids:
-                stmt = stmt.filter(models.Rule.id.in_(ids))
-            if no_ids:
-                stmt = stmt.filter(models.Tweet.id.notin_(no_ids))
-            stmt = stmt.options(joinedload('*'))
-            res = await session.execute(stmt)
-            res = res.unique().scalars().all()
-            res = [twitter.StreamRule(**r.to_dict()) for r in res]
+            fields = fields.copy()
+            if 'tweet_ids' in fields:
+                fields.remove('tweets_ids')
+                fields.append('tweets')
+
+            res = await self._get_helper(session, models.Rule, ids, no_ids, fields)
+            res = [StreamRule(**r.to_dict()) for r in res]
             return res
 
     async def get_errors(self, ids: List[str] = None, no_ids: List[str] = None) -> List[ErrorModel]:
