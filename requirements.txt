@@ -12,3 +12,5 @@ aiofiles
 sqlalchemy
 psycopg2
 httpx
+setuptools
+tweepy
