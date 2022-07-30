@@ -17,7 +17,7 @@ async def launch():
     elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
     view = ElasticDashboard(in_storage=postgres_storage, out_storage=elastic_storage)
-    await view.load()
+    # await view.load()
     # await view.save()
 
     streamer = main_conf.streamer

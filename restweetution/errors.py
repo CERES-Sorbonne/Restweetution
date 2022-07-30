@@ -112,6 +112,8 @@ def handle_storage_save_error(datatype='bulk'):
                                    storage_name=args[0].name,
                                    storage_type=get_full_class_name(args[0]),
                                    storage_function=fn.__name__)
+            except KeyboardInterrupt:
+                pass
 
         return wrapper
 

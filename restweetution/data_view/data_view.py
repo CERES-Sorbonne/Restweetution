@@ -32,7 +32,7 @@ class DataView(ABC):
             to_save.append(self._custom_data(d))
         await self.output.save_custom_datas(to_save)
 
-    async def update(self, bulk_data: BulkData):
+    async def add(self, bulk_data: BulkData):
         pass
 
     def _custom_data(self, data: DataUnit):

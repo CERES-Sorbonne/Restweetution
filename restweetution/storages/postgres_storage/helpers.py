@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.orm import load_only, subqueryload, ColumnProperty
@@ -44,7 +44,7 @@ async def get_helper(session,
     return res
 
 
-async def save_helper(session, model, datas: list, id_lambda=lambda x: x.id):
+async def save_helper(session, model, datas: list, id_lambda=lambda x: x.id) -> Tuple[List[str], List[str]]:
     if not datas:
         return [], []
     ids = [id_lambda(t) for t in datas]
@@ -60,11 +60,11 @@ async def save_helper(session, model, datas: list, id_lambda=lambda x: x.id):
         if id_lambda(data) in cache:
             pg_data = cache[id_lambda(data)]
             pg_data.update(data.dict(), ignore_empty=True)
-            updated.append(data)
+            updated.append(id_lambda(data))
         else:
             pg_data = model()
             pg_data.update(data.dict())
-            added.append(data)
+            added.append(id_lambda(data))
         await session.merge(pg_data)
     return added, updated
 

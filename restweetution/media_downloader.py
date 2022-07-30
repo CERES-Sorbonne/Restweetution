@@ -8,6 +8,7 @@ import aiohttp
 from pydantic import BaseModel
 
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.event_data import EventData
 from restweetution.models.twitter.media import Media
 from restweetution.storages.storage import Storage
 from restweetution.storages.object_storage.filestorage_helper import FileStorageHelper
@@ -66,8 +67,8 @@ class MediaDownloader:
 
     # Internal
 
-    async def _medias_save_event_handler(self, bulk_data: BulkData):
-        medias = list(bulk_data.medias.values())
+    async def _medias_save_event_handler(self, event_data: EventData):
+        medias = [m for m in event_data.data.get_medias() if m.media_key in event_data.added.medias]
         for m in medias:
             self._add_download_task(m)
 

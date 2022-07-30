@@ -1,5 +1,5 @@
 from asyncio import Lock
-from typing import List, Iterator
+from typing import List, Iterator, Tuple
 
 from sqlalchemy import delete
 from sqlalchemy import select
@@ -16,6 +16,7 @@ from restweetution.models.twitter.tweet import RestTweet
 from restweetution.storages.storage import Storage
 from . import models
 from .helpers import get_helper, save_helper
+from restweetution.models.event_data import EventData
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
 
@@ -54,13 +55,12 @@ class PostgresStorage(Storage):
                 await session.commit()
 
         # Events outside of lock !!
-        saved = BulkData()
-        saved.add(tweets=t_add, users=u_add, places=pl_add, medias=m_add, polls=po_add, rules=r_add)
-        await self.save_event(bulk_data=saved)
+        event_data = EventData(data=data)
+        event_data.added.add(tweets=t_add, users=u_add, places=pl_add, medias=m_add, polls=po_add, rules=r_add)
+        event_data.updated.add(tweets=t_up, users=u_up, places=pl_up, medias=m_up, polls=po_up, rules=r_up)
 
-        updated = BulkData()
-        updated.add(tweets=t_up, users=u_up, places=pl_up, medias=m_up, polls=po_up, rules=r_up)
-        await self.update_event(bulk_data=updated)
+        await self.save_event(event_data)
+        await self.update_event(event_data)
 
     async def save_custom_datas(self, datas: List[CustomData]):
         async with self._async_session() as session:
@@ -186,7 +186,7 @@ class PostgresStorage(Storage):
         return await save_helper(session, models.Media, medias, id_lambda=lambda x: x.media_key)
 
     @staticmethod
-    async def _save_rules(session: any, rules: List[StreamRule]):
+    async def _save_rules(session: any, rules: List[StreamRule]) -> Tuple[List[str], List[str]]:
         added = []
         updated = []
         for rule in rules:
@@ -195,11 +195,11 @@ class PostgresStorage(Storage):
                 pg_rule = models.Rule()
                 pg_rule.update(rule.dict())
                 await session.merge(pg_rule)
-                added.append(rule)
+                added.append(rule.id)
             else:
                 for tweet_id in rule.tweet_ids:
                     pg_collected = models.CollectedTweet()
                     pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
                     await session.merge(pg_collected)
-                updated.append(rule)
+                updated.append(rule.id)
         return added, updated

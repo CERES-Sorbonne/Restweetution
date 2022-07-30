@@ -3,7 +3,8 @@ from typing import List
 
 from restweetution.data_view.data_view import DataView, DataUnit
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.twitter import StreamRule, Media, RestTweet
+from restweetution.models.event_data import EventData
+from restweetution.models.twitter import StreamRule, RestTweet
 
 minimum_fields = [
     'id',
@@ -31,33 +32,40 @@ minimum_fields = [
 class ElasticDashboard(DataView):
     def __init__(self, in_storage, out_storage):
         super().__init__(name='elastic', in_storage=in_storage, out_storage=out_storage)
-        self._cache = BulkData()
-        self._media_to_tweets = defaultdict(list)
+        self._media_to_tweet_ids = defaultdict(list)
 
-        in_storage.save_event.add(self.update)
+        in_storage.save_event.add(self.add)
         in_storage.update_event.add(self._update_sha1)
 
     async def load(self):
         await super().load()
+        bulk_data = BulkData()
 
         tweet_list = await self.input.get_tweets(fields=minimum_fields)
         tweet_list = [t for t in tweet_list if t.created_at]
 
-        self._cache.add_tweets(tweet_list)
+        bulk_data.add_tweets(tweet_list)
         self._cache_media_to_tweet(tweet_list)
 
         user_list = await self.input.get_users()
-        self._cache.add_users(user_list)
+        bulk_data.add_users(user_list)
 
         media_list = await self.input.get_medias()
-        self._cache.add_medias(media_list)
+        bulk_data.add_medias(media_list)
 
-        datas = self._compute_data(tweet_list)
+        rule_list = await self.input.get_rules()
+        bulk_data.add_rules(rule_list)
+
+        datas = self._compute_data(bulk_data)
         self._add_datas(datas)
 
-    def _compute_data(self, tweet_list, tweet_to_rules=None):
-        if tweet_to_rules is None:
-            tweet_to_rules = defaultdict(set)
+    @staticmethod
+    def _compute_data(bulk_data: BulkData, tweet_ids: List[str] = None):
+        tweet_to_rules = ElasticDashboard._compute_tweet_to_rules(bulk_data.get_rules())
+
+        tweet_list = bulk_data.get_tweets()
+        if tweet_ids:
+            tweet_list = [t for t in tweet_list if t.id in tweet_ids]
 
         res = []
         for tweet in tweet_list:
@@ -66,17 +74,17 @@ class ElasticDashboard(DataView):
             if tweet.referenced_tweets:
                 for ref in tweet.referenced_tweets:
                     if ref.type == 'retweeted':
-                        is_retweet = self._cache.users[self._cache.tweets[ref.id].author_id].username
+                        is_retweet = bulk_data.users[bulk_data.tweets[ref.id].author_id].username
             sha1 = []
             for media_key in tweet.attachments.media_keys:
-                if media_key in self._cache.medias:
-                    media = self._cache.medias[media_key]
+                if media_key in bulk_data.medias:
+                    media = bulk_data.medias[media_key]
                     if media.sha1:
                         sha1.append(media.sha1)
 
             data = DataUnit(id_=tweet.id,
                             text=tweet.text,
-                            author=self._cache.users[tweet.author_id].username,
+                            author=bulk_data.users[tweet.author_id].username,
                             created_at=tweet.created_at,
                             has_media=has_media,
                             is_retweet=is_retweet,
@@ -85,13 +93,12 @@ class ElasticDashboard(DataView):
             res.append(data)
         return res
 
-    async def update(self, bulk_data: BulkData):
-        tweets = [t for t in bulk_data.get_tweets() if t.id not in self._cache.tweets]
-        self._cache += bulk_data
+    async def add(self, event_data: EventData):
 
-        self._cache_media_to_tweet(tweets)
+        bulk_data = event_data.data
+        self._cache_media_to_tweet(bulk_data.get_tweets())
 
-        datas = self._compute_data(tweets, tweet_to_rules=self._compute_tweet_to_rules(bulk_data.get_rules()))
+        datas = self._compute_data(bulk_data, event_data.added.tweets)
         self._add_datas(datas)
 
         await self._save_data_(datas)
@@ -108,14 +115,16 @@ class ElasticDashboard(DataView):
         to_save = [self._custom_data(d) for d in datas]
         await self.output.save_custom_datas(to_save)
 
-    async def _update_sha1(self, bulk_data: BulkData):
-        medias = bulk_data.get_medias()
+    async def _update_sha1(self, event_data: EventData):
+        if not event_data.updated.medias:
+            return
+        medias = [m for m in event_data.data.get_medias() if m.media_key in event_data.updated.medias]
         updated = []
         for media in medias:
             if media.sha1:
-                tweets = self._media_to_tweets[media.media_key]
-                for tweet in tweets:
-                    data = self.datas[tweet.id]
+                tweet_ids = self._media_to_tweet_ids[media.media_key]
+                for tweet_id in tweet_ids:
+                    data = self.datas[tweet_id]
                     if 'sha1' not in data:
                         data['sha1'] = [media.sha1]
                     else:
@@ -127,4 +136,4 @@ class ElasticDashboard(DataView):
         for tweet in tweets:
             if tweet.attachments.media_keys:
                 for key in tweet.attachments.media_keys:
-                    self._media_to_tweets[key].append(tweet)
+                    self._media_to_tweet_ids[key].append(tweet.id)
