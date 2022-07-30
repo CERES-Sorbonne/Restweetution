@@ -59,7 +59,7 @@ async def save_helper(session, model, datas: list, id_lambda=lambda x: x.id):
     for data in datas:
         if id_lambda(data) in cache:
             pg_data = cache[id_lambda(data)]
-            pg_data.update(data.dict(), ignore_empty=False)
+            pg_data.update(data.dict(), ignore_empty=True)
             updated.append(data)
         else:
             pg_data = model()
