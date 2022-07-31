@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class CustomData(BaseModel):
     key: str
-    id: str = "0"
+    id: str = None
     data: Dict = {}
 
     def unique_id(self):

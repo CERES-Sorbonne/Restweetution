@@ -22,11 +22,18 @@ def set_query_params(stmt, model, fields):
     return stmt
 
 
+def set_order(stmt, model, order):
+    if not order:
+        return stmt
+    return stmt.order_by(getattr(model, order).desc())
+
+
 async def get_helper(session,
                      pg_model,
                      ids: List[str] = None,
                      no_ids: List[str] = None,
                      fields: List[str] = None,
+                     order: str = None,
                      id_lambda: Callable = lambda x: x.id):
     if fields is None:
         fields = fields_by_type[pg_model]
@@ -39,6 +46,8 @@ async def get_helper(session,
         stmt = stmt.filter(id_lambda(pg_model).notin_(no_ids))
 
     stmt = set_query_params(stmt, pg_model, fields)
+    stmt = set_order(stmt, pg_model, order)
+
     res = await session.execute(stmt)
     res = res.unique().scalars().all()
     return res

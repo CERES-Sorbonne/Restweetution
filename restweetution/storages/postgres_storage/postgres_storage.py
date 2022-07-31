@@ -1,5 +1,5 @@
 from asyncio import Lock
-from typing import List, Iterator, Tuple
+from typing import List, Iterator, Tuple, Set
 
 from sqlalchemy import delete
 from sqlalchemy import select
@@ -67,7 +67,8 @@ class PostgresStorage(Storage):
             for data in datas:
                 pg_data = models.CustomData()
                 pg_data.update(data.dict())
-                await session.merge(pg_data)
+                pg_res = await session.merge(pg_data)
+                print(pg_res.id)
             await session.commit()
 
     async def save_error(self, error: ErrorModel):
@@ -81,9 +82,10 @@ class PostgresStorage(Storage):
     async def get_tweets(self,
                          ids: List[str] = None,
                          no_ids: List[str] = None,
-                         fields: List[str] = tweet_fields) -> List[RestTweet]:
+                         fields: List[str] = tweet_fields,
+                         order: str = None) -> List[RestTweet]:
         async with self._async_session() as session:
-            res = await get_helper(session, models.Tweet, ids, no_ids, fields)
+            res = await get_helper(session, models.Tweet, ids=ids, no_ids=no_ids, fields=fields, order=order)
             return [RestTweet(**r.to_dict()) for r in res]
 
     async def get_users(self,
@@ -91,7 +93,7 @@ class PostgresStorage(Storage):
                         no_ids: List[str] = None,
                         fields: List[str] = user_fields) -> Iterator[User]:
         async with self._async_session() as session:
-            res = await get_helper(session, models.User, ids, no_ids, fields)
+            res = await get_helper(session, models.User, ids=ids, no_ids=no_ids, fields=fields)
             return [User(**r.to_dict()) for r in res]
 
     async def get_polls(self,
@@ -99,7 +101,7 @@ class PostgresStorage(Storage):
                         no_ids: List[str] = None,
                         fields: List[str] = poll_fields) -> Iterator[Poll]:
         async with self._async_session() as session:
-            res = await get_helper(session, models.Poll, ids, no_ids, fields)
+            res = await get_helper(session, models.Poll, ids=ids, no_ids=no_ids, fields=fields)
             return [Poll(**r.to_dict()) for r in res]
 
     async def get_places(self,
@@ -107,7 +109,7 @@ class PostgresStorage(Storage):
                          no_ids: List[str] = None,
                          fields: List[str] = place_fields) -> Iterator[Place]:
         async with self._async_session() as session:
-            res = await get_helper(session, models.Place, ids, no_ids, fields)
+            res = await get_helper(session, models.Place, ids=ids, no_ids=no_ids, fields=fields)
             return [Place(**r.to_dict()) for r in res]
 
     async def get_medias(self,
@@ -115,7 +117,8 @@ class PostgresStorage(Storage):
                          no_ids: List[str] = None,
                          fields: List[str] = media_fields) -> Iterator[Media]:
         async with self._async_session() as session:
-            res = await get_helper(session, models.Media, ids, no_ids, fields, id_lambda=lambda x: x.media_key)
+            res = await get_helper(session, models.Media, ids=ids, no_ids=no_ids, fields=fields,
+                                   id_lambda=lambda x: x.media_key)
             return [Media(**r.to_dict()) for r in res]
 
     async def get_rules(self,
@@ -128,7 +131,7 @@ class PostgresStorage(Storage):
                 fields.remove('tweet_ids')
                 fields.append('tweets')
 
-            res = await get_helper(session, models.Rule, ids, no_ids, fields)
+            res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields)
             res = [StreamRule(**r.to_dict()) for r in res]
             return res
 
@@ -186,20 +189,20 @@ class PostgresStorage(Storage):
         return await save_helper(session, models.Media, medias, id_lambda=lambda x: x.media_key)
 
     @staticmethod
-    async def _save_rules(session: any, rules: List[StreamRule]) -> Tuple[List[str], List[str]]:
-        added = []
-        updated = []
+    async def _save_rules(session: any, rules: List[StreamRule]) -> Tuple[Set[str], Set[str]]:
+        added = set()
+        updated = set()
         for rule in rules:
             pg_rule = await session.get(models.Rule, rule.id)
             if not pg_rule:
                 pg_rule = models.Rule()
                 pg_rule.update(rule.dict())
                 await session.merge(pg_rule)
-                added.append(rule.id)
+                added.add(rule.id)
             else:
                 for tweet_id in rule.tweet_ids:
                     pg_collected = models.CollectedTweet()
                     pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
                     await session.merge(pg_collected)
-                updated.append(rule.id)
+                updated.add(rule.id)
         return added, updated

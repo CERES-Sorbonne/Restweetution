@@ -1,10 +1,11 @@
+import uuid
 from datetime import datetime
 from typing import List, Dict
 
 from pydantic import BaseModel
 
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.twitter import RestTweet
+from restweetution.models.twitter import RestTweet, StreamRule
 
 
 class CountUnit(BaseModel):
@@ -39,3 +40,7 @@ class LookupResponse(BaseModel):
     bulk_data: BulkData = BulkData()
     errors: List = []
     meta: Dict = {}
+
+class DefaultSearcherRule(StreamRule):
+    def __init__(self):
+        super().__init__(id='searcher',)

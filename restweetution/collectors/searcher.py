@@ -5,7 +5,7 @@ from tweepy.asynchronous import AsyncClient
 
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.searcher.searcher import CountResponse, LookupResponseUnit, LookupResponse
+from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse
 from restweetution.models.twitter import RestTweet, TweetIncludes
 from restweetution.storage_manager import StorageManager
 
