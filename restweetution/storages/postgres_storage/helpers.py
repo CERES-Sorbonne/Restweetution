@@ -1,6 +1,6 @@
 from typing import List, Callable, Tuple, Set
 
-from sqlalchemy import select
+from sqlalchemy import select, cast, DECIMAL
 from sqlalchemy.orm import load_only, subqueryload, ColumnProperty
 
 from restweetution.storages.postgres_storage import models
@@ -8,7 +8,8 @@ from restweetution.storages.query_params import tweet_fields, user_fields, media
     rule_fields
 
 
-def set_query_params(stmt, model, fields):
+def build_select(model, fields):
+    stmt = select(model)
     cols = []
     rels = []
     for field in fields:
@@ -22,10 +23,35 @@ def set_query_params(stmt, model, fields):
     return stmt
 
 
-def set_order(stmt, model, order):
-    if not order:
+def set_order(stmt, model, sort_by: str, order: str = None):
+    if not sort_by:
         return stmt
-    return stmt.order_by(getattr(model, order).desc())
+    sort_attr = getattr(model, sort_by)
+    sort_attr = cast(sort_attr, DECIMAL) if sort_by == 'id' else sort_attr
+    sort_attr = sort_attr.desc() if order == 'desc' else sort_attr.asc()
+    return stmt.order_by(sort_attr)
+
+
+def set_filter(stmt, model, ids, no_ids, id_field, **kwargs):
+    def _(key: str):
+        return getattr(model, key)
+    date_field = 'created_at'
+    if 'date_field' in kwargs:
+        date_field = kwargs.get('date_field')
+
+    if ids:
+        stmt = stmt.filter(_(id_field).in_(ids))
+    if no_ids:
+        stmt = stmt.filter(_(id_field).notin_(no_ids))
+    if 'id_start' in kwargs:
+        stmt = stmt.filter(_(id_field) >= kwargs.get('id_start'))
+    if 'id_end' in kwargs:
+        stmt = stmt.filter(_(id_field) <= kwargs.get('id_end'))
+    if 'date_start' in kwargs:
+        stmt = stmt.filter(_(date_field) >= kwargs.get('date_start'))
+    if 'date_stop' in kwargs:
+        stmt = stmt.filter(_(date_field) <= kwargs.get('date_stop'))
+    return stmt
 
 
 async def get_helper(session,
@@ -33,47 +59,47 @@ async def get_helper(session,
                      ids: List[str] = None,
                      no_ids: List[str] = None,
                      fields: List[str] = None,
+                     sort_by: str = None,
                      order: str = None,
-                     id_lambda: Callable = lambda x: x.id):
+                     id_field: str = 'id',
+                     **kwargs):
     if fields is None:
         fields = fields_by_type[pg_model]
 
-    stmt = select(pg_model)
-
-    if ids:
-        stmt = stmt.filter(id_lambda(pg_model).in_(ids))
-    if no_ids:
-        stmt = stmt.filter(id_lambda(pg_model).notin_(no_ids))
-
-    stmt = set_query_params(stmt, pg_model, fields)
-    stmt = set_order(stmt, pg_model, order)
+    stmt = build_select(pg_model, fields=fields)
+    stmt = set_filter(stmt, pg_model, ids=ids, no_ids=no_ids, id_field=id_field, **kwargs)
+    stmt = set_order(stmt, pg_model, sort_by, order)
 
     res = await session.execute(stmt)
     res = res.unique().scalars().all()
     return res
 
 
-async def save_helper(session, model, datas: list, id_lambda=lambda x: x.id) -> Tuple[Set[str], Set[str]]:
+async def save_helper(session, model, datas: list, id_field='id') -> Tuple[Set[str], Set[str]]:
     if not datas:
-        return {}, {}
-    ids = [id_lambda(t) for t in datas]
+        return set(), set()
 
-    to_update = await get_helper(session, model, ids=ids, id_lambda=id_lambda)
-    cache = {id_lambda(t): t for t in to_update}
+    def id_(x):
+        return getattr(x, id_field)
+
+    ids = [id_(t) for t in datas]
+
+    to_update = await get_helper(session, model, ids=ids, id_field=id_field)
+    cache = {id_(t): t for t in to_update}
 
     session.expunge_all()
     added = set()
     updated = set()
 
     for data in datas:
-        if id_lambda(data) in cache:
-            pg_data = cache[id_lambda(data)]
+        if id_(data) in cache:
+            pg_data = cache[id_(data)]
             pg_data.update(data.dict(), ignore_empty=True)
-            updated.add(id_lambda(data))
+            updated.add(id_(data))
         else:
             pg_data = model()
             pg_data.update(data.dict())
-            added.add(id_lambda(data))
+            added.add(id_(data))
         await session.merge(pg_data)
     return added, updated
 

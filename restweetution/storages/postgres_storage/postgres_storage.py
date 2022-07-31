@@ -40,6 +40,7 @@ class PostgresStorage(Storage):
 
         self.lock = Lock()
 
+
     @handle_storage_save_error()
     async def save_bulk(self, data: BulkData):
         async with self.lock:
@@ -83,9 +84,12 @@ class PostgresStorage(Storage):
                          ids: List[str] = None,
                          no_ids: List[str] = None,
                          fields: List[str] = tweet_fields,
-                         order: str = None) -> List[RestTweet]:
+                         sort_by: str = None,
+                         order: str = None,
+                         **kwargs) -> List[RestTweet]:
         async with self._async_session() as session:
-            res = await get_helper(session, models.Tweet, ids=ids, no_ids=no_ids, fields=fields, order=order)
+            res = await get_helper(session, models.Tweet, ids=ids, no_ids=no_ids, fields=fields, sort_by=sort_by,
+                                   order=order, **kwargs)
             return [RestTweet(**r.to_dict()) for r in res]
 
     async def get_users(self,
@@ -117,8 +121,7 @@ class PostgresStorage(Storage):
                          no_ids: List[str] = None,
                          fields: List[str] = media_fields) -> Iterator[Media]:
         async with self._async_session() as session:
-            res = await get_helper(session, models.Media, ids=ids, no_ids=no_ids, fields=fields,
-                                   id_lambda=lambda x: x.media_key)
+            res = await get_helper(session, models.Media, ids=ids, no_ids=no_ids, fields=fields, id_field='media_key')
             return [Media(**r.to_dict()) for r in res]
 
     async def get_rules(self,
@@ -186,7 +189,7 @@ class PostgresStorage(Storage):
 
     @staticmethod
     async def _save_media(session, medias: List[RestTweet]):
-        return await save_helper(session, models.Media, medias, id_lambda=lambda x: x.media_key)
+        return await save_helper(session, models.Media, medias, id_field='media_key')
 
     @staticmethod
     async def _save_rules(session: any, rules: List[StreamRule]) -> Tuple[Set[str], Set[str]]:

@@ -41,6 +41,6 @@ class LookupResponse(BaseModel):
     errors: List = []
     meta: Dict = {}
 
-class DefaultSearcherRule(StreamRule):
-    def __init__(self):
-        super().__init__(id='searcher',)
+# class DefaultSearcherRule(StreamRule):
+#     def __init__(self):
+#         super().__init__(id='searcher',)

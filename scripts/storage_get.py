@@ -3,7 +3,6 @@ import logging
 import os
 
 import restweetution.config as config
-from restweetution.models.storage.custom_data import CustomData
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
@@ -24,7 +23,9 @@ async def launch():
     # res = await elastic_storage.get_medias()
 
     # res = await postgres_storage.get_rules()
-    # res = await postgres_storage.get_tweets(ids=['1553022889955414016'])
+    res = await postgres_storage.get_tweets(sort_by='id', id_stop='1553846860300828673')
+    for r in res:
+        print(r.id)
     # res = [t for t in res if t.context_annotations]
     #
     # dd = None
