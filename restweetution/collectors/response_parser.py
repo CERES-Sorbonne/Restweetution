@@ -1,16 +1,20 @@
+from typing import List
+
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.twitter import TweetIncludes
 
 
-def parse_includes(bulk_data: BulkData, includes: TweetIncludes):
+def parse_includes(includes: TweetIncludes):
+    res = {}
     if includes:
         if includes.users:
-            bulk_data.add_users(includes.users)
+            res['users'] = includes.users
         if includes.places:
-            bulk_data.add_places(includes.places)
+            res['places'] = includes.places
         if includes.media:
-            bulk_data.add_medias(includes.media)
+            res['medias'] = includes.media
         if includes.polls:
-            bulk_data.add_polls(includes.polls)
+            res['polls'] = includes.polls
         if includes.tweets:
-            bulk_data.add_tweets(includes.tweets)
+            res['tweets'] = includes.tweets
+    return res

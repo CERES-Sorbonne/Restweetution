@@ -101,9 +101,3 @@ class TwitterClient:
                 if 'data' in res:
                     valid_rules = res['data']
                 return valid_rules
-
-    async def get_tweet_count(self):
-        uri = '/2/tweets/counts/recent'
-        async with self._get_client() as session:
-            async with session.get(uri):
-                pass

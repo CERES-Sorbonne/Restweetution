@@ -7,17 +7,16 @@ from typing import List, Dict
 import aiohttp
 import requests
 
-from restweetution.collectors.response_parser import parse_includes
-from restweetution.models.storage.error import ErrorModel
-from restweetution.twitter_client import TwitterClient
 from restweetution.collectors.collector import Collector
+from restweetution.collectors.response_parser import parse_includes
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.rule import StreamRule
-from restweetution.models.twitter.tweet import TweetResponse, RestTweet
-from restweetution.models.twitter.user import User
+from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storage_manager import StorageManager
+from restweetution.twitter_client import TwitterClient
 
 
 class Streamer(Collector):
@@ -184,7 +183,7 @@ class Streamer(Collector):
         bulk_data.add_tweets([tweet])
 
         # Add includes
-        parse_includes(bulk_data, tweet_res.includes)
+        bulk_data.add(**parse_includes(tweet_res.includes))
 
         # Get the full rule from the id in matching_rules
         rule_ids = [r.id for r in tweet_res.matching_rules]

@@ -32,16 +32,16 @@ class Collector:
     def set_query_params(self, query_params: QueryParams):
         if query_params.expansions:
             self._params['expansions'] = ",".join(query_params.expansions)
-        if query_params.tweetFields:
-            self._params['tweet.fields'] = ",".join(query_params.tweetFields)
-        if query_params.userFields:
-            self._params['user.fields'] = ",".join(query_params.userFields)
-        if query_params.mediaFields:
-            self._params['media.fields'] = ",".join(query_params.mediaFields)
-        if query_params.placeFields:
-            self._params['place.fields'] = ",".join(query_params.placeFields)
-        if query_params.pollFields:
-            self._params['poll.fields'] = ','.join(query_params.pollFields)
+        if query_params.tweet_fields:
+            self._params['tweet.fields'] = ",".join(query_params.tweet_fields)
+        if query_params.user_fields:
+            self._params['user.fields'] = ",".join(query_params.user_fields)
+        if query_params.media_fields:
+            self._params['media.fields'] = ",".join(query_params.media_fields)
+        if query_params.place_fields:
+            self._params['place.fields'] = ",".join(query_params.place_fields)
+        if query_params.poll_fields:
+            self._params['poll.fields'] = ','.join(query_params.poll_fields)
 
     # def _handle_media(self, tweet: TweetResponse):
     #     class Media(Enum):
