@@ -144,7 +144,7 @@ class MediaDownloader:
         Download the media and compute its signature
         """
         async with aiohttp.ClientSession() as session:
-            if media.type == 'photo':
+            if media.type == 'photo' and media.url:
                 media_format = media.url.split('.')[-1]
                 try:
                     res = await session.get(media.url)
