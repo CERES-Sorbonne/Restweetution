@@ -74,7 +74,6 @@ async def get_helper(session,
     stmt = build_select(pg_model, fields=fields)
     stmt = set_filter(stmt, pg_model, ids=ids, no_ids=no_ids, id_field=id_field, **kwargs)
     stmt = set_order(stmt, pg_model, sort_by, order)
-
     res = await session.execute(stmt)
     res = res.unique().scalars().all()
     return res

@@ -1,7 +1,7 @@
 from asyncio import Lock
 from typing import List, Iterator, Tuple, Set
 
-from sqlalchemy import delete
+from sqlalchemy import delete, text
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, joinedload
@@ -39,6 +39,12 @@ class PostgresStorage(Storage):
         )
 
         self.lock = Lock()
+
+    async def testSQL(self, sql):
+        async with self._engine.begin() as conn:
+            res = await conn.execute(text(sql))
+            res = res.scalars().all()
+            return res
 
 
     @handle_storage_save_error()
