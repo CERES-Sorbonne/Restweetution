@@ -44,7 +44,8 @@ class PostgresStorage(Storage):
         async with self._engine.begin() as conn:
             stmt = get_statement(models.Tweet, fields=['id'])
             res = await conn.execute(stmt)
-            return [r['id'] for r in res]
+            res = res.scalars().all()
+            return res
 
 
     @handle_storage_save_error()
