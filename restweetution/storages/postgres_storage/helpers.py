@@ -1,7 +1,7 @@
 from typing import List, Callable, Tuple, Set
 
-from sqlalchemy import select, cast, DECIMAL, BigInteger
-from sqlalchemy.orm import load_only, subqueryload, ColumnProperty
+from sqlalchemy import select, cast, DECIMAL, BigInteger, text
+from sqlalchemy.orm import load_only, subqueryload, ColumnProperty, selectinload, joinedload
 
 from restweetution.storages.postgres_storage import models
 from restweetution.storages.query_params import tweet_fields, user_fields, media_fields, place_fields, poll_fields, \
@@ -71,32 +71,28 @@ async def get_helper(session,
     if fields is None:
         fields = fields_by_type[pg_model]
 
-    stmt = build_select(pg_model, fields=fields)
-    stmt = set_filter(stmt, pg_model, ids=ids, no_ids=no_ids, id_field=id_field, **kwargs)
-    stmt = set_order(stmt, pg_model, sort_by, order)
+    stmt = get_statement(pg_model=pg_model, ids=ids, no_ids=no_ids, fields=fields, sort_by=sort_by, order=order,
+                         id_field=id_field, **kwargs)
     res = await session.execute(stmt)
     res = res.unique().scalars().all()
     return res
 
 
-async def get_helper_without_session(conn,
-                                     pg_model,
-                                     ids: List[str] = None,
-                                     no_ids: List[str] = None,
-                                     fields: List[str] = None,
-                                     sort_by: str = None,
-                                     order: str = None,
-                                     id_field: str = 'id',
-                                     **kwargs):
+def get_statement(pg_model,
+                  ids: List[str] = None,
+                  no_ids: List[str] = None,
+                  fields: List[str] = None,
+                  sort_by: str = None,
+                  order: str = None,
+                  id_field: str = 'id',
+                  **kwargs):
     if fields is None:
         fields = fields_by_type[pg_model]
 
     stmt = build_select(pg_model, fields=fields)
     stmt = set_filter(stmt, pg_model, ids=ids, no_ids=no_ids, id_field=id_field, **kwargs)
     stmt = set_order(stmt, pg_model, sort_by, order)
-    res = await conn.execute(stmt)
-    res = res.unique().scalars().all()
-    return res
+    return stmt
 
 
 async def save_helper(session, model, datas: list, id_field='id') -> Tuple[Set[str], Set[str]]:

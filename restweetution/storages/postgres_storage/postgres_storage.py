@@ -1,13 +1,14 @@
 from asyncio import Lock
 from typing import List, Iterator, Tuple, Set
 
-from sqlalchemy import delete, text
+from sqlalchemy import delete
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, joinedload
 
 from restweetution.errors import handle_storage_save_error
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.event_data import EventData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Media, User, Poll, Place
@@ -15,8 +16,7 @@ from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.storages.storage import Storage
 from . import models
-from .helpers import get_helper, save_helper, get_helper_without_session
-from restweetution.models.event_data import EventData
+from .helpers import get_helper, save_helper, get_statement
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
 
@@ -42,9 +42,9 @@ class PostgresStorage(Storage):
 
     async def get_tweet_ids(self):
         async with self._engine.begin() as conn:
-            res = await get_helper_without_session(conn, models.Tweet, fields=['id'])
-
-            return res
+            stmt = get_statement(models.Tweet, fields=['id'])
+            res = await conn.execute(stmt)
+            return [r['id'] for r in res]
 
 
     @handle_storage_save_error()

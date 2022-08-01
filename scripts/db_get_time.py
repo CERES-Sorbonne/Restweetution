@@ -21,7 +21,7 @@ async def launch():
 
     last = time()
     res = await postgres_storage.get_tweet_ids()
-    print(len(res))
+    # print(len(res))
     print(time() - last)
 
 
