@@ -48,13 +48,14 @@ def set_filter(stmt, model, ids, no_ids, id_field, **kwargs):
     if no_ids:
         stmt = stmt.filter(_(id_field).notin_(no_ids))
     if 'id_start' in kwargs:
-        stmt = stmt.filter(_int(id_field) >= kwargs.get('id_start'))
-    if 'id_end' in kwargs:
-        stmt = stmt.filter(_int(id_field) <= kwargs.get('id_end'))
+        stmt = stmt.filter(_int(id_field) >= int(kwargs.get('id_start')))
+    if 'id_stop' in kwargs:
+        stmt = stmt.filter(_int(id_field) <= int(kwargs.get('id_stop')))
     if 'date_start' in kwargs:
         stmt = stmt.filter(_(date_field) >= kwargs.get('date_start'))
     if 'date_stop' in kwargs:
         stmt = stmt.filter(_(date_field) <= kwargs.get('date_stop'))
+    # print(stmt)
     return stmt
 
 
