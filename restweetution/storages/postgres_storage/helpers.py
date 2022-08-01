@@ -1,6 +1,6 @@
 from typing import List, Callable, Tuple, Set
 
-from sqlalchemy import select, cast, DECIMAL
+from sqlalchemy import select, cast, DECIMAL, BigInteger
 from sqlalchemy.orm import load_only, subqueryload, ColumnProperty
 
 from restweetution.storages.postgres_storage import models
@@ -27,7 +27,7 @@ def set_order(stmt, model, sort_by: str, order: str = None):
     if not sort_by:
         return stmt
     sort_attr = getattr(model, sort_by)
-    sort_attr = cast(sort_attr, DECIMAL) if sort_by == 'id' else sort_attr
+    sort_attr = cast(sort_attr, BigInteger) if sort_by == 'id' else sort_attr
     sort_attr = sort_attr.desc() if order == 'desc' else sort_attr.asc()
     return stmt.order_by(sort_attr)
 
@@ -35,6 +35,10 @@ def set_order(stmt, model, sort_by: str, order: str = None):
 def set_filter(stmt, model, ids, no_ids, id_field, **kwargs):
     def _(key: str):
         return getattr(model, key)
+
+    def _int(key: str):
+        return cast(_(key), BigInteger)
+
     date_field = 'created_at'
     if 'date_field' in kwargs:
         date_field = kwargs.get('date_field')
@@ -44,9 +48,9 @@ def set_filter(stmt, model, ids, no_ids, id_field, **kwargs):
     if no_ids:
         stmt = stmt.filter(_(id_field).notin_(no_ids))
     if 'id_start' in kwargs:
-        stmt = stmt.filter(_(id_field) >= kwargs.get('id_start'))
+        stmt = stmt.filter(_int(id_field) >= kwargs.get('id_start'))
     if 'id_end' in kwargs:
-        stmt = stmt.filter(_(id_field) <= kwargs.get('id_end'))
+        stmt = stmt.filter(_int(id_field) <= kwargs.get('id_end'))
     if 'date_start' in kwargs:
         stmt = stmt.filter(_(date_field) >= kwargs.get('date_start'))
     if 'date_stop' in kwargs:
