@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime
+from time import time
 
 import restweetution.config as config
 from restweetution.data_view.elastic_dashboard import ElasticDashboard
@@ -18,12 +19,10 @@ async def launch():
     postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
     elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
-    view = ElasticDashboard(in_storage=postgres_storage, out_storage=elastic_storage)
-    last = datetime.now().second
-    # print(last)
-    await view.load()
-    print(datetime.now().second - last)
-    await view.save()
+    last = time()
+    res = await postgres_storage.get_tweets(fields=['id'])
+    print(len(res))
+    print(time() - last)
 
 
 try:
