@@ -15,7 +15,7 @@ from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.storages.storage import Storage
 from . import models
-from .helpers import get_helper, save_helper
+from .helpers import get_helper, save_helper, get_helper_without_session
 from restweetution.models.event_data import EventData
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
@@ -40,10 +40,10 @@ class PostgresStorage(Storage):
 
         self.lock = Lock()
 
-    async def testSQL(self, sql):
+    async def get_tweet_ids(self):
         async with self._engine.begin() as conn:
-            res = await conn.execute(text(sql))
-            res = res.scalars().all()
+            res = await get_helper_without_session(conn, models.Tweet, fields=['id'])
+
             return res
 
 

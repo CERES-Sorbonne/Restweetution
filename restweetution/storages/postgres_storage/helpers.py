@@ -79,6 +79,26 @@ async def get_helper(session,
     return res
 
 
+async def get_helper_without_session(conn,
+                                     pg_model,
+                                     ids: List[str] = None,
+                                     no_ids: List[str] = None,
+                                     fields: List[str] = None,
+                                     sort_by: str = None,
+                                     order: str = None,
+                                     id_field: str = 'id',
+                                     **kwargs):
+    if fields is None:
+        fields = fields_by_type[pg_model]
+
+    stmt = build_select(pg_model, fields=fields)
+    stmt = set_filter(stmt, pg_model, ids=ids, no_ids=no_ids, id_field=id_field, **kwargs)
+    stmt = set_order(stmt, pg_model, sort_by, order)
+    res = await conn.execute(stmt)
+    res = res.unique().scalars().all()
+    return res
+
+
 async def save_helper(session, model, datas: list, id_field='id') -> Tuple[Set[str], Set[str]]:
     if not datas:
         return set(), set()

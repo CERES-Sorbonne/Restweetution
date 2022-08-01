@@ -20,7 +20,7 @@ async def launch():
     elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
     last = time()
-    res = await postgres_storage.testSQL('SELECT id FROM tweet')
+    res = await postgres_storage.get_tweet_ids()
     print(len(res))
     print(time() - last)
 
