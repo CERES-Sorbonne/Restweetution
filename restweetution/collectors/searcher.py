@@ -6,7 +6,7 @@ from tweepy.asynchronous import AsyncClient
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse
-from restweetution.models.twitter import RestTweet, TweetIncludes
+from restweetution.models.twitter import RestTweet, Includes, User
 from restweetution.storage_manager import StorageManager
 
 
@@ -35,7 +35,7 @@ class Searcher:
 
             tweets = [RestTweet(**t) for t in res.data]
             bulk_data.add_tweets(tweets)
-            bulk_data.add(**parse_includes(TweetIncludes(**res.includes)))
+            bulk_data.add(**parse_includes(Includes(**res.includes)))
 
             self._logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
             self.storage_manager.save_bulk(bulk_data, tags)
@@ -45,38 +45,82 @@ class Searcher:
         count = CountResponse(data=res.data, meta=res.meta, errors=res.errors, includes=res.includes)
         return count
 
-    async def get_tweets_stream(self, ids: List[str], fields: dict = None, max_per_loop: int = 100):
+    async def get_tweets_as_stream(self, ids: List[str], fields: dict = None, max_per_loop: int = 100):
         if not fields:
             fields = self._default_fields
 
-        async for res in self._lookup_loop(self._client.get_tweets, ids=ids, fields=fields, max_per_loop=max_per_loop):
-            result = LookupResponse(requested_ids=res.requested_ids,
-                                    missing_ids=res.missing_ids,
-                                    errors=res.errors,
-                                    meta=res.meta)
+        async for res in self._lookup_loop(
+                lookup_function=self._ids_lookup,
+                get_function=self._client.get_tweets,
+                values=ids,
+                fields=fields,
+                max_per_loop=max_per_loop
+        ):
+            result = LookupResponse(
+                requested=res.requested,
+                missing=res.missing,
+                errors=res.errors,
+                meta=res.meta
+            )
 
             tweets = [RestTweet(**t) for t in res.data]
             result.bulk_data.add_tweets(tweets)
-            result.bulk_data.add(**parse_includes(TweetIncludes(**res.includes)))
+            result.bulk_data.add(**parse_includes(Includes(**res.includes)))
 
             yield result
 
     async def get_tweets(self, ids: List[str], fields: dict = None, max_per_loop: int = 100):
+        if not ids:
+            return
         if not fields:
             fields = self._default_fields
-        result = LookupResponse(requested_ids=ids)
-        async for res in self.get_tweets_stream(ids=ids, fields=fields, max_per_loop=max_per_loop):
-            result.bulk_data += res.bulk_data
-            result.missing_ids.extend(res.missing_ids)
-            result.errors.extend(res.errors)
-            result.meta.update(res.meta)
+
+        result = LookupResponse(requested=ids)
+        async for res in self.get_tweets_as_stream(ids=ids, fields=fields, max_per_loop=max_per_loop):
+            result += res
         return result
 
-    #
-    # async def get_users(self, ids: List[str], fields: dict = None, max_per_loop: int = 100):
-    #     if not fields:
-    #         fields = {}
-    #     return self._lookup_loop(self._client.get_users, ids=ids, fields=fields, max_per_loop=max_per_loop)
+    async def get_users(self, ids: List[str] = None, usernames: List[str] = None, fields: dict = None, **kwargs):
+        if not ids and not usernames:
+            return
+        if not fields:
+            fields = {}
+
+        result = LookupResponse()
+        async for res in self.get_users_as_stream(ids=ids, usernames=usernames, fields=fields, **kwargs):
+            result += res
+        return result
+
+    async def get_users_as_stream(self, ids: List[str] = None, usernames: List[str] = None, fields: dict = None,
+                                  max_per_loop: int = 100):
+
+        if not ids and not usernames:
+            return
+        if not fields:
+            fields = {}
+
+        lookup_function = self._ids_lookup if ids else self._usernames_lookup
+        values = ids if ids else usernames
+
+        async for res in self._lookup_loop(
+                lookup_function=lookup_function,
+                get_function=self._client.get_users,
+                values=values,
+                fields=fields,
+                max_per_loop=max_per_loop
+        ):
+            result = LookupResponse(
+                requested=res.requested,
+                missing=res.missing,
+                errors=res.errors,
+                meta=res.meta
+            )
+
+            users = [User(**t) for t in res.data]
+            result.bulk_data.add_users(users)
+            result.bulk_data.add(**parse_includes(Includes(**res.includes)))
+
+            yield result
 
     @staticmethod
     async def _token_loop(get_function: Callable, query: str, **kwargs):
@@ -92,32 +136,59 @@ class Searcher:
             yield res
 
     @staticmethod
-    async def _lookup_loop(get_function: Callable,
-                           ids: List[str],
-                           fields: dict,
+    async def _lookup_loop(lookup_function: Callable, get_function: Callable, values: List, fields: dict,
                            max_per_loop: int = 100):
-        if not ids:
+        if not values:
             return
-        if not fields:
-            fields = {}
-
-        final_stop = len(ids)
+        final_stop = len(values)
 
         for step in range(0, final_stop, max_per_loop):
             stop = min(step + max_per_loop, final_stop)
-            ids_slice = ids[step:stop]
-            res = await get_function(ids=ids_slice, **fields)
+            values_slice = values[step:stop]
+            yield await lookup_function(get_function=get_function, values=values_slice, **fields)
 
-            missing = set(ids_slice)
-            datas = res.data if res.data else []
-            for data in datas:
-                id_str = str(data['id'])
-                if id_str in missing:
-                    missing.remove(id_str)
+    @staticmethod
+    async def _ids_lookup(get_function: Callable, values: List[str], **fields):
+        if not values:
+            return
+        ids = values
 
-            yield LookupResponseUnit(data=datas,
-                                     includes=res.includes,
-                                     errors=res.errors,
-                                     meta=res.meta,
-                                     requested_ids=ids_slice,
-                                     missing_ids=list(missing))
+        res = await get_function(ids=ids, **fields)
+        missing = set(ids)
+        datas = res.data if res.data else []
+        for data in datas:
+            id_str = str(data['id'])
+            if id_str in missing:
+                missing.remove(id_str)
+
+        return LookupResponseUnit(
+            data=datas,
+            includes=res.includes,
+            errors=res.errors,
+            meta=res.meta,
+            requested=ids,
+            missing=missing
+        )
+
+    @staticmethod
+    async def _usernames_lookup(get_function: Callable, values: List[str], **fields):
+        if not values:
+            return
+        usernames = values
+
+        res = await get_function(usernames=usernames, **fields)
+        missing = set(usernames)
+        datas = res.data if res.data else []
+        for data in datas:
+            id_str = str(data['username'])
+            if id_str in missing:
+                missing.remove(id_str)
+
+        return LookupResponseUnit(
+            data=datas,
+            includes=res.includes,
+            errors=res.errors,
+            meta=res.meta,
+            requested=usernames,
+            missing=missing
+        )

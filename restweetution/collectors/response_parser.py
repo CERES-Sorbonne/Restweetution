@@ -1,10 +1,10 @@
 from typing import List
 
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.twitter import TweetIncludes
+from restweetution.models.twitter import Includes
 
 
-def parse_includes(includes: TweetIncludes):
+def parse_includes(includes: Includes):
     res = {}
     if includes:
         if includes.users:

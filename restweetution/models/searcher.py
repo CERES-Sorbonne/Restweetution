@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Set
 
 from pydantic import BaseModel
 
@@ -30,16 +30,25 @@ class LookupResponseUnit(BaseModel):
     includes: Dict
     errors: List
     meta: Dict
-    requested_ids: List[str]
-    missing_ids: List[str]
+    requested: List[str]
+    missing: Set[str]
 
 
 class LookupResponse(BaseModel):
-    missing_ids: List[str] = []
-    requested_ids: List[str] = []
+    missing: Set[str] = set()
+    requested: List[str] = []
     bulk_data: BulkData = BulkData()
     errors: List = []
     meta: Dict = {}
+
+    def __add__(self, other):
+        self.missing.update(other.missing)
+        self.requested.extend(other.requested)
+        self.bulk_data += other.bulk_data
+        self.errors.extend(other.errors)
+        self.meta.update(other.meta)
+
+        return self
 
 # class DefaultSearcherRule(StreamRule):
 #     def __init__(self):

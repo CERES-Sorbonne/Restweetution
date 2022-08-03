@@ -120,7 +120,7 @@ class RestTweet(Tweet):
     author_username: Optional[str]
 
 
-class TweetIncludes(BaseModel):
+class Includes(BaseModel):
     media: Optional[List[Media]]
     users: Optional[List[User]]
     places: Optional[List[Place]]
@@ -130,6 +130,6 @@ class TweetIncludes(BaseModel):
 
 class TweetResponse(BaseModel):
     data: RestTweet
-    includes: Optional[TweetIncludes]
+    includes: Optional[Includes]
     matching_rules: Optional[List[StreamRule]]
     errors: Optional[List[dict]]
