@@ -243,14 +243,14 @@ class Streamer(Collector):
         except Exception as e:
             raise ResponseParseError('Failed to parse the server response to json', raw_text=txt) from e
 
-        # Test for Twitter API Errors
-        if 'errors' in data:
-            raise TwitterAPIError('Streamer response has error field', data=data)
-
         # Parse json object with pydantic
         try:
             tweet_res = TweetResponse(**data)
         except Exception as e:
+            # If there is a Twitter API Error we assume the parsing failed because of this. Probably no data
+            if 'errors' in data:
+                raise TwitterAPIError('Streamer response has error field', data=data)
+
             raise ResponseParseError('Failed to parse the json response with pydantic', data=data) from e
 
         # Build BulkData from the TweetResponse containing all objects that can be saved
@@ -266,6 +266,10 @@ class Streamer(Collector):
             self._storages_manager.save_bulk(bulk_data, tags)
         except Exception as e:
             raise StorageError('Unexpected StorageManager bulk_save function error') from e
+
+        # We cast the Twitter api error at the end, so we can save the data that was retrieved before
+        if 'errors' in data:
+            raise TwitterAPIError('Streamer response has error field', data=data)
 
     async def collect(self):
         """
