@@ -52,7 +52,7 @@ class CustomBase(object):
             elif items:
                 data[k] = items.to_dict()
         # remove None values from data
-        for k in data.copy():
+        for k in list(data.keys()):
             if data[k] is None:
                 data.pop(k)
         return data

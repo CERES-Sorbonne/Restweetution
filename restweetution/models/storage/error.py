@@ -14,7 +14,7 @@ class ErrorModel(BaseModel):
         if error:
             if isinstance(error, ResponseParseError) or isinstance(error, StorageError) or \
                     isinstance(error, TwitterAPIError):
-                data = json.dumps(error.__dict__.copy(), default=str)
+                data = error.__dict__.copy()
                 error_name = get_full_class_name(error)
                 super().__init__(error_name=error_name, data=data, **kwargs)
         else:
