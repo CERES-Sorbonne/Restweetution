@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Dict
 
 from pydantic import BaseModel
@@ -19,6 +20,7 @@ class BulkData(BaseModel):
     medias: Dict[str, Media] = {}
     polls: Dict[str, Poll] = {}
     custom_datas: Dict[str, CustomData] = {}
+    timestamp: datetime = None
 
     def __add__(self, other):
         for k in other.tweets:

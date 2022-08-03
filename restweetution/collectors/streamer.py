@@ -1,5 +1,6 @@
 import asyncio
 import copy
+import datetime
 import json
 import traceback
 from typing import List, Dict
@@ -272,6 +273,7 @@ class Streamer(Collector):
 
         # send data to storage_manager
         try:
+            bulk_data.timestamp = datetime.datetime.now()
             self._storages_manager.save_bulk(bulk_data, tags)
         except Exception as e:
             raise StorageError('Unexpected StorageManager bulk_save function error') from e
@@ -295,12 +297,4 @@ class Streamer(Collector):
             self._logger.info(f"Collecting with following rules: ")
             self._logger.info('\n'.join([f'{r.value}, tag: {r.tag} id: {r.id}' for r in rules]))
 
-        try:
-            await self._client.connect_tweet_stream(self._params, self._handle_line_response)
-        except aiohttp.ClientConnectorError as e:
-            self._logger.error(e)
-            self._retry_count += 1
-            if self._retry_count < self._max_retries:
-                self._logger.error("""The collect will try to start again in 30s""")
-                await asyncio.sleep(30)
-            await self.collect()
+        await self._client.connect_tweet_stream(self._params, self._handle_line_response)
