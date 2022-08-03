@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List, Callable, Tuple, Set
 
 from sqlalchemy import select, cast, DECIMAL, BigInteger, text
@@ -132,3 +133,24 @@ fields_by_type = {
     models.Poll: poll_fields,
     models.Rule: rule_fields
 }
+
+history_cache = defaultdict(dict)
+minimum_time = 300
+
+
+def request_history_update(pg_model, parent_id, data, timestamp):
+    cache = history_cache[pg_model]
+    if parent_id not in cache:
+        cache[parent_id] = (data, timestamp)
+        return True
+    else:
+        cache_data, cache_timestamp = cache[parent_id]
+
+        elapsed_time = (timestamp - cache_timestamp).total_seconds()
+        if elapsed_time > minimum_time:
+            cache_data[parent_id] = (data, timestamp)
+            return True
+        elif cache_data != data:
+            cache_data[parent_id] = (data, timestamp)
+            return True
+    return False

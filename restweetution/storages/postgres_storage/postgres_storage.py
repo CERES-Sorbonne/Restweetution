@@ -1,10 +1,12 @@
 from asyncio import Lock
 from typing import List, Iterator, Tuple, Set
 
-from sqlalchemy import delete
+from sqlalchemy import delete, update, table, func, cast, BigInteger
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, joinedload
+from sqlalchemy.sql import Update
 
 from restweetution.errors import handle_storage_save_error
 from restweetution.models.bulk_data import BulkData
@@ -16,7 +18,8 @@ from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.storages.storage import Storage
 from . import models
-from .helpers import get_helper, save_helper, get_statement
+from .helpers import get_helper, save_helper, get_statement, request_history_update
+from .models import TweetPublicMetricsHistory
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
 
@@ -37,7 +40,7 @@ class PostgresStorage(Storage):
         self._async_session = sessionmaker(
             self._engine, expire_on_commit=False, class_=AsyncSession
         )
-
+        self._history = True
         self.lock = Lock()
 
     async def get_tweet_ids(self):
@@ -47,6 +50,13 @@ class PostgresStorage(Storage):
             res = res.scalars().all()
             return res
 
+    async def update_error(self):
+        async with self._async_session() as session:
+            stmt = select(models.CollectedTweet).order_by(
+                cast(models.CollectedTweet.tweet_id, BigInteger).desc()).limit(1)
+            res = await session.execute(stmt)
+            print(res.scalars().all()[0].tweet_id)
+            return res
 
     @handle_storage_save_error()
     async def save_bulk(self, data: BulkData):
@@ -60,9 +70,13 @@ class PostgresStorage(Storage):
                 r_add, r_up = await self._save_rules(session, data.get_rules())
 
                 # print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
+                if self._history:
+                    await self._save_history(session, bulk_data=data)
+
                 await session.commit()
 
         # Events outside of lock !!
+
         event_data = EventData(data=data)
         event_data.added.add(tweets=t_add, users=u_add, places=pl_add, medias=m_add, polls=po_add, rules=r_add)
         event_data.updated.add(tweets=t_up, users=u_up, places=pl_up, medias=m_up, polls=po_up, rules=r_up)
@@ -216,3 +230,28 @@ class PostgresStorage(Storage):
                     await session.merge(pg_collected)
                 updated.add(rule.id)
         return added, updated
+
+    @staticmethod
+    def should_save(value):
+        return True
+
+    @staticmethod
+    async def _save_history(session, bulk_data: BulkData):
+        if not bulk_data.timestamp:
+            return
+
+        for tweet in bulk_data.get_tweets():
+            if tweet.public_metrics:
+                await PostgresStorage._save_history_helper(session, TweetPublicMetricsHistory, tweet.id,
+                                                           tweet.public_metrics.dict(), bulk_data.timestamp)
+
+    @staticmethod
+    async def _save_history_helper(session, pg_model, parent_id, data, timestamp):
+        if not request_history_update(pg_model, parent_id, data, timestamp):
+            return
+        pg_history = pg_model()
+        pg_history.update(data)
+        pg_history.timestamp = timestamp
+        pg_history.parent_id = parent_id
+        await session.merge(pg_history)
+
