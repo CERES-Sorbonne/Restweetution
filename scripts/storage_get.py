@@ -2,6 +2,8 @@ import asyncio
 import logging
 import os
 
+from sqlalchemy import select
+
 import restweetution.config as config
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
@@ -22,10 +24,13 @@ async def launch():
     # print(res[0].url is None)
     # res = await elastic_storage.get_medias()
 
-    # res = await postgres_storage.get_rules()
-    res = await postgres_storage.get_tweets(sort_by='id', id_stop='1553846860300828673')
-    for r in res:
-        print(r.id)
+    res = await postgres_storage.update_error()
+    # for r in res:
+    #     print(r)
+    # async with postgres_storage._engine.begin() as conn:
+    #     stmt = select(models)
+    # for r in res:
+    #     print(r.data)
     # res = [t for t in res if t.context_annotations]
     #
     # dd = None

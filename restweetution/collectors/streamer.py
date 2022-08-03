@@ -197,17 +197,6 @@ class Streamer(Collector):
 
         return bulk_data, rule_tags
 
-    # @staticmethod
-    # def _enrich_tweet(tweet: RestTweet, rules: Dict[str, StreamRule], users: Dict[str, User]):
-    #
-    #     # We save rules that triggered the tweets inside the tweet data to make sure we don't lose it
-    #     tweet.matching_rules = [rules[key] for key in rules]
-    #
-    #     # If user data is given we add author username to tweet
-    #     if tweet.author_id:
-    #         if tweet.author_id in users:
-    #             tweet.author_username = users[tweet.author_id].username
-
     def _handle_errors(self, errors: List[dict]) -> None:
         """
         Some errors might still be wrapped in a 200 response

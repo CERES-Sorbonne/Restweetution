@@ -49,7 +49,3 @@ class LookupResponse(BaseModel):
         self.meta.update(other.meta)
 
         return self
-
-# class DefaultSearcherRule(StreamRule):
-#     def __init__(self):
-#         super().__init__(id='searcher',)
