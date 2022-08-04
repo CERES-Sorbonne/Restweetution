@@ -19,7 +19,7 @@ class Searcher:
         self._client = AsyncClient(bearer_token=bearer_token, **kwargs)
         self._default_fields = fields if fields else {}
 
-    async def collect_recent(self, query: str, fields: dict = None, tags: List[str] = None, **kwargs):
+    async def collect(self, query: str, fields: dict = None, tags: List[str] = None, recent=True, **kwargs):
         self._logger.info('Start search loop')
 
         count = await self.get_tweets_count(query, **kwargs)
@@ -30,7 +30,9 @@ class Searcher:
         if not tags:
             tags = []
 
-        async for res in self._token_loop(self._client.search_recent_tweets, query, **fields, **kwargs):
+        search_function = self._client.search_recent_tweets if recent else self._client.search_all_tweets
+
+        async for res in self._token_loop(search_function, query, **fields, **kwargs):
             bulk_data = BulkData()
 
             tweets = [RestTweet(**t) for t in res.data]
