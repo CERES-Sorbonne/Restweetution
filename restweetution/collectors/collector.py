@@ -43,16 +43,6 @@ class Collector:
         if query_params.poll_fields:
             self._params['poll.fields'] = ','.join(query_params.poll_fields)
 
-    # def _handle_media(self, tweet: TweetResponse):
-    #     class Media(Enum):
-    #         PHOTO = 1
-    #         VIDEO = 2
-    #         GIF = 3
-    #
-    #         def __eq__(self, other):
-    #             if isinstance(other, str):
-    #                 return self.name.lower() == other
-
     def set_verbose(self, value: bool):
         self._verbose = value
 

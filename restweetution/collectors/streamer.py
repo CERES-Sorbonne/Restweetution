@@ -1,11 +1,9 @@
-import asyncio
 import copy
 import datetime
 import json
 import traceback
 from typing import List, Dict
 
-import aiohttp
 import requests
 
 from restweetution.collectors.collector import Collector
