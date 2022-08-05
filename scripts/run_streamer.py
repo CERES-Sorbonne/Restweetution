@@ -11,7 +11,8 @@ main_conf = config.get_config_from_file(os.getenv('CONFIG'))
 
 async def launch():
     streamer = main_conf.streamer
-    await streamer.collect()
+    # print(main_conf.streamer_rules)
+    await streamer.collect(rules=main_conf.streamer_rules)
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())

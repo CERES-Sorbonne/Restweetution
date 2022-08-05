@@ -1,6 +1,3 @@
-from typing import List
-
-from restweetution.models.bulk_data import BulkData
 from restweetution.models.twitter import Includes
 
 
@@ -18,3 +15,4 @@ def parse_includes(includes: Includes):
         if includes.tweets:
             res['tweets'] = includes.tweets
     return res
+

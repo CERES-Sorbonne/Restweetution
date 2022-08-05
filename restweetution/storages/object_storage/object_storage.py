@@ -5,7 +5,7 @@ import os
 from abc import ABC
 from typing import List, Iterator
 
-from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
+from restweetution.models.twitter.tweet import TweetResponse, User, StreamAPIRule, RestTweet
 from .filestorage_helper import FileStorageHelper
 from restweetution.storages.storage import Storage
 from restweetution.models.bulk_data import BulkData
@@ -66,7 +66,7 @@ class ObjectStorage(Storage, ABC):
         for f in self.storage_helper.list(self.tweets()):
             yield TweetResponse.parse_file(self.tweets(f))
 
-    def save_rules(self, rules: List[StreamRule]):
+    def save_rules(self, rules: List[StreamAPIRule]):
         for rule in rules:
             path = f"{rule.id}.json"
             if self.storage_helper.exists(self.rules(path)):
@@ -74,7 +74,7 @@ class ObjectStorage(Storage, ABC):
             else:
                 self.storage_helper.put(rule.json(), self.rules(path))
 
-    async def get_rules(self, ids: List[str] = None) -> Iterator[StreamRule]:
+    async def get_rules(self, ids: List[str] = None) -> Iterator[StreamAPIRule]:
         files = self.storage_helper.list(self.rules())
         if not files:
             yield []
@@ -82,7 +82,7 @@ class ObjectStorage(Storage, ABC):
             # filter all files to fetch, keep only the ones with the ids specified in parameter
             files = [f for f in files if f.split('.')[0] in ids]
         for f in files:
-            yield StreamRule(**json.load(await self.storage_helper.get(self.rules(f))))
+            yield StreamAPIRule(**json.load(await self.storage_helper.get(self.rules(f))))
 
     def save_users(self, users: List[User]):
         pass

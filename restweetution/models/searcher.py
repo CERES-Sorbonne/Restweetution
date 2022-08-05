@@ -5,7 +5,7 @@ from typing import List, Dict, Set
 from pydantic import BaseModel
 
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.twitter import RestTweet, StreamRule
+from restweetution.models.twitter import RestTweet, StreamAPIRule
 
 
 class CountUnit(BaseModel):

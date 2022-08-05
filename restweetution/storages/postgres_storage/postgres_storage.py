@@ -1,12 +1,10 @@
 from asyncio import Lock
 from typing import List, Iterator, Tuple, Set
 
-from sqlalchemy import delete, update, table, func, cast, BigInteger
+from sqlalchemy import delete, cast, BigInteger
 from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, joinedload
-from sqlalchemy.sql import Update
 
 from restweetution.errors import handle_storage_save_error
 from restweetution.models.bulk_data import BulkData
@@ -14,7 +12,7 @@ from restweetution.models.event_data import EventData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Media, User, Poll, Place
-from restweetution.models.twitter.rule import StreamRule
+from restweetution.models.twitter.rule import StreamAPIRule, Rule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.storages.storage import Storage
 from . import models
@@ -145,10 +143,11 @@ class PostgresStorage(Storage):
             res = await get_helper(session, models.Media, ids=ids, no_ids=no_ids, fields=fields, id_field='media_key')
             return [Media(**r.to_dict()) for r in res]
 
-    async def get_rules(self,
-                        ids: List[str] = None,
-                        no_ids: List[str] = None,
-                        fields: List[str] = rule_fields) -> List[StreamRule]:
+    async def get_rules(
+            self,
+            ids: List[str] = None,
+            no_ids: List[str] = None,
+            fields: List[str] = rule_fields) -> List[StreamAPIRule]:
         async with self._async_session() as session:
             fields = fields.copy()
             if 'tweet_ids' in fields:
@@ -156,7 +155,7 @@ class PostgresStorage(Storage):
                 fields.append('tweets')
 
             res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields)
-            res = [StreamRule(**r.to_dict()) for r in res]
+            res = [StreamAPIRule(**r.to_dict()) for r in res]
             return res
 
     async def get_errors(self, ids: List[str] = None, no_ids: List[str] = None) -> List[ErrorModel]:
@@ -213,23 +212,38 @@ class PostgresStorage(Storage):
         return await save_helper(session, models.Media, medias, id_field='media_key')
 
     @staticmethod
-    async def _save_rules(session: any, rules: List[StreamRule]) -> Tuple[Set[str], Set[str]]:
+    async def _save_rules(session: any, rules: List[Rule]) -> Tuple[Set[int], Set[int]]:
         added = set()
         updated = set()
         for rule in rules:
-            pg_rule = await session.get(models.Rule, rule.id)
-            if not pg_rule:
-                pg_rule = models.Rule()
-                pg_rule.update(rule.dict())
-                await session.merge(pg_rule)
-                added.add(rule.id)
-            else:
-                for tweet_id in rule.tweet_ids:
-                    pg_collected = models.CollectedTweet()
-                    pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
-                    await session.merge(pg_collected)
+            # print(rule)
+            for tweet_id in rule.tweet_ids:
+                # print(type(tweet_id))
+                pg_collected = models.CollectedTweet()
+                pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
+                await session.merge(pg_collected)
                 updated.add(rule.id)
         return added, updated
+
+    @staticmethod
+    async def _get_rule(session, rule: Rule):
+        stmt = select(models.Rule).filter(models.Rule.tag == rule.tag).filter(models.Rule.query == rule.query)
+        stmt = stmt.filter(models.Rule.name == rule.name)
+        res = await session.execute(stmt)
+        res = res.scalars().first()
+        return res
+
+    async def request_rules(self, rules: List[Rule]):
+        async with self._async_session() as session:
+            for rule in rules:
+                pg_rule = await self._get_rule(session, rule)
+                if not pg_rule:
+                    pg_rule = models.Rule()
+                    pg_rule.update(rule.dict())
+                    pg_rule = await session.merge(pg_rule)
+                await session.commit()
+                rule.id = pg_rule.id
+        return rules
 
     @staticmethod
     def should_save(value):
@@ -254,4 +268,3 @@ class PostgresStorage(Storage):
         pg_history.timestamp = timestamp
         pg_history.parent_id = parent_id
         await session.merge(pg_history)
-

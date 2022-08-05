@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from restweetution.models.twitter.entities import Annotation, Tag, Url, Mention
 from restweetution.models.twitter.media import Media
-from restweetution.models.twitter.rule import StreamRule
+from restweetution.models.twitter.rule import StreamAPIRule
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.user import User
@@ -116,7 +116,7 @@ class Tweet(BaseModel):
 
 
 class RestTweet(Tweet):
-    matching_rules: Optional[List[StreamRule]]
+    matching_rules: Optional[List[StreamAPIRule]]
     author_username: Optional[str]
 
 
@@ -131,5 +131,5 @@ class Includes(BaseModel):
 class TweetResponse(BaseModel):
     data: RestTweet
     includes: Optional[Includes]
-    matching_rules: Optional[List[StreamRule]]
+    matching_rules: Optional[List[StreamAPIRule]]
     errors: Optional[List[dict]]

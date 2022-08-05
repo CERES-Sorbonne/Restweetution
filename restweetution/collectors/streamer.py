@@ -1,25 +1,23 @@
-import copy
+import asyncio
 import datetime
 import json
+import logging
 import traceback
 from typing import List, Dict
 
-import requests
-
-from restweetution.collectors.collector import Collector
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter.rule import StreamRule
+from restweetution.models.twitter.rule import StreamAPIRule, StreamerRule
 from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storage_manager import StorageManager
 from restweetution.twitter_client import TwitterClient
 
 
-class Streamer(Collector):
-    def __init__(self, client: TwitterClient, storage_manager: StorageManager, verbose: bool = False):
+class Streamer:
+    def __init__(self, bearer_token, storage_manager: StorageManager, verbose: bool = False):
         """
         The Streamer is the class used to connect to the Twitter Stream API and fetch live tweets
         """
@@ -28,143 +26,114 @@ class Streamer(Collector):
         self._fetch_minutes = False
         self._preset_stream_rules = None  # used to preset rules in non-async context (config)
 
-        super(Streamer, self).__init__(client, storage_manager, verbose=verbose)
+        # super(Streamer, self).__init__(client, storage_manager, verbose=verbose)
 
         # use a cache to store the rules
-        self._persistent_rule_cache: Dict[str, StreamRule] = {}
-        self._active_rule_cache: Dict[str, StreamRule] = {}
+
+        self._api_id_to_rule: Dict[str, StreamerRule] = {}
+
+        # self._client2 = AsyncStreamingClient(bearer_token=bearer_token)
+        self._client = TwitterClient(token=bearer_token)
+
+        self._storage_manager = storage_manager
+
+        self._logger = logging.getLogger('Streamer')
+        self._tweet_count = 0
+        self._verbose = verbose
 
         set_error_handler(self._main_error_handler)
-
-    def _cache_persistent_rule(self, rule):
-        self._persistent_rule_cache[rule.id] = rule
-
-    def _cache_active_rule(self, rule):
-        self._active_rule_cache[rule.id] = rule
-        self._cache_persistent_rule(rule)
-
-    def _remove_active_cache_rule(self, r_id):
-        self._active_rule_cache.pop(r_id)
 
     def set_backfill_minutes(self, backfill_minutes: int):
         # compute request parameters
         self._params['backfill_minutes'] = backfill_minutes
 
-    async def get_active_rules(self) -> List[StreamRule]:
+    async def get_rules(self) -> List[StreamerRule]:
         """
         Return the list of rules defined to collect tweets during a stream
         Once fetched with the API, the rules are cached
         :return: the list of rules
         """
-        if not self._active_rule_cache:
-            await self._load_rule_cache()
-
-        return list(self._active_rule_cache.values())
-
-    async def get_rules_from_cache(self, ids):
-        if not self._persistent_rule_cache or self._rule_is_missing(ids):
-            await self._load_rule_cache()
-
-        rules = self._persistent_rule_cache.values()
-        if ids:
-            rules = [r for r in rules if r.id in ids]
-        return copy.deepcopy(rules)
-
-    def _rule_is_missing(self, ids):
-        if not self._persistent_rule_cache:
-            return True
-        if not ids:
-            return False
-        for i in ids:
-            if i not in self._persistent_rule_cache:
-                return True
-        return False
+        return list(self._api_id_to_rule.values())
 
     async def reset_stream_rules(self) -> None:
         """
         Removes all rules
         """
-        # self._logger('Removing all rules')
-        await self._load_rule_cache()
-        if not self._persistent_rule_cache:
-            return
-        ids = [r.id for r in self._persistent_rule_cache.values()]
-        await self.remove_stream_rules(ids)
+        rules = await self._client.get_rules()
+        if rules:
+            await self._client.remove_rules([r.id for r in rules])
 
-    def preset_stream_rules(self, rules: List[Dict[str, str]]):
-        self._preset_stream_rules = rules
-
-    async def set_stream_rules(self, rules: List[Dict[str, str]]) -> List[StreamRule]:
+    async def set_rules(self, rules: List[StreamerRule], delete=True) -> List[StreamerRule]:
         """
         Like add_rule but instead removes all rules and then set the rules :rules:
         :param rules: a dict in the form tag: rule
+        :param delete: Delete server rules not set here. True by default
         :return: the list of all the new rules
         """
-        await self.reset_stream_rules()
-        res = await self.add_stream_rules(rules)
-        return res
+        self._clear_rule_cache()
 
-    async def add_stream_rule(self, rule: str, tag: str) -> StreamRule:
-        """
-        Add a new fetch rule to the stream
-        :param rule: the rule to be created, for more info on the syntax check
-        https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/build-a-rule
-        :param tag: the tag associated to the rule, all tweets collected with those rules will be stored under the
-        <tag> folder
-        so if you have different rules with the same tag,
-        all this rules will collect tweets that will be grouped in one place
-        :return: the id of the created rule (can be used to delete the rule later)
-        """
+        rules = await self._storage_manager.request_rules(rules)
+        server_rules = await self._client.get_rules()
+        hash_to_rule = {hash(r): r for r in server_rules}
+        used_rules_hash = set()
 
-        res = await self.add_stream_rules([{'tag': tag, 'value': rule}])
-        return res[0]
+        for rule in rules:
+            hash_ = hash(rule)
+            if hash_ in hash_to_rule:
+                rule.api_id = hash_to_rule[hash_].api_id
+            else:
+                s_rule = await self._client.add_rules([rule.get_api_rule()])
+                rule.api_id = s_rule[0].api_id
+            used_rules_hash.add(hash_)
 
-    async def add_stream_rules(self, rule_definitions: List[Dict[str, str]]) -> List[StreamRule]:
-        # make api call
-        new_rules = await self._client.add_rules(rule_definitions)
+        self._cache_rules(rules)
 
-        # add new rules to cache
-        for r in new_rules:
-            rule = StreamRule(**r)
-            self._cache_active_rule(rule)
-            self._logger.info(f'Cached rule: {r["tag"]}')
-        return new_rules
+        if delete:
+            to_delete_ids = [rule.api_id for k, rule in hash_to_rule.items() if k not in used_rules_hash]
+            if to_delete_ids:
+                await self._client.remove_rules(to_delete_ids)
 
-    async def remove_stream_rules(self, ids: List[str]) -> None:
-        deleted_ids = await self._client.remove_rules(ids)
-        # if no ids return an error occurred
-        # We have no information over the remaining rules
-        # Force reload of cache to assure data integrity
-        if len(deleted_ids) == 0:
-            await self._load_rule_cache()
-        else:
-            for r_id in deleted_ids:
-                self._remove_active_cache_rule(r_id)
+        return rules
 
-    async def _load_rule_cache(self):
-        self._logger.info('Load Stream Rules from API into cache')
-        rules = await self._client.get_rules()
-        self._persistent_rule_cache = {}
-        for r in rules:
-            self._cache_active_rule(r)
+    def _clear_rule_cache(self):
+        self._api_id_to_rule = {}
+
+    async def add_rules(self, rules: List[StreamerRule]) -> List[StreamerRule]:
+        return await self.set_rules(rules, delete=False)
+
+    def _cache_rules(self, rules: List[StreamerRule]):
+        for rule in rules:
+            self._api_id_to_rule[rule.api_id] = rule
+
+    def _get_cache_rules(self, api_keys: List[str]):
+        rules = []
+        for api_key in api_keys:
+            if api_key in self._api_id_to_rule:
+                rules.append(self._api_id_to_rule[api_key].copy(deep=True))
+        return rules
+
+    async def remove_rules(self, ids: List[str]) -> None:
+        await self._client.remove_rules(ids)
+        for id_ in ids:
+            self._api_id_to_rule.pop(id_)
 
     def _log_tweets(self, tweet: TweetResponse):
-        self.tweets_count += 1
+        self._tweet_count += 1
         if self._verbose:
             text = tweet.data.text.split('\n')[0]
             if len(text) > 80:
                 text = text[0:80] + '..'
             self._logger.info(f'id: {tweet.data.id} - {text}')
-        if self.tweets_count % 10 == 0:
-            self._logger.info(f'{self.tweets_count} tweets collected')
+        if self._tweet_count % 10 == 0:
+            self._logger.info(f'{self._tweet_count} tweets collected')
 
     async def _main_error_handler(self, error: Exception):
         trace = traceback.format_exc()
-        # self._logger.exception(error)
-        self._logger.warning(f'Error: {type(error)}')
+        self._logger.exception(trace)
+        # self._logger.warning(f'Error: {type(error)}')
         if isinstance(error, RESTweetutionError):
             error_data = ErrorModel(error=error, traceback=trace)
-            self._storages_manager.save_error(error_data)
+            self._storage_manager.save_error(error_data)
 
     async def _tweet_response_to_bulk_data(self, tweet_res: TweetResponse):
         """
@@ -185,32 +154,33 @@ class Streamer(Collector):
         bulk_data.add(**parse_includes(tweet_res.includes))
 
         # Get the full rule from the id in matching_rules
-        rule_ids = [r.id for r in tweet_res.matching_rules]
-        rules = await self.get_rules_from_cache(rule_ids)
+        rules = self._get_cache_rules([r.id for r in tweet_res.matching_rules])
 
-        rule_tags = [r.tag for r in rules]
+        if not rules:
+            self._logger.warning('No rule matched requested rules')
+            return
 
         # Add rules and mark tweet as collected
         bulk_data.add_rules(rules, collected=True)
+        return bulk_data
 
-        return bulk_data, rule_tags
-
-    def _handle_errors(self, errors: List[dict]) -> None:
-        """
-        Some errors might still be wrapped in a 200 response
-        So they need to be handled manually and not in Collector._error_handler
-        which will only be triggered for responses > 299
-        :param errors: a list of errors dictionary
-        """
-        for error in errors:
-            self._logger.error(f"""The following error was encountered: {error}""")
-        if errors[0]['title'] in ['Authorization Error', 'Forbidden']:
-            # Authorization Error: the data is private
-            # Forbidden: the user is probably suspended
-            # in all those cases we continue to collect, it's not a twitter blocking the connection
-            return
-        else:
-            raise requests.RequestException()
+    # def _handle_errors(self, errors: List[dict]) -> None:
+    #     """
+    #     Some errors might still be wrapped in a 200 response
+    #     So they need to be handled manually and not in Collector._error_handler
+    #     which will only be triggered for responses > 299
+    #     :param errors: a list of errors dictionary
+    #     """
+    #     for error in errors:
+    #         pass
+    #         # self._logger.error(f"""The following error was encountered: {error}""")
+    #     if errors[0]['title'] in ['Authorization Error', 'Forbidden']:
+    #         # Authorization Error: the data is private
+    #         # Forbidden: the user is probably suspended
+    #         # in all those cases we continue to collect, it's not a twitter blocking the connection
+    #         return
+    #     else:
+    #         raise requests.RequestException()
 
     @handle_error
     async def _handle_line_response(self, line: bytes):
@@ -219,10 +189,9 @@ class Streamer(Collector):
         Is used to parse the line of bytes into a TweetResponse containing the tweet data
         :param line: bytes to be parsed
         """
-
         # if line is empty log message
         if not line:
-            self._logger.info("waiting for new tweets")
+            # self._logger.info("waiting for new tweets")
             return
 
         # parse to utf-8
@@ -253,7 +222,9 @@ class Streamer(Collector):
 
         # Build BulkData from the TweetResponse containing all objects that can be saved
         try:
-            bulk_data, tags = await self._tweet_response_to_bulk_data(tweet_res)
+            bulk_data = await self._tweet_response_to_bulk_data(tweet_res)
+            if not bulk_data:
+                return
         except Exception as e:
             raise ResponseParseError('Unexpected Error while building BulkData from the TweetResponse', data=data) \
                 from e
@@ -261,7 +232,7 @@ class Streamer(Collector):
         # send data to storage_manager
         try:
             bulk_data.timestamp = datetime.datetime.now()
-            self._storages_manager.save_bulk(bulk_data, tags)
+            self._storage_manager.save_bulk(bulk_data)
         except Exception as e:
             raise StorageError('Unexpected StorageManager bulk_save function error') from e
 
@@ -269,23 +240,26 @@ class Streamer(Collector):
         if 'errors' in data:
             raise TwitterAPIError('Streamer response has error field', data=data)
 
-    async def collect(self):
+    async def collect(self, rules: List[StreamerRule], fields=None):
         """
         Main method to collect tweets in a stream
         an int between 1 and 5 to tell the stream to fetch tweets from the past minutes.
         """
-        super().collect()
+        # super().collect()
 
-        # if rules are preset, set them now
-        if self._preset_stream_rules:
-            await self.set_stream_rules(self._preset_stream_rules)
-            self._preset_stream_rules = None
-        # check if some rules are configured
-        rules = await self.get_active_rules()
+        if not fields:
+            fields = {}
+
+        await self.set_rules(rules)
+
         if len(rules) == 0:
-            self._logger.warning("Stream started but no rules are configured currently, use add_rule to add a new_rule")
-        else:
-            self._logger.info(f"Collecting with following rules: ")
-            self._logger.info('\n'.join([f'{r.value}, tag: {r.tag} id: {r.id}' for r in rules]))
+            self._logger.warning('No rules are set, close streamer')
+            return
 
-        await self._client.connect_tweet_stream(self._params, self._handle_line_response)
+        self._logger.info(f"Collecting with following rules: ")
+        self._logger.info('\n'.join([f'{r.query}, tag: {r.tag} id: {r.id}' for r in rules]))
+
+        async for line in self._client.connect_tweet_stream(params=fields):
+            asyncio.create_task(self._handle_line_response(line))
+
+

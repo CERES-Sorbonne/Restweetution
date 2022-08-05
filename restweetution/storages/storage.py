@@ -8,10 +8,11 @@ from restweetution.errors import handle_error, FunctionNotImplementedError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
+from restweetution.models.twitter import Rule
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
-from restweetution.models.twitter.tweet import User, StreamRule, RestTweet
+from restweetution.models.twitter.tweet import User, RestTweet
 from restweetution.utils import Event
 
 
@@ -78,6 +79,9 @@ class Storage(ABC):
         to be implemented in child class
         """
         pass
+    
+    async def request_rules(self, rules: List[Rule]):
+        pass
 
     async def save_tweet(self, tweet: RestTweet):
         """
@@ -95,14 +99,14 @@ class Storage(ABC):
         bulk_data.add_tweets(tweets)
         await self.save_bulk(bulk_data)
 
-    async def save_rule(self, rule: StreamRule):
+    async def save_rule(self, rule: Rule):
         """
         Save rule
         :param rule: rule
         """
         await self.save_rules([rule])
 
-    async def save_rules(self, rules: List[StreamRule]):
+    async def save_rules(self, rules: List[Rule]):
         """
         Save multiple rules
         :param rules: rules
@@ -238,7 +242,7 @@ class Storage(ABC):
     async def get_tweets(self, **kwargs) -> List[RestTweet]:
         pass
 
-    async def get_rules(self, **kwargs) -> List[StreamRule]:
+    async def get_rules(self, **kwargs) -> List[Rule]:
         pass
 
     async def get_polls(self, **kwargs) -> List[Poll]:

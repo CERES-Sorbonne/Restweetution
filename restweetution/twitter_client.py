@@ -5,7 +5,7 @@ from typing import Callable, List
 import aiohttp
 from aiohttp import ClientTimeout
 
-from restweetution.models.twitter.rule import RuleResponse
+from restweetution.models.twitter.rule import StreamRuleResponse, StreamAPIRule, StreamerRule
 
 
 class TwitterClient:
@@ -26,7 +26,7 @@ class TwitterClient:
     def set_error_handler(self, error_handler: Callable):
         self._error_handler = error_handler
 
-    async def connect_tweet_stream(self, params, line_callback):
+    async def connect_tweet_stream(self, params, line_callback=None):
         self._logger.info('Connect to stream')
         wait_time = 0
         while True:
@@ -36,7 +36,8 @@ class TwitterClient:
                     async with session.get("/2/tweets/search/stream", params=params) as resp:
                         async for line in resp.content:
                             # print(resp.headers)
-                            asyncio.create_task(line_callback(line))
+                            yield line
+                            # asyncio.create_task(line_callback(line))
             except KeyboardInterrupt as e:
                 raise e
             except BaseException as e:
@@ -83,15 +84,15 @@ class TwitterClient:
                 res = await r.json()
                 if not res.get('data'):
                     res['data'] = []
-                res = RuleResponse(**res)
-                # print(res)
-                return res.data
+                res = StreamRuleResponse(**res)
+                rules = [StreamerRule(tag=r.tag, query=r.value, api_id=r.id) for r in res.data]
+                return rules
 
-    async def add_rules(self, rules):
+    async def add_rules(self, rules: List[StreamAPIRule]):
         uri = "/2/tweets/search/stream/rules"
-        # session = self._get_client()
+        rules_data = [{'tag': r.tag, 'value': r.value} for r in rules]
         async with self._get_client() as session:
-            async with session.post(uri, json={"add": rules}) as r:
+            async with session.post(uri, json={"add": rules_data}) as r:
                 res = await r.json()
                 valid_rules = []
                 if 'errors' in res:
@@ -100,4 +101,4 @@ class TwitterClient:
                         self._logger.info(f"add_rules Error: {err['title']} Rule: {err['value']}")
                 if 'data' in res:
                     valid_rules = res['data']
-                return valid_rules
+                return [StreamAPIRule(**r) for r in valid_rules]

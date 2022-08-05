@@ -1,6 +1,7 @@
 from typing import Optional, List, Dict
 
 from pydantic import BaseModel
+from tweepy import StreamRule
 
 from restweetution.collectors import Streamer
 from restweetution.twitter_client import TwitterClient
@@ -23,7 +24,7 @@ class MainConfig(BaseModel):
     media_root_dir: str = None
 
     streamer: Optional[Streamer]
-    streamer_rules: Optional[List[dict]]
+    streamer_rules: Optional[List[StreamRule]]
     streamer_query_params: Optional[QueryParams]
     streamer_verbose: Optional[bool]
 

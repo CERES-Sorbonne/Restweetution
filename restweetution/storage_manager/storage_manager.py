@@ -7,7 +7,7 @@ from restweetution.models.bulk_data import BulkData
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
-from restweetution.models.twitter.rule import StreamRule
+from restweetution.models.twitter.rule import StreamAPIRule, Rule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.models.twitter.user import User
 from restweetution.storage_manager.storage_join import FirstFoundJoin
@@ -142,12 +142,13 @@ class StorageManager:
         return self._storages
 
     # Save functions
-    def save_bulk(self, bulk_data: BulkData, tags: List[str]):
+    def save_bulk(self, bulk_data: BulkData):
         """
         Save data in bulk
         :param bulk_data: BulkData object
         :param tags: List of tags
         """
+        tags = [r.tag for r in bulk_data.get_rules()]
         tasks = []
         storages = self.get_storages_listening_to_tags(tags)
         for s in storages:
@@ -185,7 +186,7 @@ class StorageManager:
             tasks.append(asyncio.create_task(s.save_users(users)))
         return tasks
 
-    def save_rules(self, rules: List[StreamRule], tags: List[str]):
+    def save_rules(self, rules: List[StreamAPIRule], tags: List[str]):
         """
         Save rules
         :param rules: List of rules
@@ -285,6 +286,9 @@ class StorageManager:
         storages = [self._main_storage, *storages]
 
         return await self._join_storage.get_medias(storages=storages, **kwargs)
+
+    async def request_rules(self, rules: List[Rule]):
+        return await self._main_storage.request_rules(rules)
 
     # private utils
     def _has_tags(self, storage: Storage, tags):

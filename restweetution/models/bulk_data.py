@@ -7,13 +7,13 @@ from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.twitter import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter import Poll
-from restweetution.models.twitter.rule import StreamRule
+from restweetution.models.twitter.rule import Rule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.models.twitter.user import User
 
 
 class BulkData(BaseModel):
-    rules: Dict[str, StreamRule] = {}
+    rules: Dict[int, Rule] = {}
     users: Dict[str, User] = {}
     tweets: Dict[str, RestTweet] = {}
     places: Dict[str, Place] = {}
@@ -60,7 +60,7 @@ class BulkData(BaseModel):
             medias: List[Media] = [],
             places: List[Place] = [],
             polls: List[Poll] = [],
-            rules: List[StreamRule] = [],
+            rules: List[Rule] = [],
             datas: List[CustomData] = []):
         self.add_tweets(tweets)
         self.add_users(users)
@@ -70,7 +70,7 @@ class BulkData(BaseModel):
         self.add_rules(rules)
         self.add_datas(datas)
 
-    def add_rules(self, rules: List[StreamRule], collected=False):
+    def add_rules(self, rules: List[Rule], collected=False):
         for rule in rules:
             if collected:
                 rule.tweet_ids.update(self.tweets.keys())

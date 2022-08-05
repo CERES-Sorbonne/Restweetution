@@ -4,7 +4,7 @@ from typing import List
 from restweetution.data_view.data_view import DataView, DataUnit
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.event_data import EventData
-from restweetution.models.twitter import StreamRule, RestTweet
+from restweetution.models.twitter import StreamAPIRule, RestTweet
 
 minimum_fields = [
     'id',
@@ -104,7 +104,7 @@ class ElasticDashboard(DataView):
         await self._save_data_(datas)
 
     @staticmethod
-    def _compute_tweet_to_rules(rules: List[StreamRule]):
+    def _compute_tweet_to_rules(rules: List[StreamAPIRule]):
         tweet_to_rules = defaultdict(set)
         for rule in rules:
             for tweet_id in rule.tweet_ids:

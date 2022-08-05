@@ -4,6 +4,7 @@ from typing import Optional
 import yaml
 
 from restweetution.collectors import Streamer
+from restweetution.models.twitter import StreamerRule
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
@@ -72,18 +73,18 @@ def parse_streamer_config(main_conf: MainConfig, data: dict):
     :param data: raw config data
     """
     if main_conf.client and main_conf.storage_manager:
-        streamer = Streamer(client=main_conf.client, storage_manager=main_conf.storage_manager)
+        streamer = Streamer(bearer_token=main_conf.client_token, storage_manager=main_conf.storage_manager)
         if 'streamer' in data:
             s_data = data['streamer']
             if 'verbose' in s_data:
                 main_conf.streamer_verbose = s_data['verbose']
-                streamer.set_verbose(main_conf.streamer_verbose)
+                # streamer.set_verbose(main_conf.streamer_verbose)
             if 'rules' in s_data:
-                main_conf.streamer_rules = s_data['rules']
-                streamer.preset_stream_rules(main_conf.streamer_rules)
+                main_conf.streamer_rules = [StreamerRule(**r) for r in s_data['rules']]
+                # streamer.preset_stream_rules(main_conf.streamer_rules)
             if 'query_params' in s_data:
                 parse_query_params(main_conf, s_data['query_params'])
-                streamer.set_query_params(main_conf.streamer_query_params)
+                # streamer.set_query_params(main_conf.streamer_query_params)
         main_conf.streamer = streamer
 
 
