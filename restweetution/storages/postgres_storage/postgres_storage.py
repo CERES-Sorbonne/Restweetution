@@ -41,6 +41,9 @@ class PostgresStorage(Storage):
         self._history = True
         self.lock = Lock()
 
+    def get_engine(self):
+        return self._engine
+
     async def get_tweet_ids(self):
         async with self._engine.begin() as conn:
             stmt = get_statement(models.Tweet, fields=['id'])
