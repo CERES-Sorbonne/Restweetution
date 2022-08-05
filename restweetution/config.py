@@ -4,10 +4,11 @@ from typing import Optional
 import yaml
 
 from restweetution.collectors import Streamer
+from restweetution.collectors.searcher import Searcher
 from restweetution.models.config.main_config import MainConfig
 from restweetution.models.config.stream_query_params import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
-from restweetution.models.rule import StreamerRule
+from restweetution.models.rule import StreamerRule, SearcherRule
 from restweetution.storage_manager import StorageManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
@@ -62,6 +63,7 @@ def build_config(data: dict):
     parse_storage_manager_config(main_conf, data)
     parse_streamer_config(main_conf, data)
     parse_query_fields(main_conf, data)
+    parse_searcher_rule(main_conf, data)
 
     return main_conf
 
@@ -128,6 +130,15 @@ def parse_storage_config(main_conf: MainConfig, data: dict):
             storage = create_storage(key, value)
             main_conf.storage_list.append(storage)
             main_conf.storages[storage.name] = storage
+
+
+def parse_searcher_rule(main_conf: MainConfig, data: dict):
+    if 'searcher' in data:
+        data = data['searcher']
+        if 'rule' in data:
+            main_conf.searcher_rule = SearcherRule(**data['rule'])
+        if main_conf.bearer_token and main_conf.storage_manager:
+            main_conf.searcher = Searcher(storage=main_conf.storage_manager, bearer_token=main_conf.bearer_token)
 
 
 def parse_storage_manager_config(main_conf: MainConfig, data: dict):

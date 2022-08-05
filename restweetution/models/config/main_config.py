@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from tweepy import StreamRule
 
 from restweetution.collectors import Streamer
+from restweetution.collectors.searcher import Searcher
+from restweetution.models.rule import SearcherRule
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.storages.storage import Storage
@@ -25,6 +27,9 @@ class MainConfig(BaseModel):
     streamer: Optional[Streamer]
     streamer_rules: Optional[List[StreamRule]]
     streamer_verbose: Optional[bool]
+
+    searcher: Optional[Searcher]
+    searcher_rule: Optional[SearcherRule]
 
     query_fields: Optional[QueryFields]
 

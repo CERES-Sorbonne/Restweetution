@@ -231,7 +231,7 @@ class PostgresStorage(Storage):
     @staticmethod
     async def _get_rule(session, rule: Rule):
         stmt = select(models.Rule).filter(models.Rule.tag == rule.tag).filter(models.Rule.query == rule.query)
-        stmt = stmt.filter(models.Rule.name == rule.name)
+        stmt = stmt.filter(models.Rule.name == rule.name).filter(models.Rule.type == rule.type)
         res = await session.execute(stmt)
         res = res.scalars().first()
         return res
