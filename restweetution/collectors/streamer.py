@@ -109,7 +109,7 @@ class Streamer:
         rules = []
         for api_key in api_keys:
             if api_key in self._api_id_to_rule:
-                rules.append(self._api_id_to_rule[api_key].copy(deep=True))
+                rules.append(self._api_id_to_rule[api_key].copy())
         return rules
 
     async def remove_rules(self, ids: List[str]) -> None:

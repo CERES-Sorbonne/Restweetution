@@ -17,6 +17,9 @@ class Rule(BaseModel):
 
     tweet_ids: Set[str] = set()  # Set of collected tweet ids
 
+    def copy(self, **kwargs):
+        return super().copy(deep=True, **kwargs)
+
     def __eq__(self, other):
         return self.type == other.type and self.tag == other.tag and self.query == other.query
 

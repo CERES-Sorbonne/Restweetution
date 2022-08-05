@@ -123,13 +123,16 @@ class StorageManager:
         self.remove_all_storage_tags(storage)
         self.add_storage_tags(storage, tags)
 
-    def get_storages_listening_to_tags(self, tags: List[str]) -> List[Storage]:
+    def get_storages_listening_to_tags(self, tags: List[str] = None) -> List[Storage]:
         """
         Get list of storages that have at least one of the tags
         storages that have no tags set listen to all tags and are also returned
         :param tags: List of tags
         :return: List of Storage
         """
+        if tags is None:
+            tags = []
+
         storages = self._storages
         storages = [s for s in storages if self._has_tags(s, tags) or self._has_no_tags(s)]
         return storages
@@ -146,7 +149,6 @@ class StorageManager:
         """
         Save data in bulk
         :param bulk_data: BulkData object
-        :param tags: List of tags
         """
         tags = [r.tag for r in bulk_data.get_rules()]
         tasks = []
@@ -164,7 +166,7 @@ class StorageManager:
         """
         return asyncio.create_task(self._main_storage.save_error(error))
 
-    def save_tweets(self, tweets: List[RestTweet], tags: List[str]):
+    def save_tweets(self, tweets: List[RestTweet], tags: List[str] = None):
         """
         Save tweets
         :param tweets: List of tweets
@@ -175,7 +177,7 @@ class StorageManager:
             tasks.append(asyncio.create_task(s.save_tweets(tweets)))
         return tasks
 
-    def save_users(self, users: List[User], tags: List[str]):
+    def save_users(self, users: List[User], tags: List[str] = None):
         """
         Save users
         :param users: List of users
@@ -186,7 +188,7 @@ class StorageManager:
             tasks.append(asyncio.create_task(s.save_users(users)))
         return tasks
 
-    def save_rules(self, rules: List[StreamAPIRule], tags: List[str]):
+    def save_rules(self, rules: List[Rule], tags: List[str] = None):
         """
         Save rules
         :param rules: List of rules
@@ -197,7 +199,7 @@ class StorageManager:
             tasks.append(asyncio.create_task(s.save_rules(rules)))
         return tasks
 
-    def save_polls(self, polls: List[Poll], tags: List[str]):
+    def save_polls(self, polls: List[Poll], tags: List[str] = None):
         """
         Save polls
         :param polls: List of polls
@@ -208,7 +210,7 @@ class StorageManager:
             tasks.append(asyncio.create_task(s.save_polls(polls)))
         return tasks
 
-    def save_places(self, places: List[Place], tags: List[str]):
+    def save_places(self, places: List[Place], tags: List[str] = None):
         """
         Save places
         :param places: List of places
@@ -219,7 +221,7 @@ class StorageManager:
             tasks.append(asyncio.create_task(s.save_places(places)))
         return tasks
 
-    def save_media(self, medias: List[Media], tags: List[str]):
+    def save_media(self, medias: List[Media], tags: List[str] = None):
         """
         Take a media list, send them to the media downloader
         """

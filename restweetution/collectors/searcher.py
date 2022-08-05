@@ -6,7 +6,7 @@ from tweepy.asynchronous import AsyncClient
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse
-from restweetution.models.twitter import RestTweet, Includes, User
+from restweetution.models.twitter import RestTweet, Includes, User, SearcherRule
 from restweetution.storage_manager import StorageManager
 
 
@@ -19,16 +19,19 @@ class Searcher:
         self._client = AsyncClient(bearer_token=bearer_token, **kwargs)
         self._default_fields = fields if fields else {}
 
-    async def collect(self, query: str, fields: dict = None, tags: List[str] = None, recent=True, **kwargs):
+    async def collect(self, rule: SearcherRule, fields: dict = None, recent=True, **kwargs):
         self._logger.info('Start search loop')
+
+        res = await self.storage_manager.request_rules([rule])
+        rule = res[0]
+
+        query = rule.query
 
         count = await self.get_tweets_count(query, **kwargs)
         self._logger.info(f'Retrieving {count.meta.total_tweet_count} tweets')
 
         if not fields:
             fields = self._default_fields
-        if not tags:
-            tags = []
 
         search_function = self._client.search_recent_tweets if recent else self._client.search_all_tweets
 
@@ -38,9 +41,10 @@ class Searcher:
             tweets = [RestTweet(**t) for t in res.data]
             bulk_data.add_tweets(tweets)
             bulk_data.add(**parse_includes(Includes(**res.includes)))
+            bulk_data.add_rules([rule.copy()], collected=True)
 
             self._logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
-            self.storage_manager.save_bulk(bulk_data, tags)
+            self.storage_manager.save_bulk(bulk_data)
 
     async def get_tweets_count(self, query, **kwargs):
         res = await self._client.get_recent_tweets_count(query, **kwargs)
