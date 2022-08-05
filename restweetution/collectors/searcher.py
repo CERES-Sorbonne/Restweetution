@@ -5,21 +5,23 @@ from tweepy.asynchronous import AsyncClient
 
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.rule import SearcherRule
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse
-from restweetution.models.twitter import RestTweet, Includes, User, SearcherRule
+from restweetution.models.twitter import RestTweet, Includes, User
 from restweetution.storage_manager import StorageManager
 
 
 class Searcher:
-    def __init__(self, storage: StorageManager, bearer_token, fields: Dict = None, **kwargs):
+    def __init__(self, storage: StorageManager, bearer_token, fields: QueryFields = None, **kwargs):
         super().__init__()
 
         self.storage_manager = storage
         self._logger = logging.getLogger('Searcher')
         self._client = AsyncClient(bearer_token=bearer_token, **kwargs)
-        self._default_fields = fields if fields else {}
+        self._default_fields = fields if fields else QueryFields()
 
-    async def collect(self, rule: SearcherRule, fields: dict = None, recent=True, **kwargs):
+    async def collect(self, rule: SearcherRule, fields: QueryFields = None, recent=True, max_results=10, **kwargs):
         self._logger.info('Start search loop')
 
         res = await self.storage_manager.request_rules([rule])
@@ -35,7 +37,7 @@ class Searcher:
 
         search_function = self._client.search_recent_tweets if recent else self._client.search_all_tweets
 
-        async for res in self._token_loop(search_function, query, **fields, **kwargs):
+        async for res in self._token_loop(search_function, query, **fields.dict(), max_results=max_results, **kwargs):
             bulk_data = BulkData()
 
             tweets = [RestTweet(**t) for t in res.data]
@@ -51,7 +53,7 @@ class Searcher:
         count = CountResponse(data=res.data, meta=res.meta, errors=res.errors, includes=res.includes)
         return count
 
-    async def get_tweets_as_stream(self, ids: List[str], fields: dict = None, max_per_loop: int = 100):
+    async def get_tweets_as_stream(self, ids: List[str], fields: QueryFields = None, max_per_loop: int = 100):
         if not fields:
             fields = self._default_fields
 
@@ -59,7 +61,7 @@ class Searcher:
                 lookup_function=self._ids_lookup,
                 get_function=self._client.get_tweets,
                 values=ids,
-                fields=fields,
+                fields=fields.dict(),
                 max_per_loop=max_per_loop
         ):
             result = LookupResponse(
@@ -75,7 +77,7 @@ class Searcher:
 
             yield result
 
-    async def get_tweets(self, ids: List[str], fields: dict = None, max_per_loop: int = 100):
+    async def get_tweets(self, ids: List[str], fields: QueryFields = None, max_per_loop: int = 100):
         if not ids:
             return
         if not fields:
@@ -86,24 +88,24 @@ class Searcher:
             result += res
         return result
 
-    async def get_users(self, ids: List[str] = None, usernames: List[str] = None, fields: dict = None, **kwargs):
+    async def get_users(self, ids: List[str] = None, usernames: List[str] = None, fields: QueryFields = None, **kwargs):
         if not ids and not usernames:
             return
         if not fields:
-            fields = {}
+            fields = self._default_fields
 
         result = LookupResponse()
         async for res in self.get_users_as_stream(ids=ids, usernames=usernames, fields=fields, **kwargs):
             result += res
         return result
 
-    async def get_users_as_stream(self, ids: List[str] = None, usernames: List[str] = None, fields: dict = None,
+    async def get_users_as_stream(self, ids: List[str] = None, usernames: List[str] = None, fields: QueryFields = None,
                                   max_per_loop: int = 100):
 
         if not ids and not usernames:
             return
         if not fields:
-            fields = {}
+            fields = self._default_fields
 
         lookup_function = self._ids_lookup if ids else self._usernames_lookup
         values = ids if ids else usernames
@@ -112,7 +114,7 @@ class Searcher:
                 lookup_function=lookup_function,
                 get_function=self._client.get_users,
                 values=values,
-                fields=fields,
+                fields=fields.dict(),
                 max_per_loop=max_per_loop
         ):
             result = LookupResponse(

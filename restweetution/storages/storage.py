@@ -8,7 +8,7 @@ from restweetution.errors import handle_error, FunctionNotImplementedError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter import Rule
+from restweetution.models.rule import Rule
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll

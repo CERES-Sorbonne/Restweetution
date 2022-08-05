@@ -7,7 +7,7 @@ from restweetution.models.bulk_data import BulkData
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
-from restweetution.models.twitter.rule import StreamAPIRule, Rule
+from restweetution.models.rule import Rule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.models.twitter.user import User
 from restweetution.storage_manager.storage_join import FirstFoundJoin

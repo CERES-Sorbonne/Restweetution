@@ -5,14 +5,13 @@ from tweepy import StreamRule
 
 from restweetution.collectors import Streamer
 from restweetution.twitter_client import TwitterClient
-from restweetution.models.config.tweet_config import QueryParams
+from restweetution.models.config.tweet_config import QueryFields
 from restweetution.storages.storage import Storage
 from restweetution.storage_manager import StorageManager
 
 
 class MainConfig(BaseModel):
-    client: Optional[TwitterClient]
-    client_token: Optional[str]
+    bearer_token: Optional[str]
 
     storages: Dict[str, Storage] = {}
     storage_list: List[Storage] = []
@@ -25,8 +24,9 @@ class MainConfig(BaseModel):
 
     streamer: Optional[Streamer]
     streamer_rules: Optional[List[StreamRule]]
-    streamer_query_params: Optional[QueryParams]
     streamer_verbose: Optional[bool]
+
+    query_fields: Optional[QueryFields]
 
     class Config:
         arbitrary_types_allowed = True

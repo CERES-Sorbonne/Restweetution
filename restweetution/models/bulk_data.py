@@ -7,7 +7,7 @@ from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.twitter import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter import Poll
-from restweetution.models.twitter.rule import Rule
+from restweetution.models.rule import Rule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.models.twitter.user import User
 

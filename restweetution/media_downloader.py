@@ -7,11 +7,10 @@ from typing import Dict, List
 import aiohttp
 from pydantic import BaseModel
 
-from restweetution.models.bulk_data import BulkData
 from restweetution.models.event_data import EventData
 from restweetution.models.twitter.media import Media
-from restweetution.storages.storage import Storage
 from restweetution.storages.object_storage.filestorage_helper import FileStorageHelper
+from restweetution.storages.storage import Storage
 
 
 class MediaCache(BaseModel):

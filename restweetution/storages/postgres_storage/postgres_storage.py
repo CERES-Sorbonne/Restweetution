@@ -12,7 +12,7 @@ from restweetution.models.event_data import EventData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Media, User, Poll, Place
-from restweetution.models.twitter.rule import StreamAPIRule, Rule
+from restweetution.models.rule import StreamAPIRule, Rule
 from restweetution.models.twitter.tweet import RestTweet
 from restweetution.storages.storage import Storage
 from . import models

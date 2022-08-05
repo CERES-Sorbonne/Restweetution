@@ -1,6 +1,3 @@
-from restweetution.utils import get_full_class_name
-
-
 class RESTweetutionError(Exception):
     """Base class for all Custom Errors"""
 
@@ -110,7 +107,7 @@ def handle_storage_save_error(datatype='bulk'):
                 raise StorageError('Failed Save in Storage',
                                    data=to_save,
                                    storage_name=args[0].name,
-                                   storage_type=get_full_class_name(args[0]),
+                                   storage_type=type(args[0]),
                                    storage_function=fn.__name__)
             except KeyboardInterrupt:
                 pass

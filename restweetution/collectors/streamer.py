@@ -9,8 +9,9 @@ from restweetution.collectors.response_parser import parse_includes
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter.rule import StreamAPIRule, StreamerRule
+from restweetution.models.rule import StreamerRule
 from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storage_manager import StorageManager
 from restweetution.twitter_client import TwitterClient
@@ -83,7 +84,7 @@ class Streamer:
                 rule.api_id = hash_to_rule[hash_].api_id
             else:
                 s_rule = await self._client.add_rules([rule.get_api_rule()])
-                rule.api_id = s_rule[0].api_id
+                rule.api_id = s_rule[0].id
             used_rules_hash.add(hash_)
 
         self._cache_rules(rules)
@@ -240,7 +241,7 @@ class Streamer:
         if 'errors' in data:
             raise TwitterAPIError('Streamer response has error field', data=data)
 
-    async def collect(self, rules: List[StreamerRule], fields=None):
+    async def collect(self, rules: List[StreamerRule], fields: QueryFields = None):
         """
         Main method to collect tweets in a stream
         an int between 1 and 5 to tell the stream to fetch tweets from the past minutes.

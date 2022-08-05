@@ -6,9 +6,10 @@ from elasticsearch import AsyncElasticsearch
 from elasticsearch import helpers
 
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter import Media, Rule
+from restweetution.models.twitter import Media
 from restweetution.models.twitter import Poll
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.tweet import TweetResponse, User, RestTweet

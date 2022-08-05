@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from restweetution.models.twitter.entities import Annotation, Tag, Url, Mention
 from restweetution.models.twitter.media import Media
-from restweetution.models.twitter.rule import StreamAPIRule
+from restweetution.models.rule import StreamAPIRule
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.user import User

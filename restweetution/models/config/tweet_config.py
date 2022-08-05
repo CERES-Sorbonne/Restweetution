@@ -20,7 +20,7 @@ PlaceField = Literal["contained_within", "country", "country_code", "geo", "name
 PollField = Literal["duration_minutes", "end_datetime", "voting_status"]
 
 
-class QueryParams(BaseModel):
+class QueryFields(BaseModel):
     expansions: Optional[List[Expansion]]
     tweet_fields: Optional[List[TweetField]]
     media_fields: Optional[List[MediaField]]

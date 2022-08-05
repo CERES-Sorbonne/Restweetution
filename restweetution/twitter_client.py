@@ -5,7 +5,8 @@ from typing import Callable, List
 import aiohttp
 from aiohttp import ClientTimeout
 
-from restweetution.models.twitter.rule import StreamRuleResponse, StreamAPIRule, StreamerRule
+from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.rule import StreamRuleResponse, StreamAPIRule, StreamerRule
 
 
 class TwitterClient:
@@ -26,22 +27,21 @@ class TwitterClient:
     def set_error_handler(self, error_handler: Callable):
         self._error_handler = error_handler
 
-    async def connect_tweet_stream(self, params, line_callback=None):
+    async def connect_tweet_stream(self, params: QueryFields, line_callback=None):
         self._logger.info('Connect to stream')
         wait_time = 0
         while True:
             try:
-                # session = self._get_client()
                 async with self._get_client() as session:
-                    async with session.get("/2/tweets/search/stream", params=params) as resp:
+                    async with session.get("/2/tweets/search/stream", params=params.dict(join='.')) as resp:
                         async for line in resp.content:
                             # print(resp.headers)
                             yield line
-                            # asyncio.create_task(line_callback(line))
             except KeyboardInterrupt as e:
                 raise e
             except BaseException as e:
                 self._logger.warning(f'Tweet Stream {type(e)}')
+                raise e
             print('wait: ', wait_time)
             await asyncio.sleep(wait_time)
             wait_time = min(max(wait_time * 2, 1), 30)
