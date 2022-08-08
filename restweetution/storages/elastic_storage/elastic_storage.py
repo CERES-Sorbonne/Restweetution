@@ -12,7 +12,7 @@ from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Media
 from restweetution.models.twitter import Poll
 from restweetution.models.twitter.place import Place
-from restweetution.models.twitter.tweet import TweetResponse, User, RestTweet
+from restweetution.models.twitter.tweet import TweetResponse, User, Tweet
 from restweetution.storages.elastic_storage.bulk_actions import SaveAction, UpdateAction
 from restweetution.storages.storage import Storage
 
@@ -71,7 +71,7 @@ class ElasticStorage(Storage):
             yield SaveAction(index=USER_INDEX, id_=user.id, doc=user.dict())
 
     @staticmethod
-    def _tweet_to_bulk_actions(tweets: List[RestTweet]):
+    def _tweet_to_bulk_actions(tweets: List[Tweet]):
         for tweet in tweets:
             yield SaveAction(index=TWEET_INDEX, id_=tweet.id, doc=tweet.dict())
 
@@ -99,10 +99,10 @@ class ElasticStorage(Storage):
         await self.es.index(index='error', document=error.dict())
         await self.es.indices.refresh(index='error')
 
-    async def save_tweet(self, tweet: RestTweet):
+    async def save_tweet(self, tweet: Tweet):
         await self.save_tweets([tweet])
 
-    async def save_tweets(self, tweets: List[RestTweet]):
+    async def save_tweets(self, tweets: List[Tweet]):
         for tweet in tweets:
             await self.es.index(index="tweet", id=tweet.id, document=tweet.dict())
         await self.es.indices.refresh(index="tweet")

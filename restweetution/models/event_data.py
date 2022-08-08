@@ -30,6 +30,16 @@ class BulkIds(BaseModel):
         self.polls.update(polls)
         self.custom_datas.update(custom_datas)
 
+    def __add__(self, other):
+        self.add(rules=other.rules,
+                 users=other.users,
+                 tweets=other.tweets,
+                 places=other.places,
+                 medias=other.medias,
+                 polls=other.polls,
+                 custom_datas=other.custom_datas)
+        return self
+
 
 class EventData(BaseModel):
     added: BulkIds = BulkIds()

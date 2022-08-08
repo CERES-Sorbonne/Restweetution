@@ -12,11 +12,12 @@ from restweetution.models.rule import Rule
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
-from restweetution.models.twitter.tweet import User, RestTweet
+from restweetution.models.twitter.tweet import User, Tweet
+from restweetution.storages.exporter.exporter import Exporter
 from restweetution.utils import Event
 
 
-class Storage(ABC):
+class Storage(Exporter, ABC):
     def __init__(self, name: str = None, interval: int = 0, buffer_size: int = 0, **kwargs):
         """
         Abstract Class that provides the template for every other storage
@@ -83,14 +84,14 @@ class Storage(ABC):
     async def request_rules(self, rules: List[Rule]):
         pass
 
-    async def save_tweet(self, tweet: RestTweet):
+    async def save_tweet(self, tweet: Tweet):
         """
         Save tweet
         :param tweet: tweet
         """
         await self.save_tweets([tweet])
 
-    async def save_tweets(self, tweets: List[RestTweet]):
+    async def save_tweets(self, tweets: List[Tweet]):
         """
         Save multiple tweets
         :param tweets: tweets
@@ -187,9 +188,6 @@ class Storage(ABC):
         """
         raise FunctionNotImplementedError('Save Error function not implemented')
 
-    async def save_custom_datas(self, datas: List[CustomData]):
-        raise NotImplementedError('save_custom_data function is not implemented')
-
     # buffer utils
 
     def _flush_buffer(self):
@@ -239,7 +237,7 @@ class Storage(ABC):
     async def get_users(self, **kwargs) -> List[User]:
         pass
 
-    async def get_tweets(self, **kwargs) -> List[RestTweet]:
+    async def get_tweets(self, **kwargs) -> List[Tweet]:
         pass
 
     async def get_rules(self, **kwargs) -> List[Rule]:

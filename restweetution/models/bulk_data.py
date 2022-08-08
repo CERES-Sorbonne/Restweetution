@@ -8,14 +8,14 @@ from restweetution.models.twitter import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter import Poll
 from restweetution.models.rule import Rule
-from restweetution.models.twitter.tweet import RestTweet
+from restweetution.models.twitter.tweet import Tweet
 from restweetution.models.twitter.user import User
 
 
 class BulkData(BaseModel):
     rules: Dict[int, Rule] = {}
     users: Dict[str, User] = {}
-    tweets: Dict[str, RestTweet] = {}
+    tweets: Dict[str, Tweet] = {}
     places: Dict[str, Place] = {}
     medias: Dict[str, Media] = {}
     polls: Dict[str, Poll] = {}
@@ -55,7 +55,7 @@ class BulkData(BaseModel):
         return other
 
     def add(self,
-            tweets: List[RestTweet] = [],
+            tweets: List[Tweet] = [],
             users: List[User] = [],
             medias: List[Media] = [],
             places: List[Place] = [],
@@ -79,7 +79,7 @@ class BulkData(BaseModel):
             else:
                 self.rules[rule.id].tweet_ids.update(rule.tweet_ids)
 
-    def add_tweets(self, tweets: List[RestTweet]):
+    def add_tweets(self, tweets: List[Tweet]):
         self.set_from_list(self.tweets, tweets)
 
     def add_users(self, users: List[User]):

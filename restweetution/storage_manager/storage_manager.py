@@ -8,7 +8,7 @@ from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.rule import Rule
-from restweetution.models.twitter.tweet import RestTweet
+from restweetution.models.twitter.tweet import Tweet
 from restweetution.models.twitter.user import User
 from restweetution.storage_manager.storage_join import FirstFoundJoin
 from restweetution.storages.storage import Storage
@@ -166,7 +166,7 @@ class StorageManager:
         """
         return asyncio.create_task(self._main_storage.save_error(error))
 
-    def save_tweets(self, tweets: List[RestTweet], tags: List[str] = None):
+    def save_tweets(self, tweets: List[Tweet], tags: List[str] = None):
         """
         Save tweets
         :param tweets: List of tweets

@@ -4,7 +4,7 @@ from typing import List
 from restweetution.data_view.data_view import DataView, DataUnit
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.event_data import EventData
-from restweetution.models.twitter import StreamAPIRule, RestTweet
+from restweetution.models.twitter import StreamAPIRule, Tweet
 
 minimum_fields = [
     'id',
@@ -132,7 +132,7 @@ class ElasticDashboard(DataView):
                     updated.append(data)
         await self._save_data_(updated)
 
-    def _cache_media_to_tweet(self, tweets: List[RestTweet]):
+    def _cache_media_to_tweet(self, tweets: List[Tweet]):
         for tweet in tweets:
             if tweet.attachments.media_keys:
                 for key in tweet.attachments.media_keys:

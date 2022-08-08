@@ -8,7 +8,7 @@ from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.rule import SearcherRule
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse
-from restweetution.models.twitter import RestTweet, Includes, User
+from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storage_manager import StorageManager
 
 
@@ -40,7 +40,7 @@ class Searcher:
         async for res in self._token_loop(search_function, query, **fields.dict(), max_results=max_results, **kwargs):
             bulk_data = BulkData()
 
-            tweets = [RestTweet(**t) for t in res.data]
+            tweets = [Tweet(**t) for t in res.data]
             bulk_data.add_tweets(tweets)
             bulk_data.add(**parse_includes(Includes(**res.includes)))
             bulk_data.add_rules([rule.copy()], collected=True)
@@ -71,7 +71,7 @@ class Searcher:
                 meta=res.meta
             )
 
-            tweets = [RestTweet(**t) for t in res.data]
+            tweets = [Tweet(**t) for t in res.data]
             result.bulk_data.add_tweets(tweets)
             result.bulk_data.add(**parse_includes(Includes(**res.includes)))
 

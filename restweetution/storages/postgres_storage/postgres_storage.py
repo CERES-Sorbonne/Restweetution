@@ -13,7 +13,7 @@ from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Media, User, Poll, Place
 from restweetution.models.rule import StreamAPIRule, Rule
-from restweetution.models.twitter.tweet import RestTweet
+from restweetution.models.twitter.tweet import Tweet
 from restweetution.storages.storage import Storage
 from . import models
 from .helpers import get_helper, save_helper, get_statement, request_history_update
@@ -108,11 +108,11 @@ class PostgresStorage(Storage):
                          fields: List[str] = tweet_fields,
                          sort_by: str = None,
                          order: str = None,
-                         **kwargs) -> List[RestTweet]:
+                         **kwargs) -> List[Tweet]:
         async with self._async_session() as session:
             res = await get_helper(session, models.Tweet, ids=ids, no_ids=no_ids, fields=fields, sort_by=sort_by,
                                    order=order, **kwargs)
-            return [RestTweet(**r.to_dict()) for r in res]
+            return [Tweet(**r.to_dict()) for r in res]
 
     async def get_users(self,
                         ids: List[str] = None,
@@ -195,7 +195,7 @@ class PostgresStorage(Storage):
     # private utils
 
     @staticmethod
-    async def _save_tweets(session, tweets: List[RestTweet]):
+    async def _save_tweets(session, tweets: List[Tweet]):
         return await save_helper(session, models.Tweet, tweets)
 
     @staticmethod
@@ -211,7 +211,7 @@ class PostgresStorage(Storage):
         return await save_helper(session, models.Poll, polls)
 
     @staticmethod
-    async def _save_media(session, medias: List[RestTweet]):
+    async def _save_media(session, medias: List[Tweet]):
         return await save_helper(session, models.Media, medias, id_field='media_key')
 
     @staticmethod

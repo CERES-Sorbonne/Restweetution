@@ -3,6 +3,7 @@ from typing import List, Dict
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
+from restweetution.storages.exporter.exporter import Exporter
 from restweetution.storages.storage import Storage
 
 
@@ -16,7 +17,7 @@ class DataUnit(dict):
 
 
 class DataView(ABC):
-    def __init__(self, name: str, in_storage: Storage, out_storage: Storage):
+    def __init__(self, name: str, in_storage: Storage, out_storage: Exporter):
         self._view_name = name
         self.input = in_storage
         self.output = out_storage

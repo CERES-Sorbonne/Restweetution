@@ -5,7 +5,10 @@ import os
 from sqlalchemy import select
 
 import restweetution.config as config
+from restweetution.data_view.row_view import RowView
+from restweetution.models.storage.custom_data import CustomData
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
+from restweetution.storages.exporter.csv_exporter import CSVExporter
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 logging.basicConfig()
@@ -23,8 +26,22 @@ async def launch():
     # res = await postgres_storage.get_medias(ids=['7_1551705587511074816'])
     # print(res[0].url is None)
     # res = await elastic_storage.get_medias()
+    exporter = CSVExporter(root_path='/Users/david/Restweetution/collectes')
+    fields = ['id', 'author_username', 'lang', 'annotations', 'like_count']
+    view = RowView(in_storage=postgres_storage, out_storage=exporter, fields=fields)
+    res = await view.load()
+    await view.save_rows(res)
+    # exporter = CSVExporter(root_path='/Users/david/Restweetution/collectes')
+    # await exporter.save_custom_datas([
+    #     CustomData(id='100', key='tweet', data={1: 1, 2: ['lala', 'lolo'], 3: 3}),
+    #     CustomData(id='104', key='tweet', data={1: 3, 2: None, 3: 1}),
+    #     CustomData(id='300', key='tweet', data={1: 9, 2: 2, 3: 5}),
+    #     CustomData(id='550', key='tweet', data={1: 4, 2: 5, 3: 0})
+    # ])
 
-    res = await postgres_storage.update_error()
+
+
+    # res = await postgres_storage.update_error()
     # for r in res:
     #     print(r)
     # async with postgres_storage._engine.begin() as conn:
