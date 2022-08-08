@@ -3,8 +3,6 @@ import logging
 import os
 
 import restweetution.config as config
-from restweetution.collectors.searcher import Searcher
-from restweetution.models.rule import SearcherRule
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)

@@ -11,6 +11,7 @@ from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.rule import StreamerRule, SearcherRule
 from restweetution.storage_manager import StorageManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
+from restweetution.storages.exporter.csv_exporter import CSVExporter
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 
@@ -204,3 +205,5 @@ def create_storage(name: str, data: dict):
         return ElasticStorage(name=name, **data)
     if storage_type == 'postgres':
         return PostgresStorage(name=name, **data)
+    if storage_type == 'csv':
+        return CSVExporter(name=name, **data)

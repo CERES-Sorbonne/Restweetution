@@ -27,7 +27,7 @@ class Storage(Exporter, ABC):
         :param interval: Optional. Clear storage every X seconds
         :param buffer_size: Optional. Max number of data the buffer can contain
         """
-        self.name = name
+        super().__init__(name)
 
         self._buffer_bulk_data: BulkData = BulkData()
         self._flush_interval = interval

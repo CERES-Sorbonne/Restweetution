@@ -12,8 +12,9 @@ from restweetution.storages.exporter.exporter import Exporter
 
 
 class CSVExporter(Exporter):
-    def __init__(self, root_path):
-        self._root = Path(root_path)
+    def __init__(self, name, root_dir, **kwargs):
+        super().__init__(name)
+        self._root = Path(root_dir)
 
     async def save_custom_datas(self, datas: List[CustomData]):
         key_group: DefaultDict[str, List[CustomData]] = defaultdict(list)
