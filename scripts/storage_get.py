@@ -18,19 +18,23 @@ main_conf = config.get_config_from_file(os.getenv('CONFIG'))
 
 
 async def launch():
-    postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
-    elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
-    # searcher = Searcher(storage=main_conf.storage_manager, bearer_token=main_conf.client_token)
-    # await searcher.search_loop_recent(query="#cat", max_results=100, expansions=['referenced_tweets.id'])
-    # res = await postgres_storage.get_medias(ids=['7_1551705587511074816'])
-    # print(res[0].url is None)
-    # res = await elastic_storage.get_medias()
+    postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
     exporter = CSVExporter(root_path='/Users/david/Restweetution/collectes')
-    fields = ['id', 'author_username', 'lang', 'annotations', 'like_count']
+
+    fields = ['id', 'author_username', 'lang', 'annotations', 'media_sha1s']
     view = RowView(in_storage=postgres_storage, out_storage=exporter, fields=fields)
+
     res = await view.load()
     await view.save_rows(res)
+
+
+
+
+
+
+    elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
+
     # exporter = CSVExporter(root_path='/Users/david/Restweetution/collectes')
     # await exporter.save_custom_datas([
     #     CustomData(id='100', key='tweet', data={1: 1, 2: ['lala', 'lolo'], 3: 3}),

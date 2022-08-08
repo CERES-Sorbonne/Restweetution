@@ -87,7 +87,7 @@ class RowView(DataView):
             if f not in tweet_fields:
                 raise ValueError(f'{f} is not a supported field\nValid fields: {tweet_fields}')
         self.fields = fields
-        super().__init__(name='flat_view', in_storage=in_storage, out_storage=out_storage)
+        super().__init__(name='row_view', in_storage=in_storage, out_storage=out_storage)
 
     async def load(self):
         extractor = Extractor(self.input)

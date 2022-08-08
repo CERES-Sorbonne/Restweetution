@@ -1,10 +1,12 @@
 from collections import defaultdict
-from typing import List
+from typing import List, Set, Dict
 
 from restweetution.data_view.data_view import DataView, DataUnit
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.event_data import EventData
-from restweetution.models.twitter import StreamAPIRule, Tweet
+from restweetution.models.rule import Rule
+from restweetution.models.storage.custom_data import CustomData
+from restweetution.models.twitter import Tweet
 
 minimum_fields = [
     'id',
@@ -36,6 +38,7 @@ class ElasticDashboard(DataView):
 
         in_storage.save_event.add(self.add)
         in_storage.update_event.add(self._update_sha1)
+        self.datas: Dict[str, DataUnit] = {}
 
     async def load(self):
         await super().load()
@@ -60,7 +63,7 @@ class ElasticDashboard(DataView):
         self._add_datas(datas)
 
     @staticmethod
-    def _compute_data(bulk_data: BulkData, tweet_ids: List[str] = None):
+    def _compute_data(bulk_data: BulkData, tweet_ids: Set[str] = None):
         tweet_to_rules = ElasticDashboard._compute_tweet_to_rules(bulk_data.get_rules())
 
         tweet_list = bulk_data.get_tweets()
@@ -104,7 +107,7 @@ class ElasticDashboard(DataView):
         await self._save_data_(datas)
 
     @staticmethod
-    def _compute_tweet_to_rules(rules: List[StreamAPIRule]):
+    def _compute_tweet_to_rules(rules: List[Rule]):
         tweet_to_rules = defaultdict(set)
         for rule in rules:
             for tweet_id in rule.tweet_ids:
@@ -137,3 +140,19 @@ class ElasticDashboard(DataView):
             if tweet.attachments.media_keys:
                 for key in tweet.attachments.media_keys:
                     self._media_to_tweet_ids[key].append(tweet.id)
+
+    def _custom_data(self, data: DataUnit):
+        return CustomData(key=self._view_name, id=data['id'], data=data)
+
+    def _get_datas(self) -> List[DataUnit]:
+        return list(self.datas.values())
+
+    def _add_datas(self, datas: List[DataUnit]):
+        for d in datas:
+            self.datas[d.id()] = d
+
+    async def save(self, **kwargs):
+        to_save = []
+        for d in self._get_datas():
+            to_save.append(self._custom_data(d))
+        await self.output.save_custom_datas(to_save)
