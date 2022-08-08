@@ -89,9 +89,9 @@ class RowView(DataView):
         self.fields = fields
         super().__init__(name='row_view', in_storage=in_storage, out_storage=out_storage)
 
-    async def load(self):
+    async def load(self, ids: List[str] = None):
         extractor = Extractor(self.input)
-        bulk_data, tweets = await extractor.get_tweets(expand=['tweet', 'user', 'media', 'place', 'poll'])
+        bulk_data, tweets = await extractor.get_tweets(expand=['tweet', 'user', 'media', 'place', 'poll'], ids=ids)
 
         fields = self.fields
 
