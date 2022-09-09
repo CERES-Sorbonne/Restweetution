@@ -6,12 +6,12 @@ from abc import ABC
 from typing import List, Iterator
 
 from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
-from .async_filestorage_helper import FileStorageHelper
-from ..document_storage import DocumentStorage
-from ...models.bulk_data import BulkData
+from .filestorage_helper import FileStorageHelper
+from restweetution.storages.storage import Storage
+from restweetution.models.bulk_data import BulkData
 
 
-class ObjectStorage(DocumentStorage, ABC):
+class ObjectStorage(Storage, ABC):
 
     def __init__(self, storage_helper: FileStorageHelper):
         """
@@ -55,13 +55,14 @@ class ObjectStorage(DocumentStorage, ABC):
         """
         # TODO: make this concurrent
         for tweet in tweets:
-            await self.storage_helper.put(tweet.json(exclude_none=True, ensure_ascii=False), self.tweets(f"{tweet.id}.json"))
+            await self.storage_helper.put(tweet.json(exclude_none=True, ensure_ascii=False),
+                                          self.tweets(f"{tweet.id}.json"))
 
     async def save_tweet(self, tweet: RestTweet):
         await self.storage_helper.put(tweet.json(exclude_none=True, ensure_ascii=False),
                                       self.tweets(f"{tweet.id}.json"))
 
-    def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> Iterator[RestTweet]:
+    def get_tweets(self, ids: List[str] = None, no_ids=None) -> Iterator[RestTweet]:
         for f in self.storage_helper.list(self.tweets()):
             yield TweetResponse.parse_file(self.tweets(f))
 
@@ -118,7 +119,7 @@ class ObjectStorage(DocumentStorage, ABC):
             await self.storage_helper.put(content, self.media_links(signature))
 
 
-class AsyncFileStorage(ObjectStorage):
+class FileStorage(ObjectStorage):
     def __init__(self, root: str, max_size: int = None):
         storage = FileStorageHelper(root=root, max_size=max_size)
-        super(AsyncFileStorage, self).__init__(storage_helper=storage)
+        super(FileStorage, self).__init__(storage_helper=storage)

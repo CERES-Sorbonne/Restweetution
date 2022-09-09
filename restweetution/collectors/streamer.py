@@ -7,16 +7,16 @@ from typing import List, Dict
 import aiohttp
 import requests
 
+from restweetution.models.storage.error import ErrorModel
 from restweetution.twitter_client import TwitterClient
 from restweetution.collectors.collector import Collector
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
-    UnreadableResponseError
+    UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.stream_rule import StreamRule
+from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter.tweet import TweetResponse, RestTweet
 from restweetution.models.twitter.user import User
-from restweetution.storage.storage_manager import StorageManager
-from restweetution.utils import get_full_class_name
+from restweetution.storage_manager import StorageManager
 
 
 class Streamer(Collector):
@@ -161,15 +161,10 @@ class Streamer(Collector):
 
     async def _main_error_handler(self, error: Exception):
         trace = traceback.format_exc()
-        self._logger.exception(trace)
-
-        if isinstance(error, ResponseParseError) or isinstance(error, StorageError) or \
-                isinstance(error, TwitterAPIError):
-            data = error.__dict__.copy()
-            data['error_name'] = get_full_class_name(error)
-            data['traceback'] = trace
-            error_data = json.dumps(data, default=str)
-
+        # self._logger.exception(error)
+        self._logger.warning(f'Error: {type(error)}')
+        if isinstance(error, RESTweetutionError):
+            error_data = ErrorModel(error=error, traceback=trace)
             self._storages_manager.save_error(error_data)
 
     @staticmethod
@@ -185,6 +180,7 @@ class Streamer(Collector):
         :params tweet_res: the tweet response object
         """
         self._log_tweets(tweet_res)
+
         bulk_data = BulkData()
         # Get the full rule from the id in matching_rules
         rules_ref = tweet_res.matching_rules
@@ -195,6 +191,9 @@ class Streamer(Collector):
 
         for r in rules:
             r.tweet_ids = [tweet_res.data.id]
+            if tweet_res.includes and tweet_res.includes.tweets:
+                r.tweet_ids.extend([t.id for t in tweet_res.includes.tweets])
+
         bulk_data.add_rules(rules)
 
         # Set populates bulk data with includes
@@ -204,7 +203,7 @@ class Streamer(Collector):
             if tweet_res.includes.places:
                 self.set_from_list(bulk_data.places, 'id', tweet_res.includes.places)
             if tweet_res.includes.media:
-                self.set_from_list(bulk_data.media, 'media_key', tweet_res.includes.media)
+                self.set_from_list(bulk_data.medias, 'media_key', tweet_res.includes.media)
             if tweet_res.includes.polls:
                 self.set_from_list(bulk_data.polls, 'id', tweet_res.includes.polls)
             if tweet_res.includes.tweets:
@@ -279,7 +278,6 @@ class Streamer(Collector):
         # Test for Twitter API Errors
         if 'errors' in data:
             raise TwitterAPIError('Streamer response has error field', data=data)
-            # self._handle_errors(data['errors'])
 
         # Parse json object with pydantic
         try:

@@ -38,4 +38,3 @@ class Tag(Entity):
 
 class Mention(Entity):
     username: str
-    id: str

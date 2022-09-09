@@ -2,17 +2,20 @@ import asyncio
 import copy
 import time
 from abc import ABC
-from typing import List, Iterator, Optional
+from typing import List, Optional
 
-from restweetution.errors import handle_error, RESTweetutionError, FunctionNotImplementedError
+from restweetution.errors import handle_error, FunctionNotImplementedError
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.storage.custom_data import CustomData
+from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import User, StreamRule, RestTweet
+from restweetution.utils import Event
 
 
-class DocumentStorage(ABC):
+class Storage(ABC):
     def __init__(self, name: str = None, interval: int = 0, buffer_size: int = 0, **kwargs):
         """
         Abstract Class that provides the template for every other storage
@@ -23,7 +26,6 @@ class DocumentStorage(ABC):
         :param buffer_size: Optional. Max number of data the buffer can contain
         """
         self.name = name
-        self.is_error_storage = kwargs.get('save_errors')
 
         self._buffer_bulk_data: BulkData = BulkData()
         self._flush_interval = interval
@@ -32,6 +34,29 @@ class DocumentStorage(ABC):
         self._last_buffer_flush: float = 0
 
         self._periodic_flush_task: Optional[asyncio.Task] = None
+
+        self.save_event = Event()
+        self.update_event = Event()
+
+    # Events
+
+    async def _emit_save_event(self, **kwargs):
+        data = BulkData()
+        if kwargs.get('bulk_data'):
+            data = kwargs.get('bulk_data')
+        if kwargs.get('tweets'):
+            data.add_tweets(kwargs.get('tweets'))
+        if kwargs.get('users'):
+            data.add_users(kwargs.get('users'))
+        if kwargs.get('rules'):
+            data.add_rules(kwargs.get('rules'))
+        if kwargs.get('polls'):
+            data.add_polls(kwargs.get('polls'))
+        if kwargs.get('places'):
+            data.add_places(kwargs.get('places'))
+        if kwargs.get('medias'):
+            data.add_medias(kwargs.get('medias'))
+        await self.save_event(data)
 
     # Save
 
@@ -115,7 +140,7 @@ class DocumentStorage(ABC):
         :param medias: medias
         """
         bulk_data = BulkData()
-        bulk_data.add_media(medias)
+        bulk_data.add_medias(medias)
         await self.save_bulk(bulk_data)
 
     async def save_place(self, place: Place):
@@ -150,13 +175,21 @@ class DocumentStorage(ABC):
         bulk_data.add_polls(polls)
         await self.save_bulk(bulk_data)
 
-    async def save_error(self, error: RESTweetutionError):
+    async def save_error(self, error: ErrorModel):
         """
         Save RESTweetutionError. This function doesn't use bulk_data and should be used locally to avoid
         saving fails
         :param error: RESTweetutionError object
         """
         raise FunctionNotImplementedError('Save Error function not implemented')
+
+    async def save_custom_datas(self, datas: List[CustomData]):
+        raise NotImplementedError('save_custom_data function is not implemented')
+
+    # Update
+
+    async def update_medias(self, medias: List[Media]):
+        raise NotImplementedError('Function update_medias is not implemented')
 
     # buffer utils
 
@@ -204,35 +237,29 @@ class DocumentStorage(ABC):
             await asyncio.sleep(self._flush_interval - time_diff)
 
     # get functions
-    async def get_users(self, ids: List[str] = None) -> Iterator[User]:
+    async def get_users(self, **kwargs) -> List[User]:
         pass
 
-    async def get_tweets(self, tags: List[str] = None, ids: List[str] = None) -> List[RestTweet]:
+    async def get_tweets(self, **kwargs) -> List[RestTweet]:
         pass
 
-    async def get_rules(self, ids: List[str] = None) -> List[StreamRule]:
+    async def get_rules(self, **kwargs) -> List[StreamRule]:
         pass
 
-    async def get_polls(self, ids: List[str] = None) -> List[Poll]:
+    async def get_polls(self, **kwargs) -> List[Poll]:
         pass
 
-    async def get_places(self, ids: List[str] = None) -> List[Place]:
+    async def get_places(self, **kwargs) -> List[Place]:
         pass
 
-    async def get_medias(self, media_keys: List[str]) -> List[Media]:
+    async def get_medias(self, **kwargs) -> List[Media]:
         pass
 
-    async def get_errors(self) -> List[RESTweetutionError]:
+    async def get_errors(self, **kwargs) -> List[ErrorModel]:
         pass
 
-    # def list_dir(self) -> List[str]:
-    #     pass
-    #
-    # def has_free_space(self) -> bool:
-    #     pass
-    #
-    # async def save_media_link(self, media_key, signature, average_signature):
-    #     """
-    #     Save the match between the media_key and the computed signature of the media
-    #     """
-    #     pass
+    async def get_custom_datas(self, key: str) -> List[CustomData]:
+        raise NotImplementedError('get_custom_datas function is not implemented')
+
+    async def del_custom_datas(self, key: str):
+        raise NotImplementedError('del_custom_datas function is not implemented')

@@ -1,15 +1,16 @@
 import json
+from typing import Optional
 
 import yaml
 
 from restweetution.collectors import Streamer
+from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.main_config import MainConfig
 from restweetution.models.config.query_params_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
-from restweetution.models.tweet_config import QueryParams
-from restweetution.storage.storage_manager import StorageManager
-from restweetution.storage.elastic_storage.elastic_storage import ElasticTweetStorage
-from restweetution.storage.postgres_storage.postgres_storage import PostgresStorage
+from restweetution.models.config.tweet_config import QueryParams
+from restweetution.storage_manager import StorageManager
 
 
 def get_config_from_file(file_path: str):
@@ -28,6 +29,8 @@ def read_conf(file_path: str):
     :param file_path: path to config file
     :return: parsed value as Dict
     """
+    if not file_path:
+        raise ValueError('Config file path is empty ! You can set the path with CONFIG=<path>')
     if file_path.split('.')[-1] == 'json':
         try:
             with open(file_path, 'r') as f:
@@ -56,6 +59,7 @@ def build_config(data: dict):
 
     parse_client_config(main_conf, data)
     parse_storage_config(main_conf, data)
+    parse_storage_manager_config(main_conf, data)
     parse_streamer_config(main_conf, data)
 
     return main_conf
@@ -121,31 +125,61 @@ def parse_storage_config(main_conf: MainConfig, data: dict):
     :param main_conf: MainConfig
     :param data: raw config data
     """
-    if 'tweet_storages' in data:
-        for key, value in data['tweet_storages'].items():
-            main_conf.storage_tweet_storages.append(create_storage(key, value))
-    if 'storage_tags' in data:
-        main_conf.storage_tags = data['storage_tags']
-        for storage in main_conf.storage_tweet_storages:
-            if storage.name not in main_conf.storage_tags:
-                main_conf.storage_tags[storage.name] = []
-    main_conf.storage_manager = create_storage_manager(main_conf)
+    if 'storages' in data:
+        for key, value in data['storages'].items():
+            storage = create_storage(key, value)
+            main_conf.storage_list.append(storage)
+            main_conf.storages[storage.name] = storage
 
 
-def create_storage_manager(main_conf: MainConfig) -> StorageManager:
+def parse_storage_manager_config(main_conf: MainConfig, data: dict):
+    if 'storage_manager' not in data:
+        return
+    data = data['storage_manager']
+    if data is None:
+        return
+
+    if 'main_storage' not in data:
+        return
+
+    main_storage_name = data['main_storage']
+
+    storage_tags = {main_storage_name: []}  # default value
+    if 'tags' in data and data['tags']:
+        for s_name in data['tags']:
+            tags = data['tags'][s_name]
+            if tags is True:
+                tags = []
+            storage_tags[s_name] = tags
+
+    if 'media_download' in data:
+        main_conf.media_download = data['media_download']
+    if 'media_root_dir' in data:
+        main_conf.media_root_dir = data['media_root_dir']
+
+    main_conf.storage_tags = storage_tags
+    main_conf.storage_manager = create_storage_manager(main_conf, main_storage_name)
+
+
+def create_storage_manager(main_conf: MainConfig, main_storage_name: str) -> Optional[StorageManager]:
     """
     Create a storage_manager and set parameters according to config
     :param main_conf: MainConfig
+    :param main_storage_name: name of the main storage
     :return: storage_manager
     """
-    manager = StorageManager()
-    for storage in main_conf.storage_tweet_storages:
-        if not main_conf.storage_tags or not main_conf.storage_tags[storage.name]:
-            tags = []
-        else:
-            tags = main_conf.storage_tags[storage.name]
+    main_storage = main_conf.storages[main_storage_name]
 
-        manager.add_doc_storage(storage=storage, tags=tags)
+    manager = StorageManager(main_storage=main_storage,
+                             main_tags=main_conf.storage_tags[main_storage.name],
+                             media_root_dir=main_conf.media_root_dir,
+                             download_media=main_conf.media_download)
+    for s_name in main_conf.storage_tags:
+        if s_name == main_storage_name:
+            continue
+        storage = main_conf.storages[s_name]
+        tags = main_conf.storage_tags[s_name]
+        manager.add_storage(storage=storage, tags=tags)
     return manager
 
 
@@ -158,6 +192,6 @@ def create_storage(name: str, data: dict):
     """
     storage_type = data['type']
     if storage_type == 'elastic':
-        return ElasticTweetStorage(name=name, **data)
+        return ElasticStorage(name=name, **data)
     if storage_type == 'postgres':
         return PostgresStorage(name=name, **data)

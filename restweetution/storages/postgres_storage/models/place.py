@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 
-from restweetution.storage.postgres_storage.models import Base
+from restweetution.storages.postgres_storage.models import Base
 
 
 class Place(Base):

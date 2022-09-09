@@ -5,15 +5,15 @@ from pydantic import BaseModel
 
 from restweetution.models.twitter.entities import Annotation, Tag, Url, Mention
 from restweetution.models.twitter.media import Media
-from restweetution.models.stream_rule import StreamRule
+from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.user import User
 
 
 class Attachments(BaseModel):
-    media_keys: Optional[List[str]]
-    poll_ids: Optional[List[str]]
+    media_keys: List[str] = []
+    poll_ids: List[str] = []
 
 
 class Entities(BaseModel):
@@ -95,7 +95,7 @@ class Withheld(BaseModel):
 class Tweet(BaseModel):
     id: str
     text: str
-    attachments: Optional[Attachments]
+    attachments: Attachments = Attachments()
     author_id: Optional[str]
     context_annotations: Optional[List[ContextAnnotation]]
     conversation_id: Optional[str]

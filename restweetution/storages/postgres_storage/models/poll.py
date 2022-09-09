@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import relationship
 
-from restweetution.storage.postgres_storage.models import Base
+from restweetution.storages.postgres_storage.models import Base
 
 
 class Poll(Base):

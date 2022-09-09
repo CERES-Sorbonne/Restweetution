@@ -1,3 +1,5 @@
+import io
+
 from pydantic import BaseModel
 from typing import Optional, Literal, List, Any
 
@@ -36,7 +38,7 @@ class PromotedMetrics(BaseModel):
 
 class Media(BaseModel):
     media_key: str
-    type: MediaType
+    type: Optional[MediaType]
     url: Optional[str]
     duration_ms: Optional[int]
     height: Optional[int]
@@ -48,3 +50,13 @@ class Media(BaseModel):
     width: Optional[int]
     alt_text: Optional[str]
     variants: Optional[List[Any]]
+
+    sha1: Optional[str]
+    format: Optional[str]
+    raw_data: Optional[io.BytesIO]
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def is_downloaded(self):
+        return self.sha1 is not None

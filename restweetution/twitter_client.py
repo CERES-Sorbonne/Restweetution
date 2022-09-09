@@ -1,37 +1,49 @@
 import asyncio
 import logging
 from typing import Callable, List
-from urllib.parse import urljoin
 
 import aiohttp
+from aiohttp import ClientTimeout
 
-from restweetution.models.stream_rule import RuleResponse
+from restweetution.models.twitter.rule import RuleResponse
 
 
-class TwitterClient(aiohttp.ClientSession):
-    def __init__(self, token: str, base_url: str = "https://api.twitter.com/2/", error_handler: Callable = None):
+class TwitterClient:
+    def __init__(self, token: str, base_url: str = "https://api.twitter.com", error_handler: Callable = None):
         super().__init__()
         self.base_url = base_url
-        self.headers.update({"Authorization": f"Bearer {token}"})
+        self._headers = {"Authorization": f"Bearer {token}"}
         self._error_handler = error_handler
         self._logger = logging.getLogger("ApiClient")
+        self._client = None
+
+    def _get_client(self):
+        self._client = aiohttp.ClientSession(headers=self._headers,
+                                             timeout=ClientTimeout(),
+                                             base_url=self.base_url)
+        return self._client
 
     def set_error_handler(self, error_handler: Callable):
         self._error_handler = error_handler
 
-    def _request(self, method, url, **kwargs):
-        modified_url = urljoin(self.base_url, url)
-        try:
-            res = super()._request(method, modified_url, **kwargs)
-            return res
-        except aiohttp.ClientResponseError as e:
-            self._error_handler(str(e), e.message)
-
     async def connect_tweet_stream(self, params, line_callback):
-        async with self as session:
-            async with session.get("https://api.twitter.com/2/tweets/search/stream", params=params) as resp:
-                async for line in resp.content:
-                    asyncio.create_task(line_callback(line))
+        self._logger.info('Connect to stream')
+        wait_time = 0
+        while True:
+            try:
+                # session = self._get_client()
+                async with self._get_client() as session:
+                    async with session.get("/2/tweets/search/stream", params=params) as resp:
+                        async for line in resp.content:
+                            # print(resp.headers)
+                            asyncio.create_task(line_callback(line))
+            except KeyboardInterrupt as e:
+                raise e
+            except BaseException as e:
+                self._logger.warning(f'Tweet Stream {type(e)}')
+            print('wait: ', wait_time)
+            await asyncio.sleep(wait_time)
+            wait_time = min(max(wait_time * 2, 1), 30)
 
     async def remove_rules(self, ids: List[str]):
         """
@@ -39,21 +51,19 @@ class TwitterClient(aiohttp.ClientSession):
                 :param ids: a list of ids of rules to remove
                 """
 
-        uri = "tweets/search/stream/rules"
-        async with self.post(uri, json={
-            "delete": {
-                "ids": ids
-            }
-        }) as r:
-            res = await r.json()
+        uri = "/2/tweets/search/stream/rules"
+        # session = self._get_client()
+        async with self._get_client() as session:
+            async with session.post(uri, json={"delete": {"ids": ids}}) as r:
+                res = await r.json()
 
-            # if everything went fine we return the ids of the deleted rules
-            if "errors" not in res:
-                self._logger.info(f'Removed {res["meta"]["summary"]["deleted"]} rule(s)')
-                return ids
+                # if everything went fine we return the ids of the deleted rules
+                if "errors" not in res:
+                    self._logger.info(f'Removed {res["meta"]["summary"]["deleted"]} rule(s)')
+                    return ids
 
-            # if not, return no ids as we can't know what rule failed or not
-            self._logger.error(res)
+                # if not, return no ids as we can't know what rule failed or not
+                self._logger.error(res)
             return []
 
     async def get_rules(self, ids: List[str] = None):
@@ -64,28 +74,30 @@ class TwitterClient(aiohttp.ClientSession):
         :return: the list of rules
         """
 
-        uri = "tweets/search/stream/rules"
+        uri = "/2/tweets/search/stream/rules"
         if ids:
             uri += f"?ids={','.join(ids)}"
-        async with self.get(uri) as r:
-            res = await r.json()
-            if not res.get('data'):
-                res['data'] = []
-            res = RuleResponse(**res)
-            # print(res)
-            return res.data
+        # session = self._get_client()
+        async with self._get_client() as session:
+            async with session.get(uri) as r:
+                res = await r.json()
+                if not res.get('data'):
+                    res['data'] = []
+                res = RuleResponse(**res)
+                # print(res)
+                return res.data
 
     async def add_rules(self, rules):
-        uri = "tweets/search/stream/rules"
-        async with self.post(uri, json={
-            "add": rules
-        }) as r:
-            res = await r.json()
-            valid_rules = []
-            if 'errors' in res:
-                errs = res['errors']
-                for err in errs:
-                    self._logger.info(f"add_rules Error: {err['title']} Rule: {err['value']}")
-            if 'data' in res:
-                valid_rules = res['data']
-            return valid_rules
+        uri = "/2/tweets/search/stream/rules"
+        # session = self._get_client()
+        async with self._get_client() as session:
+            async with session.post(uri, json={"add": rules}) as r:
+                res = await r.json()
+                valid_rules = []
+                if 'errors' in res:
+                    errs = res['errors']
+                    for err in errs:
+                        self._logger.info(f"add_rules Error: {err['title']} Rule: {err['value']}")
+                if 'data' in res:
+                    valid_rules = res['data']
+                return valid_rules
