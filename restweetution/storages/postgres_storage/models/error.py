@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -12,3 +14,6 @@ class Error(Base):
     traceback = Column(String)
     data = Column(JSONB)
 
+    def update(self, data):
+        super().update(data)
+        self.data = json.loads(json.dumps(data['data'], default=str))

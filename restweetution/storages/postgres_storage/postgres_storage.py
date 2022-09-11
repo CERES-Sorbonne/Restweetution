@@ -1,25 +1,29 @@
 from asyncio import Lock
-from typing import List, Iterator
+from typing import List, Iterator, Tuple, Set
 
-from sqlalchemy import delete, exists
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import delete, cast, BigInteger
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, joinedload
 
 from restweetution.errors import handle_storage_save_error
-from ...models import twitter
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.event_data import EventData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter.rule import StreamRule
 from restweetution.models.twitter import Media, User, Poll, Place
-from restweetution.models.twitter.tweet import RestTweet
+from restweetution.models.rule import StreamAPIRule, Rule
+from restweetution.models.twitter.tweet import Tweet
 from restweetution.storages.storage import Storage
 from . import models
+from .helpers import get_helper, save_helper, get_statement, request_history_update
+from .models import TweetPublicMetricsHistory
+from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
 
 class PostgresStorage(Storage):
-    def __init__(self, name: str, **kwargs):
+
+    def __init__(self, name: str, url: str, **kwargs):
         """
         Storage for postgres
         :param name: Name of the storage. Human friendly identifier
@@ -28,14 +32,67 @@ class PostgresStorage(Storage):
         super().__init__(name=name, **kwargs)
 
         self._engine = create_async_engine(
-            kwargs.get('url'),
+            url,
             echo=False,
         )
         self._async_session = sessionmaker(
             self._engine, expire_on_commit=False, class_=AsyncSession
         )
-
+        self._history = True
         self.lock = Lock()
+
+    def get_engine(self):
+        return self._engine
+
+    async def get_tweet_ids(self):
+        async with self._engine.begin() as conn:
+            stmt = get_statement(models.Tweet, fields=['id'])
+            res = await conn.execute(stmt)
+            res = res.scalars().all()
+            return res
+
+    async def update_error(self):
+        async with self._async_session() as session:
+            stmt = select(models.CollectedTweet).order_by(
+                cast(models.CollectedTweet.tweet_id, BigInteger).desc()).limit(1)
+            res = await session.execute(stmt)
+            print(res.scalars().all()[0].tweet_id)
+            return res
+
+    @handle_storage_save_error()
+    async def save_bulk(self, data: BulkData):
+        async with self.lock:
+            async with self._async_session() as session:
+                t_add, t_up = await self._save_tweets(session, data.get_tweets())
+                u_add, u_up = await self._save_users(session, data.get_users())
+                pl_add, pl_up = await self._save_place(session, data.get_places())
+                m_add, m_up = await self._save_media(session, data.get_medias())
+                po_add, po_up = await self._save_polls(session, data.get_polls())
+                r_add, r_up = await self._save_rules(session, data.get_rules())
+
+                # print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
+                if self._history:
+                    await self._save_history(session, bulk_data=data)
+
+                await session.commit()
+
+        # Events outside of lock !!
+
+        event_data = EventData(data=data)
+        event_data.added.add(tweets=t_add, users=u_add, places=pl_add, medias=m_add, polls=po_add, rules=r_add)
+        event_data.updated.add(tweets=t_up, users=u_up, places=pl_up, medias=m_up, polls=po_up, rules=r_up)
+
+        await self.save_event(event_data)
+        await self.update_event(event_data)
+
+    async def save_custom_datas(self, datas: List[CustomData]):
+        async with self._async_session() as session:
+            for data in datas:
+                pg_data = models.CustomData()
+                pg_data.update(data.dict())
+                pg_res = await session.merge(pg_data)
+                print(pg_res.id)
+            await session.commit()
 
     async def save_error(self, error: ErrorModel):
         async with self._async_session() as session:
@@ -44,146 +101,64 @@ class PostgresStorage(Storage):
             session.add(pg_error)
             await session.commit()
 
-    @handle_storage_save_error()
-    async def save_bulk(self, data: BulkData):
-        async with self.lock:
-            async with self._async_session() as session:
-                for key in data.tweets:
-                    pg_tweet = models.Tweet()
-                    pg_tweet.update(data.tweets[key].dict())
-                    await session.merge(pg_tweet)
-                for key in data.users:
-                    pg_user = models.User()
-                    pg_user.update(data.users[key].dict())
-                    await session.merge(pg_user)
-                for key in data.places:
-                    pg_place = models.Place()
-                    pg_place.update(data.places[key].dict())
-                    await session.merge(pg_place)
-                for key in data.medias:
-                    if await self._media_exist(session, data.medias[key].media_key):
-                        continue
-                    pg_media = models.Media()
-                    pg_media.update(data.medias[key].dict())
-                    await session.merge(pg_media)
-                for key in data.polls:
-                    pg_poll = models.Poll()
-                    pg_poll.update(data.polls[key].dict())
-                    await session.merge(pg_poll)
-                for key in data.rules:
-                    await self._add_or_update_rule(session, data.rules[key])
-                    # print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
-                await session.commit()
-        #  emit event outside of lock !!
-        await self._emit_save_event(bulk_data=data)
-
-    async def save_custom_datas(self, datas: List[CustomData]):
-        async with self._async_session() as session:
-            for data in datas:
-                pg_data = models.CustomData()
-                pg_data.update(data.dict())
-                await session.merge(pg_data)
-            await session.commit()
-
-    # Update functions
-    async def update_medias(self, medias: List[Media]):
-        async with self.lock:
-            async with self._async_session() as session:
-                db_medias = await self._get_medias(session, ids=[m.media_key for m in medias])
-                for media, db_media in zip(medias, db_medias):
-                    db_media.update(media.dict())
-                    await session.merge(db_media)
-                await session.commit()
-        await self.update_event(medias=medias)
-
     # get functions
-    async def get_tweets(self, ids: List[str] = None, no_ids: List[str] = None) -> List[RestTweet]:
+    async def get_tweets(self,
+                         ids: List[str] = None,
+                         no_ids: List[str] = None,
+                         fields: List[str] = tweet_fields,
+                         sort_by: str = None,
+                         order: str = None,
+                         **kwargs) -> List[Tweet]:
         async with self._async_session() as session:
-            stmt = select(models.Tweet)
-            if ids:
-                stmt = stmt.filter(models.Tweet.id.in_(ids))
-            if no_ids:
-                stmt = stmt.filter(models.Tweet.id.notin_(no_ids))
-            stmt = stmt.options(joinedload('*'))
-            res = await session.execute(stmt)
-            res = res.unique().scalars().all()
-            res = [RestTweet(**r.to_dict()) for r in res]
-            return res
+            res = await get_helper(session, models.Tweet, ids=ids, no_ids=no_ids, fields=fields, sort_by=sort_by,
+                                   order=order, **kwargs)
+            return [Tweet(**r.to_dict()) for r in res]
 
-    async def get_users(self, ids: List[str] = None, no_ids: List[str] = None) -> Iterator[User]:
+    async def get_users(self,
+                        ids: List[str] = None,
+                        no_ids: List[str] = None,
+                        fields: List[str] = user_fields) -> Iterator[User]:
         async with self._async_session() as session:
-            stmt = select(models.User)
-            if ids:
-                stmt = stmt.filter(models.User.id.in_(ids))
-            if no_ids:
-                stmt = stmt.filter(models.User.id.notin_(no_ids))
-            stmt = stmt.options(joinedload('*'))
-            res = await session.execute(stmt)
-            res = res.unique().scalars().all()
-            res = [twitter.User(**r.to_dict()) for r in res]
-            return res
+            res = await get_helper(session, models.User, ids=ids, no_ids=no_ids, fields=fields)
+            return [User(**r.to_dict()) for r in res]
 
-    async def get_polls(self, ids: List[str] = None, no_ids: List[str] = None) -> Iterator[Poll]:
+    async def get_polls(self,
+                        ids: List[str] = None,
+                        no_ids: List[str] = None,
+                        fields: List[str] = poll_fields) -> Iterator[Poll]:
         async with self._async_session() as session:
-            stmt = select(models.Poll)
-            if ids:
-                stmt = stmt.filter(models.Poll.id.in_(ids))
-            if no_ids:
-                stmt = stmt.filter(models.Poll.id.notin_(no_ids))
-            stmt = stmt.options(joinedload('*'))
-            res = await session.execute(stmt)
-            res = res.unique().scalars().all()
-            res = [twitter.Poll(**r.to_dict()) for r in res]
-            return res
+            res = await get_helper(session, models.Poll, ids=ids, no_ids=no_ids, fields=fields)
+            return [Poll(**r.to_dict()) for r in res]
 
-    async def get_places(self, ids: List[str] = None, no_ids: List[str] = None) -> Iterator[Place]:
+    async def get_places(self,
+                         ids: List[str] = None,
+                         no_ids: List[str] = None,
+                         fields: List[str] = place_fields) -> Iterator[Place]:
         async with self._async_session() as session:
-            stmt = select(models.Place)
-            if ids:
-                stmt = stmt.filter(models.Place.id.in_(ids))
-            if no_ids:
-                stmt = stmt.filter(models.Place.id.notin_(no_ids))
-            stmt = stmt.options(joinedload('*'))
-            res = await session.execute(stmt)
-            res = res.unique().scalars().all()
-            res = [twitter.Place(**r.to_dict()) for r in res]
-            return res
+            res = await get_helper(session, models.Place, ids=ids, no_ids=no_ids, fields=fields)
+            return [Place(**r.to_dict()) for r in res]
 
-    async def get_medias(self, ids: List[str] = None, no_ids: List[str] = None) -> List[twitter.Media]:
+    async def get_medias(self,
+                         ids: List[str] = None,
+                         no_ids: List[str] = None,
+                         fields: List[str] = media_fields) -> Iterator[Media]:
         async with self._async_session() as session:
-            res = await self._get_medias(session, ids=ids, no_ids=no_ids)
-            res = [twitter.Media(**r.to_dict()) for r in res]
-            return res
+            res = await get_helper(session, models.Media, ids=ids, no_ids=no_ids, fields=fields, id_field='media_key')
+            return [Media(**r.to_dict()) for r in res]
 
-    @staticmethod
-    async def _media_exist(session, media_key: str):
-        res = await session.execute(exists(select().where(models.Media.media_key == media_key)).select())
-        exist = res.scalar()
-        return exist
-
-    @staticmethod
-    async def _get_medias(session, ids: List[str] = None, no_ids: List[str] = None) -> List[models.Media]:
-        stmt = select(models.Media)
-        if ids:
-            stmt = stmt.filter(models.Media.media_key.in_(ids))
-        if no_ids:
-            stmt = stmt.filter(models.Media.media_key.notin_(no_ids))
-        stmt = stmt.options(joinedload('*'))
-        res = await session.execute(stmt)
-        res = res.unique().scalars().all()
-        return res
-
-    async def get_rules(self, ids: List[str] = None, no_ids: List[str] = None) -> List[StreamRule]:
+    async def get_rules(
+            self,
+            ids: List[str] = None,
+            no_ids: List[str] = None,
+            fields: List[str] = rule_fields) -> List[StreamAPIRule]:
         async with self._async_session() as session:
-            stmt = select(models.Rule)
-            if ids:
-                stmt = stmt.filter(models.Rule.id.in_(ids))
-            if no_ids:
-                stmt = stmt.filter(models.Tweet.id.notin_(no_ids))
-            stmt = stmt.options(joinedload('*'))
-            res = await session.execute(stmt)
-            res = res.unique().scalars().all()
-            res = [twitter.StreamRule(**r.to_dict()) for r in res]
+            fields = fields.copy()
+            if 'tweet_ids' in fields:
+                fields.remove('tweet_ids')
+                fields.append('tweets')
+
+            res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields)
+            res = [StreamAPIRule(**r.to_dict()) for r in res]
             return res
 
     async def get_errors(self, ids: List[str] = None, no_ids: List[str] = None) -> List[ErrorModel]:
@@ -208,25 +183,91 @@ class PostgresStorage(Storage):
             return res
 
     # Delete functions
-    async def del_custom_data(self, key: str, ids: List[str] = None):
+
+    async def del_custom_datas(self, key: str, ids: List[str] = None):
         async with self._async_session() as session:
             stmt = delete(models.CustomData).filter(models.CustomData.key == key)
             if ids:
                 stmt = stmt.filter(models.CustomData.id.in_(ids))
-            res = await session.execute(stmt)
+            await session.execute(stmt)
             await session.commit()
 
     # private utils
 
     @staticmethod
-    async def _add_or_update_rule(session: any, rule):
-        pg_rule = await session.get(models.Rule, rule.id)
-        if not pg_rule:
-            pg_rule = models.Rule()
-            pg_rule.update(rule.dict())
-            await session.merge(pg_rule)
-        else:
+    async def _save_tweets(session, tweets: List[Tweet]):
+        return await save_helper(session, models.Tweet, tweets)
+
+    @staticmethod
+    async def _save_users(session, users: List[User]):
+        return await save_helper(session, models.User, users)
+
+    @staticmethod
+    async def _save_place(session, places: List[Place]):
+        return await save_helper(session, models.Place, places)
+
+    @staticmethod
+    async def _save_polls(session, polls: List[Poll]):
+        return await save_helper(session, models.Poll, polls)
+
+    @staticmethod
+    async def _save_media(session, medias: List[Tweet]):
+        return await save_helper(session, models.Media, medias, id_field='media_key')
+
+    @staticmethod
+    async def _save_rules(session: any, rules: List[Rule]) -> Tuple[Set[int], Set[int]]:
+        added = set()
+        updated = set()
+        for rule in rules:
+            # print(rule)
             for tweet_id in rule.tweet_ids:
+                # print(type(tweet_id))
                 pg_collected = models.CollectedTweet()
                 pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
                 await session.merge(pg_collected)
+                updated.add(rule.id)
+        return added, updated
+
+    @staticmethod
+    async def _get_rule(session, rule: Rule):
+        stmt = select(models.Rule).filter(models.Rule.tag == rule.tag).filter(models.Rule.query == rule.query)
+        stmt = stmt.filter(models.Rule.name == rule.name).filter(models.Rule.type == rule.type)
+        res = await session.execute(stmt)
+        res = res.scalars().first()
+        return res
+
+    async def request_rules(self, rules: List[Rule]):
+        async with self._async_session() as session:
+            for rule in rules:
+                pg_rule = await self._get_rule(session, rule)
+                if not pg_rule:
+                    pg_rule = models.Rule()
+                    pg_rule.update(rule.dict())
+                    pg_rule = await session.merge(pg_rule)
+                await session.commit()
+                rule.id = pg_rule.id
+        return rules
+
+    @staticmethod
+    def should_save(value):
+        return True
+
+    @staticmethod
+    async def _save_history(session, bulk_data: BulkData):
+        if not bulk_data.timestamp:
+            return
+
+        for tweet in bulk_data.get_tweets():
+            if tweet.public_metrics:
+                await PostgresStorage._save_history_helper(session, TweetPublicMetricsHistory, tweet.id,
+                                                           tweet.public_metrics.dict(), bulk_data.timestamp)
+
+    @staticmethod
+    async def _save_history_helper(session, pg_model, parent_id, data, timestamp):
+        if not request_history_update(pg_model, parent_id, data, timestamp):
+            return
+        pg_history = pg_model()
+        pg_history.update(data)
+        pg_history.timestamp = timestamp
+        pg_history.parent_id = parent_id
+        await session.merge(pg_history)

@@ -36,8 +36,8 @@ class User(Base):
         back_populates='_parent',
         uselist=False)  # one-to-one)
 
-    def update(self, data):
-        super().update(data)
+    def update(self, data, **kwargs):
+        super().update(data, **kwargs)
         self.update_one_to_many('entities.url.urls', UrlUrl, data)
         self.update_one_to_one('entities.description', UserDescriptionEntities, data)
         self.update_one_to_one('public_metrics', UserPublicMetrics, data)

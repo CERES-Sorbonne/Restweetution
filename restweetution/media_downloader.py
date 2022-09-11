@@ -7,10 +7,10 @@ from typing import Dict, List
 import aiohttp
 from pydantic import BaseModel
 
-from restweetution.models.bulk_data import BulkData
+from restweetution.models.event_data import EventData
 from restweetution.models.twitter.media import Media
-from restweetution.storages.storage import Storage
 from restweetution.storages.object_storage.filestorage_helper import FileStorageHelper
+from restweetution.storages.storage import Storage
 
 
 class MediaCache(BaseModel):
@@ -66,8 +66,8 @@ class MediaDownloader:
 
     # Internal
 
-    async def _medias_save_event_handler(self, data: BulkData):
-        medias = list(data.medias.values())
+    async def _medias_save_event_handler(self, event_data: EventData):
+        medias = [m for m in event_data.data.get_medias() if m.media_key in event_data.added.medias]
         for m in medias:
             self._add_download_task(m)
 
@@ -108,7 +108,7 @@ class MediaDownloader:
             media.sha1 = cache.sha1
             media.format = cache.format
             self._cache_media(media)
-            await self._storage.update_medias([media])
+            await self._storage.save_medias([media])
             return True
         return False
 
@@ -116,9 +116,6 @@ class MediaDownloader:
         """
         Cache media
         """
-        # print(type(media.url))
-        # if media.url is None:
-        #     print(media)
         cache = MediaCache(sha1=media.sha1, format=media.format)
         self._media_key_cache[media.media_key] = cache
         self._url_cache[media.url] = cache
@@ -127,7 +124,6 @@ class MediaDownloader:
         """
         Load Media cache from storage
         """
-        # print('load cache from storage')
         medias = await self._storage.get_medias()
         for m in medias:
             if m.sha1 and m.url:
@@ -147,7 +143,7 @@ class MediaDownloader:
         Download the media and compute its signature
         """
         async with aiohttp.ClientSession() as session:
-            if media.type == 'photo':
+            if media.type == 'photo' and media.url:
                 media_format = media.url.split('.')[-1]
                 try:
                     res = await session.get(media.url)
@@ -164,7 +160,7 @@ class MediaDownloader:
 
                     await self._write_media(updated)
                     self._cache_media(media)
-                    await self._storage.update_medias([updated])
+                    await self._storage.save_medias([updated])
                 except aiohttp.ClientResponseError as e:
                     self._logger.warning(f"There was an error downloading image {media.url}: " + str(e))
                     # TODO: add an error handler here ?

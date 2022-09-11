@@ -8,14 +8,16 @@ from restweetution.errors import handle_error, FunctionNotImplementedError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
+from restweetution.models.rule import Rule
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
-from restweetution.models.twitter.tweet import User, StreamRule, RestTweet
+from restweetution.models.twitter.tweet import User, Tweet
+from restweetution.storages.exporter.exporter import Exporter
 from restweetution.utils import Event
 
 
-class Storage(ABC):
+class Storage(Exporter, ABC):
     def __init__(self, name: str = None, interval: int = 0, buffer_size: int = 0, **kwargs):
         """
         Abstract Class that provides the template for every other storage
@@ -25,7 +27,7 @@ class Storage(ABC):
         :param interval: Optional. Clear storage every X seconds
         :param buffer_size: Optional. Max number of data the buffer can contain
         """
-        self.name = name
+        super().__init__(name)
 
         self._buffer_bulk_data: BulkData = BulkData()
         self._flush_interval = interval
@@ -78,15 +80,18 @@ class Storage(ABC):
         to be implemented in child class
         """
         pass
+    
+    async def request_rules(self, rules: List[Rule]):
+        pass
 
-    async def save_tweet(self, tweet: RestTweet):
+    async def save_tweet(self, tweet: Tweet):
         """
         Save tweet
         :param tweet: tweet
         """
         await self.save_tweets([tweet])
 
-    async def save_tweets(self, tweets: List[RestTweet]):
+    async def save_tweets(self, tweets: List[Tweet]):
         """
         Save multiple tweets
         :param tweets: tweets
@@ -95,14 +100,14 @@ class Storage(ABC):
         bulk_data.add_tweets(tweets)
         await self.save_bulk(bulk_data)
 
-    async def save_rule(self, rule: StreamRule):
+    async def save_rule(self, rule: Rule):
         """
         Save rule
         :param rule: rule
         """
         await self.save_rules([rule])
 
-    async def save_rules(self, rules: List[StreamRule]):
+    async def save_rules(self, rules: List[Rule]):
         """
         Save multiple rules
         :param rules: rules
@@ -183,14 +188,6 @@ class Storage(ABC):
         """
         raise FunctionNotImplementedError('Save Error function not implemented')
 
-    async def save_custom_datas(self, datas: List[CustomData]):
-        raise NotImplementedError('save_custom_data function is not implemented')
-
-    # Update
-
-    async def update_medias(self, medias: List[Media]):
-        raise NotImplementedError('Function update_medias is not implemented')
-
     # buffer utils
 
     def _flush_buffer(self):
@@ -240,10 +237,10 @@ class Storage(ABC):
     async def get_users(self, **kwargs) -> List[User]:
         pass
 
-    async def get_tweets(self, **kwargs) -> List[RestTweet]:
+    async def get_tweets(self, **kwargs) -> List[Tweet]:
         pass
 
-    async def get_rules(self, **kwargs) -> List[StreamRule]:
+    async def get_rules(self, **kwargs) -> List[Rule]:
         pass
 
     async def get_polls(self, **kwargs) -> List[Poll]:

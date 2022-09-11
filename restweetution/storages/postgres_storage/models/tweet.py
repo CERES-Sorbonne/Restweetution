@@ -61,8 +61,8 @@ class Tweet(Base):
     source = Column(String, nullable=True)
     reply_settings = Column(String, nullable=True)
 
-    def update(self, data):
-        super().update(data)
+    def update(self, data, **kwargs):
+        super().update(data, **kwargs)
         self.update_one_to_many('referenced_tweets', ReferencedTweet, data)
         self.update_one_to_one('attachments', Attachment, data)
         self.update_one_to_one('geo', Geo, data)
@@ -150,11 +150,11 @@ class TweetEntities(Base):
     _parent_id = Column(String, ForeignKey('tweet.id'))
     _parent = relationship('Tweet', back_populates='entities')
 
-    annotations = relationship('TweetAnnotation', backref='_parent')
-    urls = relationship('TweetUrl', backref='_parent')
-    hashtags = relationship('TweetHashtag', cascade="all,delete,delete-orphan", backref='_parent')
-    mentions = relationship('TweetMention', cascade="all,delete,delete-orphan", backref='_parent')
-    cashtags = relationship('TweetCashtag', cascade="all,delete,delete-orphan", backref='_parent')
+    annotations = relationship('TweetAnnotation', backref='_parent', lazy='joined')
+    urls = relationship('TweetUrl', backref='_parent', lazy='joined')
+    hashtags = relationship('TweetHashtag', cascade="all,delete,delete-orphan", backref='_parent', lazy='joined')
+    mentions = relationship('TweetMention', cascade="all,delete,delete-orphan", backref='_parent', lazy='joined')
+    cashtags = relationship('TweetCashtag', cascade="all,delete,delete-orphan", backref='_parent', lazy='joined')
 
     def update(self, data):
         super().update(data)
@@ -241,8 +241,8 @@ class ContextAnnotation(Base):
     _domain_id = Column(String, ForeignKey('domain.id'))
     _entity_id = Column(String, ForeignKey('entity.id'))
 
-    domain = relationship('Domain')
-    entity = relationship('Entity')
+    domain = relationship('Domain', lazy='joined')
+    entity = relationship('Entity', lazy='joined')
 
     def update(self, data):
         super().update(data)

@@ -1,8 +1,11 @@
 import asyncio
 import logging
 import os
+from datetime import datetime
+from time import time
+
 import restweetution.config as config
-from restweetution.data_view.data_view import ElasticView
+from restweetution.data_view.elastic_dashboard import ElasticDashboard
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
@@ -16,16 +19,13 @@ async def launch():
     postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
     elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
 
-    view = ElasticView(in_storage=postgres_storage, out_storage=elastic_storage)
-    await view.load()
-    await view.save()
+    last = time()
+    res = await postgres_storage.get_tweet_ids()
+    print(res)
+    print(time() - last)
 
-    streamer = main_conf.streamer
-    await streamer.collect()
 
-loop = asyncio.get_event_loop()
-loop.create_task(launch())
 try:
-    loop.run_forever()
+    asyncio.run(launch())
 except KeyboardInterrupt as e:
     pass

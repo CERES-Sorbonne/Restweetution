@@ -6,12 +6,13 @@ from elasticsearch import AsyncElasticsearch
 from elasticsearch import helpers
 
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Media
 from restweetution.models.twitter import Poll
 from restweetution.models.twitter.place import Place
-from restweetution.models.twitter.tweet import TweetResponse, User, StreamRule, RestTweet
+from restweetution.models.twitter.tweet import TweetResponse, User, Tweet
 from restweetution.storages.elastic_storage.bulk_actions import SaveAction, UpdateAction
 from restweetution.storages.storage import Storage
 
@@ -60,7 +61,7 @@ class ElasticStorage(Storage):
     # Private
 
     @staticmethod
-    def _rules_to_bulk_actions(rules: List[StreamRule]):
+    def _rules_to_bulk_actions(rules: List[Rule]):
         for rule in rules:
             yield SaveAction(index=RULE_INDEX, id_=rule.id, doc=rule.dict())
 
@@ -70,7 +71,7 @@ class ElasticStorage(Storage):
             yield SaveAction(index=USER_INDEX, id_=user.id, doc=user.dict())
 
     @staticmethod
-    def _tweet_to_bulk_actions(tweets: List[RestTweet]):
+    def _tweet_to_bulk_actions(tweets: List[Tweet]):
         for tweet in tweets:
             yield SaveAction(index=TWEET_INDEX, id_=tweet.id, doc=tweet.dict())
 
@@ -98,10 +99,10 @@ class ElasticStorage(Storage):
         await self.es.index(index='error', document=error.dict())
         await self.es.indices.refresh(index='error')
 
-    async def save_tweet(self, tweet: RestTweet):
+    async def save_tweet(self, tweet: Tweet):
         await self.save_tweets([tweet])
 
-    async def save_tweets(self, tweets: List[RestTweet]):
+    async def save_tweets(self, tweets: List[Tweet]):
         for tweet in tweets:
             await self.es.index(index="tweet", id=tweet.id, document=tweet.dict())
         await self.es.indices.refresh(index="tweet")
@@ -109,10 +110,10 @@ class ElasticStorage(Storage):
     async def get_tweets(self, ids: List[str] = None, no_ids=None) -> List[TweetResponse]:
         pass
 
-    async def save_rule(self, rule: StreamRule):
+    async def save_rule(self, rule: Rule):
         await self.save_rules([rule])
 
-    async def save_rules(self, rules: List[StreamRule]):
+    async def save_rules(self, rules: List[Rule]):
         to_save = [r for r in rules if r.id not in self.rules]
         if not to_save:
             return

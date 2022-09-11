@@ -5,17 +5,46 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import declarative_base
 
 
+def is_basic_value(value):
+    return isinstance(value, (str, int, float, bool, datetime))
+
+
+def deep_is_empty(value):
+    # if None, {}, [], ""
+    if not value:
+        return True
+    # if not some nested value
+    if is_basic_value(value):
+        return False
+
+    if isinstance(value, dict):
+        for k in value:
+            if not deep_is_empty(value[k]):
+                return False
+    elif isinstance(value, (set, list)):
+        for v in value:
+            if not deep_is_empty(v):
+                return False
+    return True
+
+
 class CustomBase(object):
-    def update(self, data: dict):
+    def update(self, data: dict, ignore_empty=False):
         for key, value in data.items():
-            if self._is_basic_value(value) or self._is_basic_array(value):
+            if ignore_empty and deep_is_empty(value):
+                data[key] = None
+            elif self._is_basic_value(value) or self._is_basic_array(value):
                 if hasattr(self, key):
                     setattr(self, key, value)
 
     def to_dict(self):
-        data = {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs if c.key[0] != '_'}
+        ignore = inspect(self).unloaded
+        data = {c.key: getattr(self, c.key)
+                for c in inspect(self).mapper.column_attrs
+                if c.key[0] != '_' and c.key not in ignore}
+
         for k, v in inspect(self).mapper.relationships.items():
-            if k == '_parent':
+            if k == '_parent' or k in ignore:
                 continue
             items = getattr(self, k)
             if isinstance(items, Sequence):
@@ -23,7 +52,7 @@ class CustomBase(object):
             elif items:
                 data[k] = items.to_dict()
         # remove None values from data
-        for k in data.copy():
+        for k in list(data.keys()):
             if data[k] is None:
                 data.pop(k)
         return data
@@ -92,7 +121,6 @@ class CustomBase(object):
         if self._is_empty_dict(nested_data):
             return
 
-        # print(args)
         sqa_model_object = sqa_model()
         sqa_model_object.update(nested_data)
         setattr(self, db_key, sqa_model_object)
@@ -105,12 +133,12 @@ class CustomBase(object):
             return
 
         setattr(self, db_key, [])
-        attr = getattr(self, db_key)
+        arr = getattr(self, db_key)
 
         for args in nested_data:
             sqa_model_object = sqa_model()
             sqa_model_object.update(args)
-            attr.append(sqa_model_object)
+            arr.append(sqa_model_object)
 
     def update_value(self, key: str, data):
         keys = key.split('.')

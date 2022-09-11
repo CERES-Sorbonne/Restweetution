@@ -7,3 +7,4 @@ from .media import *
 from .poll import *
 from .rule import *
 from .error import *
+from .history import *

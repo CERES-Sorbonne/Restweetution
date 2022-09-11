@@ -1,0 +1,55 @@
+bearer_token: <secret token>
+
+storages:
+    remote_elastic:
+        type: elastic
+        url: https://remote.ip/elastic
+        user: elastic
+        pwd: password
+    local_postgres:
+        type: postgres
+        url: "postgresql+asyncpg://localhost/databasename"
+    csv:
+        type: csv
+        root_dir: "/Users/you/Restweetution/collectes"
+
+storage_manager:
+    main_storage: local_postgres
+    media_root_dir: "/Users/you/Restweetution/collectes/images"
+    media_download: True
+    tags:
+        remote_elastic: ['politique', 'energie']
+
+streamer:
+    verbose: False
+    rules:
+        - name: Recolte Theme Energie n°1
+          tag: Energie
+          query: '#solaire OR #nucleaire'
+        - name: Chats mignons
+          tag: Cats
+          query: '#cats AND #cute'
+
+searcher:
+    rule:
+        tag: Politique
+        name: Droites, extrêmes
+        query: '#RN OR #LREM OR #LR
+
+query_fields:
+    preset: all
+#        file: path/to/file
+#        tweet_fields:
+#            - withheld
+#            - context_annotations
+#            - referenced_tweets
+#            - created_at
+#            - attachments
+#            - geo
+#            - author_id
+#            - entities
+
+
+
+
+

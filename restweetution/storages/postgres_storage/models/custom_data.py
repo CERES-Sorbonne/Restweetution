@@ -15,4 +15,4 @@ class CustomData(Base):
 
     def update(self, data):
         super().update(data)
-        self.data = json.dumps(data['data'], default=str)
+        self.data = json.loads(json.dumps(data['data'], default=str))

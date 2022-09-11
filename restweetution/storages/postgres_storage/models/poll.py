@@ -14,7 +14,7 @@ class Poll(Base):
     end_datetime = Column(TIMESTAMP(timezone=True), nullable=True)
     voting_status = Column(String, nullable=True)
 
-    def update(self, data):
+    def update(self, data, **kwargs):
         super().update(data)
         self.update_one_to_many('options', PollOption, data)
 

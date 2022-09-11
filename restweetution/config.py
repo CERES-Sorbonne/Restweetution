@@ -4,13 +4,15 @@ from typing import Optional
 import yaml
 
 from restweetution.collectors import Streamer
-from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
-from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
-from restweetution.twitter_client import TwitterClient
+from restweetution.collectors.searcher import Searcher
 from restweetution.models.config.main_config import MainConfig
-from restweetution.models.config.query_params_config import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
-from restweetution.models.config.tweet_config import QueryParams
+from restweetution.models.config.stream_query_params import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
+from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.rule import StreamerRule, SearcherRule
 from restweetution.storage_manager import StorageManager
+from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
+from restweetution.storages.exporter.csv_exporter import CSVExporter
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 
 def get_config_from_file(file_path: str):
@@ -57,10 +59,12 @@ def build_config(data: dict):
     """
     main_conf = MainConfig()
 
-    parse_client_config(main_conf, data)
+    parse_auth_config(main_conf, data)
     parse_storage_config(main_conf, data)
     parse_storage_manager_config(main_conf, data)
     parse_streamer_config(main_conf, data)
+    parse_query_fields(main_conf, data)
+    parse_searcher_rule(main_conf, data)
 
     return main_conf
 
@@ -71,52 +75,49 @@ def parse_streamer_config(main_conf: MainConfig, data: dict):
     :param main_conf: MainConfig
     :param data: raw config data
     """
-    if main_conf.client and main_conf.storage_manager:
-        streamer = Streamer(client=main_conf.client, storage_manager=main_conf.storage_manager)
+    if main_conf.storage_manager:
+        streamer = Streamer(bearer_token=main_conf.bearer_token, storage_manager=main_conf.storage_manager)
         if 'streamer' in data:
             s_data = data['streamer']
             if 'verbose' in s_data:
                 main_conf.streamer_verbose = s_data['verbose']
-                streamer.set_verbose(main_conf.streamer_verbose)
+                # streamer.set_verbose(main_conf.streamer_verbose)
             if 'rules' in s_data:
-                main_conf.streamer_rules = s_data['rules']
-                streamer.pre_set_stream_rules(main_conf.streamer_rules)
-            if 'query_params' in s_data:
-                parse_query_params(main_conf, s_data['query_params'])
-                streamer.set_query_params(main_conf.streamer_query_params)
+                main_conf.streamer_rules = [StreamerRule(**r) for r in s_data['rules']]
         main_conf.streamer = streamer
 
 
-def parse_query_params(main_conf: MainConfig, data: dict):
+def parse_query_fields(main_conf: MainConfig, data: dict):
     """
     Parse query params from config
     :param main_conf: MainConfig to populate
     :param data: query_params data from config
     """
-    params = data
-    if 'preset' in data:
-        value = data['preset'].lower()
-        if value == 'all':
-            params = ALL_CONFIG
-        elif value == 'medium':
-            params = MEDIUM_CONFIG
-        elif value == 'basic':
-            params = BASIC_CONFIG
-    elif 'file' in data:
-        params = QueryParams(**read_conf(data['file']))
+    if 'query_fields' in data:
+        data = data['query_fields']
+        fields = data
+        if 'preset' in data:
+            value = data['preset'].lower()
+            if value == 'all':
+                fields = ALL_CONFIG
+            elif value == 'medium':
+                fields = MEDIUM_CONFIG
+            elif value == 'basic':
+                fields = BASIC_CONFIG
+        elif 'file' in data:
+            fields = QueryFields(**read_conf(data['file']))
 
-    main_conf.streamer_query_params = params
+        main_conf.query_fields = fields
 
 
-def parse_client_config(main_conf: MainConfig, data: dict):
+def parse_auth_config(main_conf: MainConfig, data: dict):
     """
     Parsing of client options
     :param main_conf: MainConfig
     :param data: raw config data
     """
-    if 'client' not in data:
-        return
-    main_conf.client = TwitterClient(token=data['client']['token'])
+    if 'bearer_token' in data:
+        main_conf.bearer_token = data['bearer_token']
 
 
 def parse_storage_config(main_conf: MainConfig, data: dict):
@@ -130,6 +131,15 @@ def parse_storage_config(main_conf: MainConfig, data: dict):
             storage = create_storage(key, value)
             main_conf.storage_list.append(storage)
             main_conf.storages[storage.name] = storage
+
+
+def parse_searcher_rule(main_conf: MainConfig, data: dict):
+    if 'searcher' in data:
+        data = data['searcher']
+        if 'rule' in data:
+            main_conf.searcher_rule = SearcherRule(**data['rule'])
+        if main_conf.bearer_token and main_conf.storage_manager:
+            main_conf.searcher = Searcher(storage=main_conf.storage_manager, bearer_token=main_conf.bearer_token)
 
 
 def parse_storage_manager_config(main_conf: MainConfig, data: dict):
@@ -195,3 +205,5 @@ def create_storage(name: str, data: dict):
         return ElasticStorage(name=name, **data)
     if storage_type == 'postgres':
         return PostgresStorage(name=name, **data)
+    if storage_type == 'csv':
+        return CSVExporter(name=name, **data)
