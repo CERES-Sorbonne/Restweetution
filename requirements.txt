@@ -14,3 +14,4 @@ httpx
 setuptools
 tweepy[async]
 aiocsv
+asyncpg
