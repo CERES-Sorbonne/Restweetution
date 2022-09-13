@@ -17,7 +17,7 @@ from restweetution.models.twitter.tweet import Tweet
 from restweetution.storages.storage import Storage
 from . import models
 from .helpers import get_helper, save_helper, get_statement, request_history_update
-from .models import TweetPublicMetricsHistory
+from .models import TweetPublicMetricsHistory, Base
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
 
@@ -40,6 +40,9 @@ class PostgresStorage(Storage):
         )
         self._history = True
         self.lock = Lock()
+
+        async with self._engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
 
     def get_engine(self):
         return self._engine
