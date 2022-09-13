@@ -41,9 +41,6 @@ class PostgresStorage(Storage):
         self._history = True
         self.lock = Lock()
 
-        async with self._engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
     def get_engine(self):
         return self._engine
 
