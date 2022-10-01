@@ -29,7 +29,7 @@ class Searcher:
 
         query = rule.query
 
-        count = await self.get_tweets_count(query, **kwargs)
+        count = await self.get_tweets_count(query, recent=recent, **kwargs)
         self._logger.info(f'Retrieving {count.meta.total_tweet_count} tweets')
 
         if not fields:
@@ -38,18 +38,23 @@ class Searcher:
         search_function = self._client.search_recent_tweets if recent else self._client.search_all_tweets
 
         async for res in self._token_loop(search_function, query, **fields.dict(), max_results=max_results, **kwargs):
-            bulk_data = BulkData()
+            try:
+                bulk_data = BulkData()
 
-            tweets = [Tweet(**t) for t in res.data]
-            bulk_data.add_tweets(tweets)
-            bulk_data.add(**parse_includes(Includes(**res.includes)))
-            bulk_data.add_rules([rule.copy()], collected=True)
+                tweets = [Tweet(**t) for t in res.data]
+                bulk_data.add_tweets(tweets)
+                bulk_data.add(**parse_includes(Includes(**res.includes)))
+                bulk_data.add_rules([rule.copy()], collected=True)
 
-            self._logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
-            self.storage_manager.save_bulk(bulk_data)
+                self._logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
+                self.storage_manager.save_bulk(bulk_data)
+            except Exception as e:
+                self._logger.warning(e)
 
-    async def get_tweets_count(self, query, **kwargs):
-        res = await self._client.get_recent_tweets_count(query, **kwargs)
+    async def get_tweets_count(self, query, recent=True, **kwargs):
+        count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
+
+        res = await count_func(query, **kwargs)
         count = CountResponse(data=res.data, meta=res.meta, errors=res.errors, includes=res.includes)
         return count
 

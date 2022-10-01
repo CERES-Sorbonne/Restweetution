@@ -35,7 +35,7 @@ class TwitterClient:
                 async with self._get_client() as session:
                     async with session.get("/2/tweets/search/stream", params=params.dict(join='.')) as resp:
                         async for line in resp.content:
-                            # print(resp.headers)
+                            print(resp.headers)
                             yield line
             except KeyboardInterrupt as e:
                 raise e
