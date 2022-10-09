@@ -11,7 +11,7 @@ from restweetution.errors import ResponseParseError, TwitterAPIError, StorageErr
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.rule import StreamerRule
+from restweetution.models.rule import StreamerRule, StreamAPIRule
 from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storage_manager import StorageManager
 from restweetution.twitter_client import TwitterClient
@@ -30,8 +30,10 @@ class Streamer:
         # super(Streamer, self).__init__(client, storage_manager, verbose=verbose)
 
         # use a cache to store the rules
-
+        # cache twitter rule api id to local StreamerRule object
         self._api_id_to_rule: Dict[str, StreamerRule] = {}
+        # dict of active rules
+        self._active_rules: Dict[int, StreamerRule] = {}
 
         # self._client2 = AsyncStreamingClient(bearer_token=bearer_token)
         self._client = TwitterClient(token=bearer_token)
@@ -48,59 +50,75 @@ class Streamer:
         # compute request parameters
         self._params['backfill_minutes'] = backfill_minutes
 
-    async def get_rules(self) -> List[StreamerRule]:
+    def get_rules(self) -> List[StreamerRule]:
         """
-        Return the list of rules defined to collect tweets during a stream
-        Once fetched with the API, the rules are cached
+        Return the list of active rules defined to collect tweets during a stream
         :return: the list of rules
         """
-        return list(self._api_id_to_rule.values())
+        return list(self._active_rules.values())
+
+    async def get_api_rules(self):
+        """
+        Return the rules registered on the api
+        :return: list of API Rules
+        """
+        return await self._client.get_rules()
 
     async def reset_stream_rules(self) -> None:
         """
         Removes all rules
         """
-        rules = await self._client.get_rules()
-        if rules:
-            await self._client.remove_rules([r.id for r in rules])
+        await self.remove_rules([r.id for r in self.get_rules()])
 
-    async def set_rules(self, rules: List[StreamerRule], delete=True) -> List[StreamerRule]:
+    async def set_rules(self, rules: List[StreamerRule]) -> List[StreamerRule]:
         """
         Like add_rule but instead removes all rules and then set the rules :rules:
         :param rules: a dict in the form tag: rule
-        :param delete: Delete server rules not set here. True by default
         :return: the list of all the new rules
         """
+
         self._clear_rule_cache()
+        self._active_rules = {}
+        await self.add_rules(rules)
+        server_rules = await self.get_api_rules()
+        api_ids_to_del = [rule.id for rule in server_rules if rule.id not in self._api_id_to_rule]
+        if api_ids_to_del:
+            await self._client.remove_rules(api_ids_to_del)
 
-        rules = await self._storage_manager.request_rules(rules)
-        server_rules = await self._client.get_rules()
-        hash_to_rule = {hash(r): r for r in server_rules}
-        used_rules_hash = set()
-
-        for rule in rules:
-            hash_ = hash(rule)
-            if hash_ in hash_to_rule:
-                rule.api_id = hash_to_rule[hash_].api_id
-            else:
-                s_rule = await self._client.add_rules([rule.get_api_rule()])
-                rule.api_id = s_rule[0].id
-            used_rules_hash.add(hash_)
-
-        self._cache_rules(rules)
-
-        if delete:
-            to_delete_ids = [rule.api_id for k, rule in hash_to_rule.items() if k not in used_rules_hash]
-            if to_delete_ids:
-                await self._client.remove_rules(to_delete_ids)
-
-        return rules
+        return self.get_rules()
 
     def _clear_rule_cache(self):
         self._api_id_to_rule = {}
 
     async def add_rules(self, rules: List[StreamerRule]) -> List[StreamerRule]:
-        return await self.set_rules(rules, delete=False)
+        rules = await self._storage_manager.request_rules(rules)
+        rules_to_add: List[StreamerRule] = [r for r in rules if r.id not in self._active_rules]
+
+        server_rules = await self.get_api_rules()
+
+        hash_to_server_rule = {r.tag_value_hash(): r for r in server_rules}
+
+        for rule in rules_to_add:
+            hash_ = rule.tag_query_hash()
+            if hash_ in hash_to_server_rule:
+                rule.api_id = hash_to_server_rule[hash_].id
+            else:
+                s_rule = await self._client.add_rules([rule.get_api_rule()])
+                if not s_rule:
+                    continue
+                rule.api_id = s_rule[0].id
+
+            self._cache_rules([rule])
+            self._active_rules[rule.id] = rule
+        return list(self._active_rules.values())
+
+    async def remove_rules(self, ids: List[int]):
+        rules = [r for r in self.get_rules() if r.id in ids]
+        rule_api_ids = [r.api_id for r in rules]
+        await self._client.remove_rules(rule_api_ids)
+
+        for rule in rules:
+            self._active_rules.pop(rule.id)
 
     def _cache_rules(self, rules: List[StreamerRule]):
         for rule in rules:
@@ -110,13 +128,15 @@ class Streamer:
         rules = []
         for api_key in api_keys:
             if api_key in self._api_id_to_rule:
-                rules.append(self._api_id_to_rule[api_key].copy())
+                rule = self._api_id_to_rule[api_key].copy()
+                if rule.id in self._active_rules:
+                    rules.append(rule)
         return rules
 
-    async def remove_rules(self, ids: List[str]) -> None:
-        await self._client.remove_rules(ids)
-        for id_ in ids:
-            self._api_id_to_rule.pop(id_)
+    # async def remove_rules(self, ids: List[str]) -> None:
+    #     await self._client.remove_rules(ids)
+    #     for id_ in ids:
+    #         self._api_id_to_rule.pop(id_)
 
     def _log_tweets(self, tweet: TweetResponse):
         self._tweet_count += 1
@@ -262,5 +282,3 @@ class Streamer:
 
         async for line in self._client.connect_tweet_stream(params=fields):
             asyncio.create_task(self._handle_line_response(line))
-
-

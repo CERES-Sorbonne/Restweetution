@@ -20,6 +20,7 @@ from .helpers import get_helper, save_helper, get_statement, request_history_upd
 from .models import TweetPublicMetricsHistory, Base
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
+STORAGE_TYPE = 'postgres'
 
 class PostgresStorage(Storage):
 
@@ -39,6 +40,7 @@ class PostgresStorage(Storage):
             self._engine, expire_on_commit=False, class_=AsyncSession
         )
         self._history = True
+        self.url = url
         self.lock = Lock()
 
     def get_engine(self):
@@ -58,6 +60,14 @@ class PostgresStorage(Storage):
             res = await session.execute(stmt)
             print(res.scalars().all()[0].tweet_id)
             return res
+
+    def get_config(self):
+        return {
+            'type': STORAGE_TYPE,
+            'name': self.name,
+            'url': self.url
+        }
+
 
     @handle_storage_save_error()
     async def save_bulk(self, data: BulkData):

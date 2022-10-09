@@ -12,7 +12,7 @@ from restweetution.storages.storage import Storage
 from restweetution.storage_manager import StorageManager
 
 
-class MainConfig(BaseModel):
+class Config(BaseModel):
     bearer_token: Optional[str]
 
     storages: Dict[str, Storage] = {}

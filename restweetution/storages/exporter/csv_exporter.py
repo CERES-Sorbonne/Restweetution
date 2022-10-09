@@ -10,11 +10,21 @@ from numpy.core.defchararray import isnumeric
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.storages.exporter.exporter import Exporter
 
+STORAGE_TYPE = 'csv'
+
 
 class CSVExporter(Exporter):
     def __init__(self, name, root_dir, **kwargs):
         super().__init__(name)
         self._root = Path(root_dir)
+        self.root_dir = root_dir
+
+    def get_config(self):
+        return {
+            'type': STORAGE_TYPE,
+            'name': self.name,
+            'root_dir': self.root_dir
+        }
 
     async def save_custom_datas(self, datas: List[CustomData]):
         key_group: DefaultDict[str, List[CustomData]] = defaultdict(list)

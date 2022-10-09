@@ -289,6 +289,9 @@ class StorageManager:
 
         return await self._join_storage.get_medias(storages=storages, **kwargs)
 
+    def get_status(self):
+        return self.media_downloader.get_status()
+
     async def request_rules(self, rules: List[Rule]):
         return await self._main_storage.request_rules(rules)
 

@@ -32,8 +32,8 @@ minimum_fields = [
 
 
 class ElasticDashboard(DataView):
-    def __init__(self, in_storage, out_storage):
-        super().__init__(name='elastic', in_storage=in_storage, out_storage=out_storage)
+    def __init__(self, in_storage, out_storage, dashboard_name='elastic'):
+        super().__init__(name=dashboard_name, in_storage=in_storage, out_storage=out_storage)
         self._media_to_tweet_ids = defaultdict(list)
 
         in_storage.save_event.add(self.add)

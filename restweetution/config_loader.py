@@ -5,7 +5,7 @@ import yaml
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
-from restweetution.models.config.main_config import MainConfig
+from restweetution.models.config.config import Config
 from restweetution.models.config.stream_query_params import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.rule import StreamerRule, SearcherRule
@@ -19,7 +19,7 @@ def get_config_from_file(file_path: str):
     """
     Builds a config from the given file_path
     :param file_path: path of the config file
-    :return: MainConfig object
+    :return: Config object
     """
     conf = read_conf(file_path=file_path)
     return build_config(conf)
@@ -52,12 +52,12 @@ def read_conf(file_path: str):
 
 def build_config(data: dict):
     """
-    Builds the MainConfig with the config data
+    Builds the Config with the config data
     The function instantiate usable objects
     :param data: dict containing the raw config data
-    :return: the final MainConfig object
+    :return: the final Config object
     """
-    main_conf = MainConfig()
+    main_conf = Config()
 
     parse_auth_config(main_conf, data)
     parse_storage_config(main_conf, data)
@@ -69,10 +69,10 @@ def build_config(data: dict):
     return main_conf
 
 
-def parse_streamer_config(main_conf: MainConfig, data: dict):
+def parse_streamer_config(main_conf: Config, data: dict):
     """
     Parsing of streamer options
-    :param main_conf: MainConfig
+    :param main_conf: Config
     :param data: raw config data
     """
     if main_conf.storage_manager:
@@ -87,10 +87,10 @@ def parse_streamer_config(main_conf: MainConfig, data: dict):
         main_conf.streamer = streamer
 
 
-def parse_query_fields(main_conf: MainConfig, data: dict):
+def parse_query_fields(main_conf: Config, data: dict):
     """
     Parse query params from config
-    :param main_conf: MainConfig to populate
+    :param main_conf: Config to populate
     :param data: query_params data from config
     """
     if 'query_fields' in data:
@@ -110,20 +110,20 @@ def parse_query_fields(main_conf: MainConfig, data: dict):
         main_conf.query_fields = fields
 
 
-def parse_auth_config(main_conf: MainConfig, data: dict):
+def parse_auth_config(main_conf: Config, data: dict):
     """
     Parsing of client options
-    :param main_conf: MainConfig
+    :param main_conf: Config
     :param data: raw config data
     """
     if 'bearer_token' in data:
         main_conf.bearer_token = data['bearer_token']
 
 
-def parse_storage_config(main_conf: MainConfig, data: dict):
+def parse_storage_config(main_conf: Config, data: dict):
     """
     Parsing of storage options
-    :param main_conf: MainConfig
+    :param main_conf: Config
     :param data: raw config data
     """
     if 'storages' in data:
@@ -132,8 +132,11 @@ def parse_storage_config(main_conf: MainConfig, data: dict):
             main_conf.storage_list.append(storage)
             main_conf.storages[storage.name] = storage
 
+def write_config(main_conf):
+    pass
 
-def parse_searcher_rule(main_conf: MainConfig, data: dict):
+
+def parse_searcher_rule(main_conf: Config, data: dict):
     if 'searcher' in data:
         data = data['searcher']
         if 'rule' in data:
@@ -142,7 +145,7 @@ def parse_searcher_rule(main_conf: MainConfig, data: dict):
             main_conf.searcher = Searcher(storage=main_conf.storage_manager, bearer_token=main_conf.bearer_token)
 
 
-def parse_storage_manager_config(main_conf: MainConfig, data: dict):
+def parse_storage_manager_config(main_conf: Config, data: dict):
     if 'storage_manager' not in data:
         return
     data = data['storage_manager']
@@ -171,10 +174,10 @@ def parse_storage_manager_config(main_conf: MainConfig, data: dict):
     main_conf.storage_manager = create_storage_manager(main_conf, main_storage_name)
 
 
-def create_storage_manager(main_conf: MainConfig, main_storage_name: str) -> Optional[StorageManager]:
+def create_storage_manager(main_conf: Config, main_storage_name: str) -> Optional[StorageManager]:
     """
     Create a storage_manager and set parameters according to config
-    :param main_conf: MainConfig
+    :param main_conf: Config
     :param main_storage_name: name of the main storage
     :return: storage_manager
     """

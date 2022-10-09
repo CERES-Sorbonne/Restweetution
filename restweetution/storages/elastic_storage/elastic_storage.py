@@ -19,6 +19,7 @@ from restweetution.storages.storage import Storage
 es_logger = logging.getLogger('elastic_transport')
 es_logger.setLevel(logging.WARNING)
 
+STORAGE_TYPE = 'elastic'
 STORAGE_PREFIX = 'storage_'
 MEDIA_INDEX = STORAGE_PREFIX + 'media'
 PLACE_INDEX = STORAGE_PREFIX + 'place'
@@ -33,7 +34,7 @@ def CUSTOM_INDEX(key):
 
 
 class ElasticStorage(Storage):
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, url: str, user: str, pwd: str, **kwargs):
         """
         Storage for Elasticsearch stack
         :param name: Name of the storage. Human friendly identifier
@@ -41,10 +42,22 @@ class ElasticStorage(Storage):
 
         super().__init__(name=name, **kwargs)
         self.rules = {}
-        self.es = AsyncElasticsearch(kwargs.get('url'), basic_auth=(kwargs.get('user'), kwargs.get('pwd')))
+        self.es = AsyncElasticsearch(url, basic_auth=(user, pwd))
+        self.url = url
+        self.user = user
+        self.pwd = pwd
 
     def __del__(self):
-        asyncio.run(self.es.close())
+        asyncio.ensure_future(self.es.close())
+
+    def get_config(self):
+        return {
+            'type': STORAGE_TYPE,
+            'name': self.name,
+            'url': self.url,
+            'user': self.user,
+            'pwd': self.pwd
+        }
 
     async def save_bulk(self, data: BulkData):
         actions = []

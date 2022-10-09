@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 
-import restweetution.config as config
+import restweetution.config_loader as config
 from restweetution.models.config.tweet_config import QueryFields
 
 logging.basicConfig()

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-import restweetution.config as config
+import restweetution.config_loader as config
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)

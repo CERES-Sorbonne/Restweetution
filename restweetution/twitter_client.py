@@ -67,7 +67,7 @@ class TwitterClient:
                 self._logger.error(res)
             return []
 
-    async def get_rules(self, ids: List[str] = None):
+    async def get_rules(self, ids: List[str] = None) -> List[StreamAPIRule]:
         """
         Return the list of rules defined to collect tweets during a stream
         from the Twitter API
@@ -85,7 +85,8 @@ class TwitterClient:
                 if not res.get('data'):
                     res['data'] = []
                 res = StreamRuleResponse(**res)
-                rules = [StreamerRule(tag=r.tag, query=r.value, api_id=r.id) for r in res.data]
+                # rules = [StreamerRule(tag=r.tag, query=r.value, api_id=r.id) for r in res.data]
+                rules = res.data
                 return rules
 
     async def add_rules(self, rules: List[StreamAPIRule]):

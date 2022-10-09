@@ -40,6 +40,10 @@ class Storage(Exporter, ABC):
         self.save_event = Event()
         self.update_event = Event()
 
+    # Configuration
+    def get_config(self):
+        pass
+
     # Events
 
     async def _emit_save_event(self, **kwargs):

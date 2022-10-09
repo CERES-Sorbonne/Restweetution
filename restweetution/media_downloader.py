@@ -37,6 +37,8 @@ class MediaDownloader:
         self._file_helper = FileStorageHelper(root)
         self._download_queue = asyncio.Queue()
         self._process_queue_task = None
+        # read only
+        self.actual_download = Media(media_key='None')
 
     # Public functions
 
@@ -63,6 +65,19 @@ class MediaDownloader:
 
     def get_root(self):
         return self._file_helper.root
+
+    def get_queue_size(self):
+        return self._download_queue.qsize()
+
+    def is_downloading(self):
+        return self._process_queue_task is not None
+
+    def get_status(self):
+        return {
+            'media_key': self.actual_download.media_key,
+            'downloading': self.is_downloading(),
+            'queue_size': self.get_queue_size()
+        }
 
     # Internal
 
@@ -134,6 +149,7 @@ class MediaDownloader:
         Checks if the url was already downloaded before starting the download
         If the media_key or url is already present in cache we use it to complete the data without download
         """
+        self.actual_download = media
         if await self._update_media_from_cache(media):
             return
         await self._download_by_type(media)

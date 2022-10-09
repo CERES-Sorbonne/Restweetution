@@ -7,6 +7,9 @@ class StreamAPIRule(BaseModel):
     tag: str
     value: Optional[str]
 
+    def tag_value_hash(self):
+        return hash((self.tag, self.value))
+
 
 class Rule(BaseModel):
     id: Optional[int]  # database given
@@ -25,6 +28,9 @@ class Rule(BaseModel):
 
     def __hash__(self):
         return hash((self.type, self.tag, self.query))
+
+    def tag_query_hash(self):
+        return hash((self.tag, self.query))
 
 
 class StreamerRule(Rule):

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-import restweetution.config as config
+import restweetution.config_loader as config
 from restweetution.data_view.elastic_dashboard import ElasticDashboard
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage

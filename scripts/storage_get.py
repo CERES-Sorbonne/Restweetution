@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 
-import restweetution.config as config
+import restweetution.config_loader as config
 from restweetution.data_view.row_view import RowView
 from restweetution.storages.exporter.csv_exporter import CSVExporter
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage

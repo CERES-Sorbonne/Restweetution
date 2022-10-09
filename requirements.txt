@@ -15,3 +15,6 @@ setuptools
 tweepy[async]
 aiocsv
 asyncpg
+
+fastapi
+numpy
