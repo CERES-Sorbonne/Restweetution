@@ -20,7 +20,7 @@ class MediaCache(BaseModel):
 
 class MediaDownloader:
 
-    def __init__(self, root: str, storage: Storage, auto_download=True):
+    def __init__(self, root: str, storage: Storage, active=True):
         """
         Utility class to queue the images download
         """
@@ -31,8 +31,8 @@ class MediaDownloader:
 
         self._storage = storage
 
-        self._auto_download = None
-        self.set_auto_download(auto_download)
+        self.active = False
+        self.set_active(active)
 
         self._file_helper = FileStorageHelper(root)
         self._download_queue = asyncio.Queue()
@@ -48,17 +48,17 @@ class MediaDownloader:
         :param medias: List of Media to save
         """
         await self._storage.save_medias(medias)
-        if not self._auto_download:
+        if not self.active:
             for m in medias:
                 self._add_download_task(m)
 
-    def set_auto_download(self, value: bool):
+    def set_active(self, value: bool):
         """
         Set automatic download of Medias that are added to the storage
         :param value: True or False
         """
-        self._auto_download = value
-        if self._auto_download:
+        self.active = value
+        if self.active:
             self._storage.save_event.add(self._medias_save_event_handler)
         elif self._medias_save_event_handler in self._storage.save_event:
             self._storage.save_event.remove(self._medias_save_event_handler)

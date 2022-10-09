@@ -19,8 +19,7 @@ async def launch():
     print(await streamer.get_api_rules())
     print(streamer.get_rules())
 
-
-    # await streamer.collect(rules=main_conf.streamer_rules, fields=main_conf.query_fields)
+    await streamer.collect(fields=main_conf.query_fields)
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())

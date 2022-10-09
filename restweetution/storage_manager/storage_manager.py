@@ -30,10 +30,10 @@ class StorageManager:
         self.add_storage(storage=main_storage)
 
         self._download_media = download_media
-        self.media_downloader = None
+        self._media_downloader = None
+
         if media_root_dir:
-            self.media_downloader = MediaDownloader(root=media_root_dir, storage=self._main_storage,
-                                                    auto_download=self._download_media)
+            self.set_media_downloader(media_root_dir, download_media)
 
         self.logger = logging.getLogger("StorageManager")
         self._join_storage = FirstFoundJoin
@@ -48,9 +48,12 @@ class StorageManager:
             else:
                 s += "All tags"
             s += "\n                "
-        if self.media_downloader and self._download_media:
-            s += f"Pictures, Gif and Videos stored at: {self.media_downloader.get_root()}\n"
+        if self._media_downloader and self._download_media:
+            s += f"Pictures, Gif and Videos stored at: {self._media_downloader.get_root()}\n"
         return s
+
+    def set_media_downloader(self, media_root_dir: str, active: bool = True):
+        self._media_downloader = MediaDownloader(root=media_root_dir, storage=self._main_storage, active=active)
 
     # Storage functions
     def add_storage(self, storage: Storage, tags: List[str] = None):
@@ -289,7 +292,7 @@ class StorageManager:
         return await self._join_storage.get_medias(storages=storages, **kwargs)
 
     def get_status(self):
-        return self.media_downloader.get_status()
+        return self._media_downloader.get_status()
 
     async def request_rules(self, rules: List[Rule]):
         return await self._main_storage.request_rules(rules)

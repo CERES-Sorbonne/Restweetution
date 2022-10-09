@@ -261,7 +261,7 @@ class Streamer:
         if 'errors' in data:
             raise TwitterAPIError('Streamer response has error field', data=data)
 
-    async def collect(self, rules: List[StreamerRule], fields: QueryFields = None):
+    async def collect(self, rules: List[StreamerRule] = None, fields: QueryFields = None):
         """
         Main method to collect tweets in a stream
         an int between 1 and 5 to tell the stream to fetch tweets from the past minutes.
@@ -271,14 +271,15 @@ class Streamer:
         if not fields:
             fields = {}
 
-        await self.set_rules(rules)
+        if rules:
+            await self.set_rules(rules)
 
-        if len(rules) == 0:
+        if len(self.get_rules()) == 0:
             self._logger.warning('No rules are set, close streamer')
             return
 
         self._logger.info(f"Collecting with following rules: ")
-        self._logger.info('\n'.join([f'{r.query}, tag: {r.tag} id: {r.id}' for r in rules]))
+        self._logger.info('\n'.join([f'{r.query}, tag: {r.tag} id: {r.id}' for r in self.get_rules()]))
 
         async for line in self._client.connect_tweet_stream(params=fields):
             asyncio.create_task(self._handle_line_response(line))
