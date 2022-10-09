@@ -17,7 +17,6 @@ from restweetution.storages.storage import Storage
 class StorageManager:
     def __init__(self,
                  main_storage: Storage,
-                 main_tags: List[str] = None,
                  media_root_dir: str = None,
                  download_media: bool = False):
         """
@@ -28,7 +27,7 @@ class StorageManager:
         self._storage_tags: Dict[str, List[str]] = {}
 
         self._main_storage = main_storage
-        self.add_storage(storage=main_storage, tags=main_tags)
+        self.add_storage(storage=main_storage)
 
         self._download_media = download_media
         self.media_downloader = None

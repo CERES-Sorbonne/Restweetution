@@ -184,7 +184,6 @@ def create_storage_manager(main_conf: Config, main_storage_name: str) -> Optiona
     main_storage = main_conf.storages[main_storage_name]
 
     manager = StorageManager(main_storage=main_storage,
-                             main_tags=main_conf.storage_tags[main_storage.name],
                              media_root_dir=main_conf.media_root_dir,
                              download_media=main_conf.media_download)
     for s_name in main_conf.storage_tags:
