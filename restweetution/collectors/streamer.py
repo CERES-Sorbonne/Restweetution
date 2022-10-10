@@ -79,7 +79,9 @@ class Streamer:
 
         self._clear_rule_cache()
         self._active_rules = {}
+
         await self.add_rules(rules)
+
         server_rules = await self.get_api_rules()
         api_ids_to_del = [rule.id for rule in server_rules if rule.id not in self._api_id_to_rule]
         if api_ids_to_del:
@@ -115,7 +117,8 @@ class Streamer:
     async def remove_rules(self, ids: List[int]):
         rules = [r for r in self.get_rules() if r.id in ids]
         rule_api_ids = [r.api_id for r in rules]
-        await self._client.remove_rules(rule_api_ids)
+        if rule_api_ids:
+            await self._client.remove_rules(rule_api_ids)
 
         for rule in rules:
             self._active_rules.pop(rule.id)

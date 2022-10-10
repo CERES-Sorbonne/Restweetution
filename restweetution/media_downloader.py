@@ -42,6 +42,9 @@ class MediaDownloader:
 
     # Public functions
 
+    def get_root_dir(self):
+        return self._file_helper.root
+
     async def save_medias(self, medias: List[Media]):
         """
         Default function to save medias with the download manager
@@ -70,7 +73,13 @@ class MediaDownloader:
         return self._download_queue.qsize()
 
     def is_downloading(self):
+        # if self._process_queue_task and self._process_queue_task.done():
+        #     self._process_queue_task = None
+        #
         return self._process_queue_task is not None
+
+    def is_active(self):
+        return self.active
 
     def get_status(self):
         return {
@@ -102,6 +111,7 @@ class MediaDownloader:
         while True:
             media = await self._download_queue.get()
             await self._safe_download(media)
+            self.actual_download = Media(media_key='None')
 
     async def _write_media(self, media: Media):
         """

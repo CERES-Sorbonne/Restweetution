@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from restweetution.media_downloader import MediaDownloader
 from restweetution.models.bulk_data import BulkData
@@ -30,7 +30,7 @@ class StorageManager:
         self.add_storage(storage=main_storage)
 
         self._download_media = download_media
-        self._media_downloader = None
+        self._media_downloader: Optional[MediaDownloader] = None
 
         if media_root_dir:
             self.set_media_downloader(media_root_dir, download_media)
@@ -54,6 +54,12 @@ class StorageManager:
 
     def set_media_downloader(self, media_root_dir: str, active: bool = True):
         self._media_downloader = MediaDownloader(root=media_root_dir, storage=self._main_storage, active=active)
+
+    def get_media_downloader_active(self):
+        return self._media_downloader.is_downloading()
+
+    def get_media_downloader(self):
+        return self._media_downloader
 
     # Storage functions
     def add_storage(self, storage: Storage, tags: List[str] = None):

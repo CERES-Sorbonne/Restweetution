@@ -20,6 +20,11 @@ class Rule(BaseModel):
 
     tweet_ids: Set[str] = set()  # Set of collected tweet ids
 
+    def __init__(self, tag: str = None, **kwargs):
+        if not tag:
+            tag = 'default'
+        super().__init__(tag=tag, **kwargs)
+
     def copy(self, **kwargs):
         return super().copy(deep=True, **kwargs)
 
