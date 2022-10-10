@@ -24,6 +24,9 @@ async def launch():
     restweet = Restweetution(main_conf)
     await restweet.init_streamer()
 
+    print(main_conf.persistent_path)
+    await main_conf.write_config()
+
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())

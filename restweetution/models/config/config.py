@@ -1,11 +1,13 @@
+import json
 from typing import Optional, List, Dict
 
+import aiofiles
 from pydantic import BaseModel
 from tweepy import StreamRule
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
-from restweetution.models.rule import SearcherRule
+from restweetution.models.rule import SearcherRule, StreamerRule
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.storages.storage import Storage
@@ -13,6 +15,7 @@ from restweetution.storage_manager import StorageManager
 
 
 class Config(BaseModel):
+    persistent_path: Optional[str]
     bearer_token: Optional[str]
 
     storages: Dict[str, Storage] = {}
@@ -25,7 +28,7 @@ class Config(BaseModel):
     media_root_dir: str = None
 
     streamer: Optional[Streamer]
-    streamer_rules: Optional[List[StreamRule]]
+    streamer_rules: Optional[List[StreamerRule]]
     streamer_verbose: Optional[bool]
 
     searcher: Optional[Searcher]
@@ -35,3 +38,20 @@ class Config(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+    async def write_config(self):
+        async with aiofiles.open(self.persistent_path, 'w') as f:
+            data = {'storages': [], 'streamer_rules': []}
+            # for name, storage in self.storages.items():
+            #     data['storages'].append(storage.get_config())
+            for rule in self.streamer_rules:
+                data['streamer_rules'].append(rule.get_config())
+            await f.write(json.dumps(data, indent=4))
+
+    async def read_persistent_config(self):
+        async with aiofiles.open(self.persistent_path, 'r') as f:
+            data = json.loads(await f.read())
+
+            self.streamer_rules = [StreamerRule(**rule) for rule in data['streamer_rules']]
+            print(self.streamer_rules)
+

@@ -123,6 +123,8 @@ class Streamer:
         for rule in rules:
             self._active_rules.pop(rule.id)
 
+        return self.get_rules()
+
     def _cache_rules(self, rules: List[StreamerRule]):
         for rule in rules:
             self._api_id_to_rule[rule.api_id] = rule

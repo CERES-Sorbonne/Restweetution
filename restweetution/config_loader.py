@@ -66,6 +66,8 @@ def build_config(data: dict):
     parse_query_fields(main_conf, data)
     parse_searcher_rule(main_conf, data)
 
+    main_conf.persistent_path = data['persistent_file']
+
     return main_conf
 
 

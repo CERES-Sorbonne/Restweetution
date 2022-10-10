@@ -36,6 +36,7 @@ class MediaDownloader:
 
         self._file_helper = FileStorageHelper(root)
         self._download_queue = asyncio.Queue()
+        self._photo_download_queue = asyncio.Queue()
         self._process_queue_task = None
         # read only
         self.actual_download = Media(media_key='None')

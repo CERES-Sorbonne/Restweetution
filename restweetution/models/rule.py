@@ -1,3 +1,4 @@
+import json
 from typing import List, Optional, Set
 from pydantic import BaseModel
 
@@ -37,12 +38,26 @@ class Rule(BaseModel):
     def tag_query_hash(self):
         return hash((self.tag, self.query))
 
+    def get_config(self):
+        return {
+            'id': self.id,
+            'type': self.type,
+            'name': self.name,
+            'tag': self.tag,
+            'query': self.query
+        }
+
 
 class StreamerRule(Rule):
     api_id: Optional[str]
 
     def __init__(self, query: str, tag: str, name=None, **kwargs):
         name = f'Streamer_{tag}' if name is None else name
+        if 'type' in kwargs:
+            if kwargs['type'] != 'streamer':
+                raise ValueError('Trying to initialize a StreamerRule of type ' + kwargs['type'])
+            kwargs.pop('type')
+
         super().__init__(type='streamer', query=query, tag=tag, name=name, **kwargs)
 
     def get_api_rule(self):
