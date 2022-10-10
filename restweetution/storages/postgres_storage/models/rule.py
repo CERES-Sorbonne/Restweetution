@@ -20,7 +20,8 @@ class Rule(Base):
 
     def to_dict(self):
         data = super().to_dict()
-        data['tweet_ids'] = [t.tweet_id for t in self.tweets]
+        if 'tweet' in self.__dict__:
+            data['tweet_ids'] = [t.tweet_id for t in self.tweets]
         return data
 
 

@@ -18,6 +18,8 @@ class Restweetution:
         self._searcher_rule = config.searcher_rule
         self._storage_manager: StorageManager = config.storage_manager
 
+        self._all_rules_cache = []
+
         self._streamer_task = None
 
     async def init_streamer(self):
@@ -37,6 +39,9 @@ class Restweetution:
         if self._streamer_task:
             self._streamer_task.cancel()
             self._streamer_task = None
+
+    async def get_all_rules(self):
+        return await self._storage_manager.get_rules(fields=['id', 'name', 'type', 'tag', 'query'])
 
     def is_streamer_running(self):
         return self._streamer_task is not None

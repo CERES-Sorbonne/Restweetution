@@ -11,6 +11,14 @@ function update_streamer(data) {
     $('#streamer-run').val(data.running ? 'Stop' : 'Start')
 }
 
+function update_all_rules(data) {
+    $('#all-rules').empty()
+    for(let rule of data.rules) {
+        console.log(rule)
+        $('#all-rules').append(`<tr><td>${rule.id}</td><td>${rule.type}</td><td>${rule.name}</td><td>${rule.tag}</td><td>${rule.tweet_count}</td><td>${rule.query}</td></tr>`);
+    }
+}
+
 function update_downloader(data) {
     $('#downloader-status').text(data.running ? 'Ready' : 'Stopped');
     $('#downloader-queue-size').text(data.queue_size)
@@ -33,9 +41,17 @@ function fetch_downloader_update() {
     })
 }
 
+function fetch_all_rules_update() {
+    $.getJSON('/rules', function(data) {
+        console.log(data)
+        update_all_rules(data)
+    })
+}
+
 function initial_load() {
     fetch_streamer_update()
     fetch_downloader_update()
+    fetch_all_rules_update()
 }
 
 initial_load()

@@ -57,6 +57,13 @@ async def downloader():
     }
 
 
+@app.get("/rules")
+async def rules():
+    return {
+        "rules": await restweet.get_all_rules()
+    }
+
+
 @app.post("/downloader/start_stop")
 async def downloader_start_stop():
     restweet.set_media_downloader_active(not restweet.is_media_downloader_active())

@@ -160,7 +160,7 @@ class PostgresStorage(Storage):
             self,
             ids: List[str] = None,
             no_ids: List[str] = None,
-            fields: List[str] = rule_fields) -> List[StreamAPIRule]:
+            fields: List[str] = rule_fields) -> List[Rule]:
         async with self._async_session() as session:
             fields = fields.copy()
             if 'tweet_ids' in fields:
@@ -168,7 +168,7 @@ class PostgresStorage(Storage):
                 fields.append('tweets')
 
             res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields)
-            res = [StreamAPIRule(**r.to_dict()) for r in res]
+            res = [Rule(**r.to_dict()) for r in res]
             return res
 
     async def get_errors(self, ids: List[str] = None, no_ids: List[str] = None) -> List[ErrorModel]:

@@ -11,13 +11,14 @@ async def get_no_duplicate(storages: List[Storage],
                            get_lambda,
                            id_lambda=lambda o: o.id,
                            ids: List[str] = None,
-                           no_ids: List[str] = None):
+                           no_ids: List[str] = None,
+                           fields: List[str] = None):
     ignore_ids = []
     if no_ids:
         ignore_ids.extend(no_ids)
     result = []
     for s in storages:
-        res = await get_lambda(s)(ids=ids, no_ids=ignore_ids)
+        res = await get_lambda(s)(ids=ids, no_ids=ignore_ids, fields=fields)
         ignore_ids.extend([id_lambda(r) for r in res])
         result.extend(res)
     return result
