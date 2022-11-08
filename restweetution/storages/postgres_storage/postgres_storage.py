@@ -1,10 +1,10 @@
 from asyncio import Lock
-from typing import List, Iterator, Tuple, Set
+from typing import List, Iterator, Tuple, Set, Dict
 
-from sqlalchemy import delete, cast, BigInteger
+from sqlalchemy import delete, cast, BigInteger, func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, joinedload
+from sqlalchemy.orm import sessionmaker, joinedload, load_only
 
 from restweetution.errors import handle_storage_save_error
 from restweetution.models.bulk_data import BulkData
@@ -21,6 +21,7 @@ from .models import TweetPublicMetricsHistory, Base
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
 STORAGE_TYPE = 'postgres'
+
 
 class PostgresStorage(Storage):
 
@@ -67,7 +68,6 @@ class PostgresStorage(Storage):
             'name': self.name,
             'url': self.url
         }
-
 
     @handle_storage_save_error()
     async def save_bulk(self, data: BulkData):
@@ -170,6 +170,20 @@ class PostgresStorage(Storage):
             res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields)
             res = [Rule(**r.to_dict()) for r in res]
             return res
+
+    async def get_rules_tweet_count(self, ids: List[int] = None) -> Dict[(int, int)]:
+        """
+        Returns a list of tuple ( rule_id, count) where count is the number of collected tweets for the given rule
+        """
+        async with self._async_session() as session:
+            stmt = select(models.CollectedTweet._parent_id, func.count(models.CollectedTweet._parent_id))
+            stmt = stmt.group_by(models.CollectedTweet._parent_id)
+            if ids:
+                stmt = stmt.filter(models.CollectedTweet._parent_id.in_(ids))
+
+            res = await session.execute(stmt)
+            res = res.all()
+            return {r[0]: r[1] for r in res}
 
     async def get_errors(self, ids: List[str] = None, no_ids: List[str] = None) -> List[ErrorModel]:
         async with self._async_session() as session:

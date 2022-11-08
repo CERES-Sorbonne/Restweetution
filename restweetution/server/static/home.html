@@ -45,10 +45,8 @@
                                 <input type="text" id="stream-rule-tag" name="tag" class="form-control" placeholder="Tag">
                             </div>
                         </div>
-                        <br>
-                        <textarea type="text" id="stream-rule-query" name="query" rows="3" cols="40" class="form-control" placeholder="querry"></textarea>
-                        <br>
-                        <input type="submit" class="form-control">
+                        <textarea type="text" id="stream-rule-query" name="query" rows="3" cols="40" class="form-control mt-2" placeholder="querry"></textarea>
+                        <input type="submit" class="form-control mt-2" value="Add">
                     </form>
                 </div> 
                 <hr/>
@@ -103,11 +101,44 @@
                     </div>
                     <div class="col-sm-6">
                         <h2 class="text-center">Searcher</h2>
+                        <h6 class="text-center">Status: <span id="searcher-status"></span></h6>
+
+                        <hr>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm text-nowrap caption-top">
+                                <hthead>
+                                    <!-- <h6 class="text-left">active rule</h6> -->
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Tag</th>
+                                        <th>Query</th>
+                                    </tr>
+                                </hthead>
+                                <tbody id="searcher-rules">
+                                    <tr><td>3</td><td>Filler</td><td>FTAG</td><td>#some #query</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <form action="/searcher/add_rule" method="POST">
+                            <!-- <h6>Add Rule</h6> -->
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <input type="text" id="searcher-rule-name" name="name" class="form-control" placeholder="Name">
+                                </div>
+                                <div class="col-sm-6">
+                                    <input type="text" id="searcher-rule-tag" name="tag" class="form-control" placeholder="Tag">
+                                </div>
+                            </div>
+                            <textarea type="text" id="searcher-rule-query" name="query" rows="2" cols="40" class="form-control mt-2" placeholder="querry"></textarea>
+                            <!-- <br> -->
+                            <input type="submit" class="form-control mt-2" value="Set Rule">
+                        </form>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-sm-12">
-                        <h2 class="text-center">Rules in database</h2>
+                        <h4 class="text-center">Rules in database</h4>
                         <div class="table-responsive h-50 d-inline-block">
                             <table class="table table-striped table-sm text-nowrap">
                                 <hthead>

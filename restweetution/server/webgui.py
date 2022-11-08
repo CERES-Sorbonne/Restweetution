@@ -60,7 +60,7 @@ async def downloader():
 @app.get("/rules")
 async def rules():
     return {
-        "rules": await restweet.get_all_rules()
+        "rules": await restweet.get_all_rule_info()
     }
 
 

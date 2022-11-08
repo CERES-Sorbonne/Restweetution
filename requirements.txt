@@ -18,3 +18,4 @@ asyncpg
 
 fastapi
 numpy
+starlette

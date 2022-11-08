@@ -1,5 +1,5 @@
 import json
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 
 import aiofiles
 from pydantic import BaseModel
@@ -8,6 +8,7 @@ from tweepy import StreamRule
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
 from restweetution.models.rule import SearcherRule, StreamerRule
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.storages.storage import Storage
@@ -18,7 +19,7 @@ class Config(BaseModel):
     persistent_path: Optional[str]
     bearer_token: Optional[str]
 
-    storages: Dict[str, Storage] = {}
+    storages: Dict[str, Union[Storage, PostgresStorage]] = {}
     storage_list: List[Storage] = []
 
     storage_manager: Optional[StorageManager]

@@ -183,7 +183,7 @@ def create_storage_manager(main_conf: Config, main_storage_name: str) -> Optiona
     :param main_storage_name: name of the main storage
     :return: storage_manager
     """
-    main_storage = main_conf.storages[main_storage_name]
+    main_storage: PostgresStorage = main_conf.storages[main_storage_name]
 
     manager = StorageManager(main_storage=main_storage,
                              media_root_dir=main_conf.media_root_dir,

@@ -11,12 +11,13 @@ from restweetution.models.rule import Rule
 from restweetution.models.twitter.tweet import Tweet
 from restweetution.models.twitter.user import User
 from restweetution.storage_manager.storage_join import FirstFoundJoin
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.storages.storage import Storage
 
 
 class StorageManager:
     def __init__(self,
-                 main_storage: Storage,
+                 main_storage: PostgresStorage,
                  media_root_dir: str = None,
                  download_media: bool = False):
         """
@@ -26,7 +27,7 @@ class StorageManager:
         self._storages: List[Storage] = []
         self._storage_tags: Dict[str, List[str]] = {}
 
-        self._main_storage = main_storage
+        self.main_storage = main_storage
         self.add_storage(storage=main_storage)
 
         self._download_media = download_media
@@ -53,7 +54,7 @@ class StorageManager:
         return s
 
     def set_media_downloader(self, media_root_dir: str, active: bool = True):
-        self._media_downloader = MediaDownloader(root=media_root_dir, storage=self._main_storage, active=active)
+        self._media_downloader = MediaDownloader(root=media_root_dir, storage=self.main_storage, active=active)
 
     def get_media_downloader_active(self):
         return self._media_downloader.is_downloading()
@@ -163,8 +164,8 @@ class StorageManager:
         storages = self.get_storages_listening_to_tags(tags)
         for s in storages:
             tasks.append(asyncio.create_task(s.save_bulk(bulk_data)))
-        if self._main_storage not in storages and self._download_media and bulk_data.medias:
-            tasks.append(asyncio.create_task(self._main_storage.save_medias(list(bulk_data.medias.values()))))
+        if self.main_storage not in storages and self._download_media and bulk_data.medias:
+            tasks.append(asyncio.create_task(self.main_storage.save_medias(list(bulk_data.medias.values()))))
         return tasks
 
     def save_error(self, error):
@@ -172,7 +173,7 @@ class StorageManager:
         Save a system error in storages that are registered as error_storage
         :param error: Error data
         """
-        return asyncio.create_task(self._main_storage.save_error(error))
+        return asyncio.create_task(self.main_storage.save_error(error))
 
     def save_tweets(self, tweets: List[Tweet], tags: List[str] = None):
         """
@@ -237,8 +238,8 @@ class StorageManager:
         storages = self.get_storages_listening_to_tags(tags)
         for s in storages:
             tasks.append(asyncio.create_task(s.save_medias(medias)))
-        if self._main_storage not in storages and self._download_media:
-            tasks.append(asyncio.create_task(self._main_storage.save_medias(medias)))
+        if self.main_storage not in storages and self._download_media:
+            tasks.append(asyncio.create_task(self.main_storage.save_medias(medias)))
         return tasks
 
     # Get functions
@@ -246,7 +247,7 @@ class StorageManager:
         """
         Get system errors from and only from the main storage
         """
-        return await self._main_storage.get_errors(**kwargs)
+        return await self.main_storage.get_errors(**kwargs)
 
     async def get_tweets(self, tags: List[str] = None, **kwargs):
         """
@@ -292,8 +293,8 @@ class StorageManager:
         """
         Get Medias
         """
-        storages = [s for s in self.get_storages_listening_to_tags(tags) if s is not self._main_storage]
-        storages = [self._main_storage, *storages]
+        storages = [s for s in self.get_storages_listening_to_tags(tags) if s is not self.main_storage]
+        storages = [self.main_storage, *storages]
 
         return await self._join_storage.get_medias(storages=storages, **kwargs)
 
@@ -301,7 +302,7 @@ class StorageManager:
         return self._media_downloader.get_status()
 
     async def request_rules(self, rules: List[Rule]):
-        return await self._main_storage.request_rules(rules)
+        return await self.main_storage.request_rules(rules)
 
     # private utils
     def _has_tags(self, storage: Storage, tags):

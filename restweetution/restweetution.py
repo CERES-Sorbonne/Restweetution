@@ -6,6 +6,7 @@ from typing import List
 from restweetution.collectors import Streamer
 from restweetution.models.config.config import Config
 from restweetution.storage_manager import StorageManager
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 logger = logging.getLogger('Restweetution')
 
@@ -42,6 +43,20 @@ class Restweetution:
 
     async def get_all_rules(self):
         return await self._storage_manager.get_rules(fields=['id', 'name', 'type', 'tag', 'query'])
+
+    async def get_all_rule_info(self):
+        rules = await self.get_all_rules()
+        count = await self._storage_manager.main_storage.get_rules_tweet_count()
+
+        res = []
+        for rule in rules:
+            info = rule.dict()
+            if rule.id in count:
+                info['tweet_count'] = count[rule.id]
+            else:
+                info['tweet_count'] = 0
+            res.append(info)
+        return res
 
     def is_streamer_running(self):
         return self._streamer_task is not None

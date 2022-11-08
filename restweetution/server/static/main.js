@@ -13,8 +13,9 @@ function update_streamer(data) {
 
 function update_all_rules(data) {
     $('#all-rules').empty()
+    data.rules.sort((a,b) => b.tweet_count - a.tweet_count)
+
     for(let rule of data.rules) {
-        console.log(rule)
         $('#all-rules').append(`<tr><td>${rule.id}</td><td>${rule.type}</td><td>${rule.name}</td><td>${rule.tag}</td><td>${rule.tweet_count}</td><td>${rule.query}</td></tr>`);
     }
 }
