@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from typing import List, Optional, Set
 from pydantic import BaseModel
 
@@ -8,18 +9,30 @@ class StreamAPIRule(BaseModel):
     tag: str
     value: Optional[str]
 
-    def tag_value_hash(self):
-        return hash((self.tag, self.value))
+    def hash(self):
+        return hash(self.value)
+
+
+class CollectedTweet(BaseModel):
+    collected_at: datetime
+    tweet_id: str
 
 
 class Rule(BaseModel):
     id: Optional[int]  # database given
     type: str  # Storage, Searcher, Streamer
-    name: str  # User defined name for identification
     tag: Optional[str]  # Tag that can be shared with other rules
     query: Optional[str]  # Query string (streamer or searcher) Can also be used to describe custom rules
+    created_at: Optional[datetime]
+    # tweet_ids: Set[str] = set()  # Set of collected tweet ids
+    collected_tweets: List[CollectedTweet] = []
 
-    tweet_ids: Set[str] = set()  # Set of collected tweet ids
+    def add_collected_tweets(self, tweet_ids, collected_at):
+        for tweet_id in tweet_ids:
+            self.collected_tweets.append(CollectedTweet(tweet_id=tweet_id, collected_at=collected_at))
+
+    # def collected_ids(self):
+    #     return [c.tweet_id for c in self.collected_tweets]
 
     def __init__(self, tag: str = None, **kwargs):
         if not tag:

@@ -1,8 +1,8 @@
 from collections import defaultdict
-from typing import List, Callable, Tuple, Set
+from typing import List, Tuple, Set
 
-from sqlalchemy import select, cast, DECIMAL, BigInteger, text
-from sqlalchemy.orm import load_only, subqueryload, ColumnProperty, selectinload, joinedload
+from sqlalchemy import select, cast, BigInteger
+from sqlalchemy.orm import load_only, subqueryload, ColumnProperty
 
 from restweetution.storages.postgres_storage import models
 from restweetution.storages.query_params import tweet_fields, user_fields, media_fields, place_fields, poll_fields, \

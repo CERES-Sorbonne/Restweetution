@@ -93,25 +93,52 @@ class Streamer:
         self._api_id_to_rule = {}
 
     async def add_rules(self, rules: List[StreamerRule]) -> List[StreamerRule]:
+
+        api_rules = await self.get_api_rules()
+
+        # find rules with same query/value but different tag
+        # they have to be deleted in order to update the tag
+        # the Twitter api doesn't allow for tag modification
+        to_del = []
+        for rule in rules:
+            for api_rule in api_rules:
+                if rule.query == api_rule.value:
+                    if rule.tag != api_rule.tag:
+                        to_del.append(api_rule)
+                        api_rules.remove(api_rule)
+                    break
+        # remove rules from api client if any
+        if to_del:
+            await self._client.remove_rules([r.id for r in to_del])
+
+        # find rules that are not already present on the API client
+        to_add = []
+        for rule in rules:
+            if rule.query not in [r.value for r in api_rules]:
+                to_add.append(rule)
+
+        # add rules to api client if any
+        for rule in to_add:
+            added_api_rule = await self._client.add_rules([rule.get_api_rule()])
+            if added_api_rule:
+                api_rules.append(added_api_rule[0])
+
+        # set the api_id for the rules present on the client api
+        for rule in rules:
+            for api_rule in api_rules:
+                if rule.query == api_rule.value:
+                    rule.api_id = api_rule.id
+                    break
+
+        # select only the rules that where successfully added
+        rules = [r for r in rules if r.api_id]
+        # generate or get the rule ID from storage
         rules = await self._storage_manager.request_rules(rules)
-        rules_to_add: List[StreamerRule] = [r for r in rules if r.id not in self._active_rules]
 
-        server_rules = await self.get_api_rules()
+        # cache and save rules for streamer usage
+        self._cache_rules(rules)
+        self._update_active_rules(rules)
 
-        hash_to_server_rule = {r.tag_value_hash(): r for r in server_rules}
-
-        for rule in rules_to_add:
-            hash_ = rule.tag_query_hash()
-            if hash_ in hash_to_server_rule:
-                rule.api_id = hash_to_server_rule[hash_].id
-            else:
-                s_rule = await self._client.add_rules([rule.get_api_rule()])
-                if not s_rule:
-                    continue
-                rule.api_id = s_rule[0].id
-
-            self._cache_rules([rule])
-            self._active_rules[rule.id] = rule
         return list(self._active_rules.values())
 
     async def remove_rules(self, ids: List[int]):
@@ -128,6 +155,10 @@ class Streamer:
     def _cache_rules(self, rules: List[StreamerRule]):
         for rule in rules:
             self._api_id_to_rule[rule.api_id] = rule
+
+    def _update_active_rules(self,rules: List[StreamerRule]):
+        for rule in rules:
+            self._active_rules[rule.id] = rule
 
     def _get_cache_rules(self, api_keys: List[str]):
         rules = []
@@ -186,8 +217,14 @@ class Streamer:
             self._logger.warning('No rule matched requested rules')
             return
 
-        # Add rules and mark tweet as collected
-        bulk_data.add_rules(rules, collected=True)
+        # Mark the tweets as collected by the rules
+        tweet_ids = [t.id for t in bulk_data.get_tweets()]
+        collected_at = datetime.datetime.now()
+        for rule in rules:
+            rule.add_collected_tweets(tweet_ids=tweet_ids, collected_at=collected_at)
+
+        # Add rules to bulk data
+        bulk_data.add_rules(rules)
         return bulk_data
 
     # def _handle_errors(self, errors: List[dict]) -> None:

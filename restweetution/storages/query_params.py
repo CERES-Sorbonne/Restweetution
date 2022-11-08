@@ -75,9 +75,9 @@ poll_fields = [
 
 rule_fields = [
     'id',
-    'name',
     'type',
     'tag',
     'query',
-    'tweet_ids'
+    'created_at',
+    'collected_tweets',
 ]

@@ -1,3 +1,4 @@
+import datetime
 import logging
 from typing import Callable, List, Dict
 
@@ -44,7 +45,15 @@ class Searcher:
                 tweets = [Tweet(**t) for t in res.data]
                 bulk_data.add_tweets(tweets)
                 bulk_data.add(**parse_includes(Includes(**res.includes)))
-                bulk_data.add_rules([rule.copy()], collected=True)
+
+                # set collected tweets to rule
+                tweet_ids = [t.id for t in bulk_data.get_tweets()]
+                collected_at = datetime.datetime.now()
+                # use copy of rule to avoid polluting global object
+                rule_copy = rule.copy()
+                rule_copy.add_collected_tweets(tweet_ids=tweet_ids, collected_at=collected_at)
+
+                bulk_data.add_rules([rule_copy])
 
                 self._logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
                 self.storage_manager.save_bulk(bulk_data)

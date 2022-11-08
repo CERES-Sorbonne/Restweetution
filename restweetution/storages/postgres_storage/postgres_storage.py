@@ -1,23 +1,24 @@
+import datetime
 from asyncio import Lock
 from typing import List, Iterator, Tuple, Set, Dict
 
 from sqlalchemy import delete, cast, BigInteger, func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, joinedload, load_only
+from sqlalchemy.orm import sessionmaker, joinedload
 
 from restweetution.errors import handle_storage_save_error
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.event_data import EventData
+from restweetution.models.event_data import EventData, BulkIds
+from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Media, User, Poll, Place
-from restweetution.models.rule import StreamAPIRule, Rule
 from restweetution.models.twitter.tweet import Tweet
 from restweetution.storages.storage import Storage
 from . import models
 from .helpers import get_helper, save_helper, get_statement, request_history_update
-from .models import TweetPublicMetricsHistory, Base
+from .models import TweetPublicMetricsHistory
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
 STORAGE_TYPE = 'postgres'
@@ -78,7 +79,7 @@ class PostgresStorage(Storage):
                 pl_add, pl_up = await self._save_place(session, data.get_places())
                 m_add, m_up = await self._save_media(session, data.get_medias())
                 po_add, po_up = await self._save_polls(session, data.get_polls())
-                r_add, r_up = await self._save_rules(session, data.get_rules())
+                r_add, r_up = await self._update_rules(session, data.get_rules())
 
                 # print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
                 if self._history:
@@ -88,9 +89,10 @@ class PostgresStorage(Storage):
 
         # Events outside of lock !!
 
-        event_data = EventData(data=data)
-        event_data.added.add(tweets=t_add, users=u_add, places=pl_add, medias=m_add, polls=po_add, rules=r_add)
-        event_data.updated.add(tweets=t_up, users=u_up, places=pl_up, medias=m_up, polls=po_up, rules=r_up)
+        added_ids = BulkIds(tweets=t_add, users=u_add, places=pl_add, medias=m_add, polls=po_add, rules=r_add)
+        updated_ids = BulkIds(tweets=t_up, users=u_up, places=pl_up, medias=m_up, polls=po_up, rules=r_up)
+
+        event_data = EventData(data=data, added=added_ids, updated=updated_ids)
 
         await self.save_event(event_data)
         await self.update_event(event_data)
@@ -176,10 +178,10 @@ class PostgresStorage(Storage):
         Returns a list of tuple ( rule_id, count) where count is the number of collected tweets for the given rule
         """
         async with self._async_session() as session:
-            stmt = select(models.CollectedTweet._parent_id, func.count(models.CollectedTweet._parent_id))
-            stmt = stmt.group_by(models.CollectedTweet._parent_id)
+            stmt = select(models.CollectedTweet.rule_id, func.count(models.CollectedTweet.rule_id))
+            stmt = stmt.group_by(models.CollectedTweet.rule_id)
             if ids:
-                stmt = stmt.filter(models.CollectedTweet._parent_id.in_(ids))
+                stmt = stmt.filter(models.CollectedTweet.rule_id.in_(ids))
 
             res = await session.execute(stmt)
             res = res.all()
@@ -239,27 +241,34 @@ class PostgresStorage(Storage):
         return await save_helper(session, models.Media, medias, id_field='media_key')
 
     @staticmethod
-    async def _save_rules(session: any, rules: List[Rule]) -> Tuple[Set[int], Set[int]]:
+    async def _update_rules(session: any, rules: List[Rule]) -> Tuple[Set[int], Set[int]]:
+        """
+        Updates collected tweets info for the given Rules
+        """
         added = set()
         updated = set()
         for rule in rules:
             # print(rule)
-            for tweet_id in rule.tweet_ids:
-                # print(type(tweet_id))
+            for collected in rule.collected_tweets:
                 pg_collected = models.CollectedTweet()
-                pg_collected.update({'_parent_id': rule.id, 'tweet_id': tweet_id})
+                pg_collected.rule_id = rule.id
+                pg_collected.tweet_id = collected.tweet_id
+                pg_collected.collected_at = collected.collected_at
+
                 await session.merge(pg_collected)
                 updated.add(rule.id)
         return added, updated
 
     @staticmethod
-    async def _get_rule(session, rule: Rule):
-        stmt = select(models.Rule).filter(models.Rule.tag == rule.tag).filter(models.Rule.query == rule.query)
-        stmt = stmt.filter(models.Rule.name == rule.name).filter(models.Rule.type == rule.type)
+    async def _get_rule(session, rule: Rule) -> models.Rule:
+        stmt = select(models.Rule)
+        stmt = stmt.filter(models.Rule.query == rule.query)
+        stmt = stmt.filter(models.Rule.type == rule.type)
         res = await session.execute(stmt)
         res = res.scalars().first()
         return res
 
+    # TODO: allow modification of rule TAGS
     async def request_rules(self, rules: List[Rule]):
         async with self._async_session() as session:
             for rule in rules:
@@ -267,9 +276,15 @@ class PostgresStorage(Storage):
                 if not pg_rule:
                     pg_rule = models.Rule()
                     pg_rule.update(rule.dict())
+                    pg_rule.created_at = datetime.datetime.now()
                     pg_rule = await session.merge(pg_rule)
+                elif pg_rule.tag != rule.tag:
+                    pg_rule.tag = rule.tag
+                    await session.merge(pg_rule)
                 await session.commit()
                 rule.id = pg_rule.id
+                rule.tag = pg_rule.tag
+                rule.created_at = pg_rule.created_at
         return rules
 
     @staticmethod

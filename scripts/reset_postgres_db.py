@@ -4,7 +4,7 @@ import os
 from restweetution import config_loader
 from restweetution.storages.postgres_storage.models import Base
 
-main_conf = config.get_config_from_file(os.getenv('CONFIG'))
+main_conf = config_loader.get_config_from_file(os.getenv('CONFIG'))
 
 
 async def async_main():
