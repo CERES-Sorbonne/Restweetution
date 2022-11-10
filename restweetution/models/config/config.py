@@ -51,8 +51,11 @@ class Config(BaseModel):
 
     async def read_persistent_config(self):
         async with aiofiles.open(self.persistent_path, 'r') as f:
-            data = json.loads(await f.read())
+            data = await f.read()
+            if not data:
+                return
+            json_data = json.loads(data)
 
-            self.streamer_rules = [StreamerRule(**rule) for rule in data['streamer_rules']]
+            self.streamer_rules = [StreamerRule(**rule) for rule in json_data['streamer_rules']]
             print(self.streamer_rules)
 
