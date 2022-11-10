@@ -56,6 +56,8 @@ def set_filter(stmt, model, ids, no_ids, id_field, **kwargs):
         stmt = stmt.filter(_(date_field) >= kwargs.get('date_start'))
     if 'date_stop' in kwargs:
         stmt = stmt.filter(_(date_field) <= kwargs.get('date_stop'))
+    if 'type_' in kwargs and kwargs.get('type_'):
+        stmt = stmt.filter(_('type') == kwargs.get('type_'))
     # print(stmt)
     return stmt
 

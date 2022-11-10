@@ -1,6 +1,6 @@
 import datetime
 from asyncio import Lock
-from typing import List, Iterator, Tuple, Set, Dict
+from typing import List, Iterator, Tuple, Set, Dict, Optional
 
 from sqlalchemy import delete, cast, BigInteger, func
 from sqlalchemy import select
@@ -162,14 +162,15 @@ class PostgresStorage(Storage):
             self,
             ids: List[str] = None,
             no_ids: List[str] = None,
-            fields: List[str] = rule_fields) -> List[Rule]:
+            fields: List[str] = rule_fields,
+            type_: str = None) -> List[Rule]:
         async with self._async_session() as session:
             fields = fields.copy()
             if 'tweet_ids' in fields:
                 fields.remove('tweet_ids')
                 fields.append('tweets')
 
-            res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields)
+            res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields, type_=type_)
             res = [Rule(**r.to_dict()) for r in res]
             return res
 

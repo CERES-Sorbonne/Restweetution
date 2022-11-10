@@ -41,11 +41,11 @@ class Restweetution:
             self._streamer_task.cancel()
             self._streamer_task = None
 
-    async def get_all_rules(self):
-        return await self._storage_manager.get_rules(fields=['id', 'name', 'type', 'tag', 'query'])
+    async def get_all_rules(self, type_: str = None):
+        return await self._storage_manager.get_rules(fields=['id', 'type', 'tag', 'query', 'created_at'], type_=type_)
 
-    async def get_all_rule_info(self):
-        rules = await self.get_all_rules()
+    async def get_all_rule_info(self, type_: str = None):
+        rules = await self.get_all_rules(type_=type_)
         count = await self._storage_manager.main_storage.get_rules_tweet_count()
 
         res = []
@@ -61,8 +61,11 @@ class Restweetution:
     def is_streamer_running(self):
         return self._streamer_task is not None
 
-    def get_streamer_rules(self):
+    def get_active_streamer_rules(self):
         return self._streamer.get_rules()
+
+    async def get_streamer_api_rules(self):
+        return await self._streamer.get_api_rules()
 
     async def add_streamer_rules(self, rules: List):
         self._config.streamer_rules = await self._streamer.add_rules(rules)

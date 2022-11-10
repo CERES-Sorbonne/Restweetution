@@ -1,10 +1,10 @@
 import asyncio
 import logging
-from typing import Optional, Any, Dict
+from typing import Optional
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.requests import Request
 from starlette.status import HTTP_302_FOUND
 
@@ -43,7 +43,20 @@ async def path_root():
 async def streamer():
     return {
         "running": restweet.is_streamer_running(),
-        "rules": restweet.get_streamer_rules()
+        "active_rules": restweet.get_active_streamer_rules(),
+    }
+
+
+# @app.get("/streamer/history")
+# async def streamer():
+#     return {
+#         "rule_history": restweet.get_all_rules()
+#     }
+
+@app.get('/streamer/debug')
+async def streamer_debug():
+    return {
+        "api_rules": await restweet.get_streamer_api_rules()
     }
 
 
@@ -61,6 +74,20 @@ async def downloader():
 async def rules():
     return {
         "rules": await restweet.get_all_rule_info()
+    }
+
+
+@app.get("/rules/streamer")
+async def rules():
+    return {
+        "rules": await restweet.get_all_rule_info(type_='streamer')
+    }
+
+
+@app.get("/rules/searcher")
+async def rules():
+    return {
+        "rules": await restweet.get_all_rule_info(type_='searcher')
     }
 
 

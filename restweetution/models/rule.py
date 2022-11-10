@@ -55,7 +55,6 @@ class Rule(BaseModel):
         return {
             'id': self.id,
             'type': self.type,
-            'name': self.name,
             'tag': self.tag,
             'query': self.query
         }
