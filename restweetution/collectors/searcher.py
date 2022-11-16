@@ -1,14 +1,19 @@
+import asyncio
 import datetime
 import logging
+import math
+import time
 from typing import Callable, List, Dict
 
+import aiohttp
+from pydantic import BaseModel
 from tweepy.asynchronous import AsyncClient
 
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.rule import SearcherRule
-from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse
+from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse
 from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storage_manager import StorageManager
 
@@ -19,10 +24,10 @@ class Searcher:
 
         self.storage_manager = storage
         self._logger = logging.getLogger('Searcher')
-        self._client = AsyncClient(bearer_token=bearer_token, **kwargs)
+        self._client = AsyncClient(bearer_token=bearer_token, return_type=aiohttp.ClientResponse, **kwargs)
         self._default_fields = fields if fields else QueryFields()
 
-    async def collect(self, rule: SearcherRule, fields: QueryFields = None, recent=True, max_results=10, **kwargs):
+    async def collect(self, rule: SearcherRule, fields: QueryFields = None, recent=True, max_results=10, count_tweets=True, **kwargs):
         self._logger.info('Start search loop')
 
         res = await self.storage_manager.request_rules([rule])
@@ -30,8 +35,9 @@ class Searcher:
 
         query = rule.query
 
-        count = await self.get_tweets_count(query, recent=recent, **kwargs)
-        self._logger.info(f'Retrieving {count.meta.total_tweet_count} tweets')
+        if count_tweets:
+            count = await self.get_tweets_count(query, recent=recent, granularity='day', **kwargs)
+            self._logger.info(f'Retrieving {count} tweets')
 
         if not fields:
             fields = self._default_fields
@@ -41,17 +47,24 @@ class Searcher:
         async for res in self._token_loop(search_function, query, **fields.dict(), max_results=max_results, **kwargs):
             try:
                 bulk_data = BulkData()
-
                 tweets = [Tweet(**t) for t in res.data]
                 bulk_data.add_tweets(tweets)
-                bulk_data.add(**parse_includes(Includes(**res.includes)))
+
+                includes = Includes(**res.includes)
+                bulk_data.add(**parse_includes(includes))
 
                 # set collected tweets to rule
-                tweet_ids = [t.id for t in bulk_data.get_tweets()]
+
                 collected_at = datetime.datetime.now()
                 # use copy of rule to avoid polluting global object
                 rule_copy = rule.copy()
-                rule_copy.add_collected_tweets(tweet_ids=tweet_ids, collected_at=collected_at)
+
+                direct_ids = [t.id for t in tweets]
+                includes_ids = [t.id for t in includes.tweets]
+
+                rule_copy.add_direct_tweets(tweet_ids=direct_ids, collected_at=collected_at)
+                if includes_ids:
+                    rule_copy.add_includes_tweets(tweet_ids=includes_ids, collected_at=collected_at)
 
                 bulk_data.add_rules([rule_copy])
 
@@ -63,9 +76,12 @@ class Searcher:
     async def get_tweets_count(self, query, recent=True, **kwargs):
         count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
 
-        res = await count_func(query, **kwargs)
-        count = CountResponse(data=res.data, meta=res.meta, errors=res.errors, includes=res.includes)
-        return count
+        total_count = 0
+        async for res in self._token_loop(count_func, query=query, **kwargs):
+            count = CountResponse(**res.dict())
+            total_count += count.meta.total_tweet_count
+
+        return total_count
 
     async def get_tweets_as_stream(self, ids: List[str], fields: QueryFields = None, max_per_loop: int = 100):
         if not fields:
@@ -150,12 +166,31 @@ class Searcher:
         running = True
         while running:
             if next_token:
-                res = await get_function(query=query, next_token=next_token, **kwargs)
+                resp = await get_function(query=query, next_token=next_token, **kwargs)
             else:
-                res = await get_function(query=query, **kwargs)
-            next_token = res.meta['next_token']
+                resp = await get_function(query=query, **kwargs)
+
+            async with resp:
+                res = TweetPyLookupResponse(**await resp.json())
+
+            rate_limit_remaining = resp.headers.get('x-rate-limit-remaining')
+            print(rate_limit_remaining)
+            if rate_limit_remaining == 0:
+                rate_limit_reset = resp.headers.get('x-rate-limit-reset')
+                wait_duration = rate_limit_reset - math.floor(time.time())
+                print('sleep for ', wait_duration, ' seconds')
+                await asyncio.sleep(wait_duration)
+
+            if res.meta and 'next_token' in res.meta:
+                next_token = res.meta['next_token']
+            else:
+                next_token = None
             running = next_token
             yield res
+
+    # @staticmethod
+    # def parse_headers(resp: aiohttp.ClientResponse):
+
 
     @staticmethod
     async def _lookup_loop(lookup_function: Callable, get_function: Callable, values: List, fields: dict,

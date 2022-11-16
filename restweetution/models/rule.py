@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Dict
 from pydantic import BaseModel
 
 
@@ -15,7 +15,12 @@ class StreamAPIRule(BaseModel):
 
 class CollectedTweet(BaseModel):
     collected_at: datetime
+    direct_hit: bool = False
     tweet_id: str
+    rule_id: int
+
+    def rule_tweet_id(self):
+        return str(self.rule_id) + self.tweet_id
 
 
 class Rule(BaseModel):
@@ -25,12 +30,29 @@ class Rule(BaseModel):
     query: Optional[str]  # Query string (streamer or searcher) Can also be used to describe custom rules
     created_at: Optional[datetime]
     # tweet_ids: Set[str] = set()  # Set of collected tweet ids
-    collected_tweets: List[CollectedTweet] = []
+    collected_tweets: Dict[str, CollectedTweet] = {}
 
-    def add_collected_tweets(self, tweet_ids, collected_at):
+    def collected_tweets_list(self):
+        return self.collected_tweets.values()
+
+    def add_collected_tweets(self, tweet_ids, collected_at, direct_hit=False):
         for tweet_id in tweet_ids:
-            self.collected_tweets.append(CollectedTweet(tweet_id=tweet_id, collected_at=collected_at))
+            collected = CollectedTweet(
+                tweet_id=tweet_id,
+                collected_at=collected_at,
+                direct_hit=direct_hit,
+                rule_id=self.id)
+            if collected.rule_tweet_id() in self.collected_tweets:
+                if direct_hit:
+                    self.collected_tweets[collected.rule_tweet_id()].direct_hit = True
+            else:
+                self.collected_tweets[collected.rule_tweet_id()] = collected
 
+    def add_direct_tweets(self, tweet_ids, collected_at):
+        self.add_collected_tweets(tweet_ids, collected_at, direct_hit=True)
+
+    def add_includes_tweets(self, tweet_ids, collected_at):
+        self.add_collected_tweets(tweet_ids, collected_at, direct_hit=False)
     # def collected_ids(self):
     #     return [c.tweet_id for c in self.collected_tweets]
 

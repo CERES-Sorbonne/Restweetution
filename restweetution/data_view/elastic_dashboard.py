@@ -110,7 +110,7 @@ class ElasticDashboard(DataView):
     def _compute_tweet_to_rules(rules: List[Rule]):
         tweet_to_rules = defaultdict(set)
         for rule in rules:
-            for tweet in rule.collected_tweets:
+            for tweet in rule.collected_tweets_list():
                 tweet_to_rules[tweet.tweet_id].add(rule.tag)
         return tweet_to_rules
 

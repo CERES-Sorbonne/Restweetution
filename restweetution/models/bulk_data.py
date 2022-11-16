@@ -3,11 +3,11 @@ from typing import List, Dict
 
 from pydantic import BaseModel
 
+from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.twitter import Media
-from restweetution.models.twitter.place import Place
 from restweetution.models.twitter import Poll
-from restweetution.models.rule import Rule, CollectedTweet
+from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.tweet import Tweet
 from restweetution.models.twitter.user import User
 
@@ -75,7 +75,8 @@ class BulkData(BaseModel):
             if rule.id not in self.rules:
                 self.rules[rule.id] = rule
             else:
-                self.rules[rule.id].collected_tweets.extend(rule.collected_tweets)
+                for collected in rule.collected_tweets_list():
+                    self.rules[rule.id].collected_tweets[collected.rule_tweet_id()] = collected
 
     def add_tweets(self, tweets: List[Tweet]):
         self.set_from_list(self.tweets, tweets)

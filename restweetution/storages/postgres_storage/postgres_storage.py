@@ -2,7 +2,7 @@ import datetime
 from asyncio import Lock
 from typing import List, Iterator, Tuple, Set, Dict, Optional
 
-from sqlalchemy import delete, cast, BigInteger, func
+from sqlalchemy import delete, cast, BigInteger, func, tuple_
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, joinedload
@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker, joinedload
 from restweetution.errors import handle_storage_save_error
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.event_data import EventData, BulkIds
-from restweetution.models.rule import Rule
+from restweetution.models.rule import Rule, CollectedTweet
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Media, User, Poll, Place
@@ -249,15 +249,27 @@ class PostgresStorage(Storage):
         added = set()
         updated = set()
         for rule in rules:
-            # print(rule)
-            for collected in rule.collected_tweets:
-                pg_collected = models.CollectedTweet()
-                pg_collected.rule_id = rule.id
-                pg_collected.tweet_id = collected.tweet_id
-                pg_collected.collected_at = collected.collected_at
+
+            collected_in_db = await PostgresStorage._get_collected_from_rule(session, rule.collected_tweets_list())
+            collected_dict = {t.rule_tweet_id(): t for t in collected_in_db}
+
+            for collected in rule.collected_tweets_list():
+                if collected.rule_tweet_id() in collected_dict:
+                    pg_collected = collected_dict[collected.rule_tweet_id()]
+                    if collected.direct_hit and not pg_collected.direct_hit:
+                        pg_collected.direct_hit = True
+                else:
+                    pg_collected = models.CollectedTweet()
+                    pg_collected.rule_id = rule.id
+                    pg_collected.tweet_id = collected.tweet_id
+                    pg_collected.collected_at = collected.collected_at
+                    # Override only if True
+                    # if collected.direct_hit:
+                    pg_collected.direct_hit = collected.direct_hit
 
                 await session.merge(pg_collected)
-                updated.add(rule.id)
+
+            updated.add(rule.id)
         return added, updated
 
     @staticmethod
@@ -267,6 +279,15 @@ class PostgresStorage(Storage):
         stmt = stmt.filter(models.Rule.type == rule.type)
         res = await session.execute(stmt)
         res = res.scalars().first()
+        return res
+
+    @staticmethod
+    async def _get_collected_from_rule(session, collected_list: List[CollectedTweet]):
+        collected_tuple = [(t.rule_id, t.tweet_id) for t in collected_list]
+        stmt = select(models.CollectedTweet)
+        stmt = stmt.filter(tuple_(models.CollectedTweet.rule_id, models.CollectedTweet.tweet_id).in_(collected_tuple))
+        res = await session.execute(stmt)
+        res = res.scalars().all()
         return res
 
     # TODO: allow modification of rule TAGS

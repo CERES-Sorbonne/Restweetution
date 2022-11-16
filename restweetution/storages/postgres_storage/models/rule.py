@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, ForeignKey, Integer
+from sqlalchemy import Column, String, ForeignKey, Integer, BOOLEAN, Boolean
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import relationship
 
@@ -32,4 +32,8 @@ class CollectedTweet(Base):
     rule = relationship('Rule', back_populates='collected_tweets')
 
     tweet_id = Column(String, ForeignKey('tweet.id'), primary_key=True)
-    collected_at = Column(TIMESTAMP(timezone=True), primary_key=True)
+    collected_at = Column(TIMESTAMP(timezone=True))
+    direct_hit = Column(Boolean, default=False)
+
+    def rule_tweet_id(self):
+        return str(self.rule_id) + self.tweet_id

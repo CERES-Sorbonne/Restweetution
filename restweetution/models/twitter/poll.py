@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -13,6 +13,6 @@ class PollOption(BaseModel):
 class Poll(BaseModel):
     id: str
     options: List[PollOption]
-    duration_minutes: int
-    end_datetime: datetime
-    voting_status: str
+    duration_minutes: Optional[int]
+    end_datetime: Optional[datetime]
+    voting_status: Optional[str]

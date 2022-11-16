@@ -23,6 +23,13 @@ class CountResponse(BaseModel):
     errors: List = []
 
 
+class TweetPyLookupResponse(BaseModel):
+    data: List[Dict] = []
+    includes: Dict = {}
+    errors: List[Dict] = []
+    meta: Dict = {}
+
+
 class LookupResponseUnit(BaseModel):
     data: List
     includes: Dict

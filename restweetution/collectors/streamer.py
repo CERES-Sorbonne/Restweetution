@@ -208,7 +208,8 @@ class Streamer:
         bulk_data.add_tweets([tweet])
 
         # Add includes
-        bulk_data.add(**parse_includes(tweet_res.includes))
+        includes = tweet_res.includes
+        bulk_data.add(**parse_includes(includes))
 
         # Get the full rule from the id in matching_rules
         rules = self._get_cache_rules([r.id for r in tweet_res.matching_rules])
@@ -218,11 +219,14 @@ class Streamer:
             return
 
         # Mark the tweets as collected by the rules
-        tweet_ids = [t.id for t in bulk_data.get_tweets()]
         collected_at = datetime.datetime.now()
         for rule in rules:
-            rule.add_collected_tweets(tweet_ids=tweet_ids, collected_at=collected_at)
+            rule.add_direct_tweets(tweet_ids=[tweet.id], collected_at=collected_at)
+            if includes.tweets:
+                tweet_ids = [t.id for t in includes.tweets]
+                rule.add_includes_tweets(tweet_ids=tweet_ids, collected_at=collected_at)
 
+        # print(rules[0].collected_tweets)
         # Add rules to bulk data
         bulk_data.add_rules(rules)
         return bulk_data
