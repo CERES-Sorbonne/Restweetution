@@ -16,6 +16,7 @@ async def launch():
     view = ElasticDashboard(main_conf.storage_manager.main_storage, main_conf.storages['ceres_elastic'], 'renaud')
     # await view.load()
     # await view.save()
+
     await searcher.collect(rule=main_conf.searcher_rule, count_tweets=False, fields=main_conf.query_fields,
                            recent=False, start_time=datetime(2019, 7, 8),
                            end_time=datetime(2019, 9, 9), max_results=100)
