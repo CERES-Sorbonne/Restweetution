@@ -1,24 +1,21 @@
 import asyncio
 import logging
 import os
+from datetime import datetime
 
 import restweetution.config_loader as config
 from restweetution.data_view.elastic_dashboard import ElasticDashboard
-from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
-from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
-main_conf = config.get_config_from_file(os.getenv('CONFIG'))
-
-
 async def launch():
-    postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
-    elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
-    view = ElasticDashboard(in_storage=postgres_storage, out_storage=elastic_storage)
+    main_conf = config.get_config_from_file(os.getenv('CONFIG'))
     searcher = main_conf.searcher
-    await searcher.collect(main_conf.searcher_rule, fields=main_conf.query_fields)
+    view = ElasticDashboard(main_conf.storage_manager.main_storage, main_conf.storages['ceres_elastic'], 'renaud')
+    await view.load()
+    await view.save()
+    await searcher.collect(rule=main_conf.searcher_rule, count_tweets=False, fields=main_conf.query_fields, recent=False, start_time=datetime(2017, 11, 10, 16, 44, 20, 323095), end_time=datetime(2020, 9, 29), max_results=100)
 
 try:
     asyncio.run(launch())

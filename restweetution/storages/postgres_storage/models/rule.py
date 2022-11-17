@@ -17,13 +17,14 @@ class Rule(Base):
     def update(self, data, **kwargs):
         # data['tweets'] = [{'tweet_id': x} for x in data['tweet_ids']]
         super().update(data, **kwargs)
+        data['collected_tweets'] = [t for t in data['collected_tweets'].values()]
         self.update_one_to_many('collected_tweets', CollectedTweet, data)
 
-    # def to_dict(self):
-    #     data = super().to_dict()
-    #     if 'tweet' in self.__dict__:
-    #         data['tweet_ids'] = [t.tweet_id for t in self.tweets]
-    #     return data
+    def to_dict(self):
+        data = super().to_dict()
+        if 'collected_tweets' in self.__dict__:
+            data['collected_tweets'] = {t.tweet_id: t for t in self.collected_tweets}
+        return data
 
 
 class CollectedTweet(Base):
