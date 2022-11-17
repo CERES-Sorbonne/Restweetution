@@ -1,4 +1,5 @@
 import datetime
+import logging
 from asyncio import Lock
 from typing import List, Iterator, Tuple, Set, Dict, Optional
 
@@ -22,7 +23,7 @@ from .models import TweetPublicMetricsHistory
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 
 STORAGE_TYPE = 'postgres'
-
+logger = logging.getLogger('PostgresStorage')
 
 class PostgresStorage(Storage):
 
@@ -81,7 +82,7 @@ class PostgresStorage(Storage):
                 po_add, po_up = await self._save_polls(session, data.get_polls())
                 r_add, r_up = await self._update_rules(session, data.get_rules())
 
-                # print(f'Postgres saved: {len(data.tweets.items())} tweets, {len(data.users.items())} users')
+                logger.info(f'Postgres saved: {len(t_add)} tweets, updated: {len(t_up)}')
                 if self._history:
                     await self._save_history(session, bulk_data=data)
 
