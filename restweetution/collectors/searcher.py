@@ -6,6 +6,7 @@ import time
 from typing import Callable, List, Dict
 
 import aiohttp
+import tweepy.errors
 from pydantic import BaseModel
 from tweepy.asynchronous import AsyncClient
 
@@ -17,6 +18,7 @@ from restweetution.models.searcher import CountResponse, LookupResponseUnit, Loo
 from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storage_manager import StorageManager
 
+logger = logging.getLogger('Searcher')
 
 class Searcher:
     def __init__(self, storage: StorageManager, bearer_token, fields: QueryFields = None, **kwargs):
@@ -54,7 +56,7 @@ class Searcher:
                 bulk_data.add(**parse_includes(includes))
 
                 # set collected tweets to rule
-
+                print(tweets[0].created_at)
                 collected_at = datetime.datetime.now()
                 # use copy of rule to avoid polluting global object
                 rule_copy = rule.copy()
@@ -165,27 +167,32 @@ class Searcher:
         next_token = None
         running = True
         while running:
-            if next_token:
-                resp = await get_function(query=query, next_token=next_token, **kwargs)
-            else:
-                resp = await get_function(query=query, **kwargs)
+            try:
+                if next_token:
+                    resp = await get_function(query=query, next_token=next_token, **kwargs)
+                else:
+                    resp = await get_function(query=query, **kwargs)
+            except tweepy.errors.TooManyRequests:
+                logger.info('Unexpected TooManyRequest, sleep for 15min')
+                await asyncio.sleep(15 * 60)
+                continue
 
             async with resp:
                 res = TweetPyLookupResponse(**await resp.json())
-
-            rate_limit_remaining = resp.headers.get('x-rate-limit-remaining')
-            print(rate_limit_remaining)
-            if rate_limit_remaining == 0:
-                rate_limit_reset = resp.headers.get('x-rate-limit-reset')
-                wait_duration = rate_limit_reset - math.floor(time.time())
-                print('sleep for ', wait_duration, ' seconds')
-                await asyncio.sleep(wait_duration)
 
             if res.meta and 'next_token' in res.meta:
                 next_token = res.meta['next_token']
             else:
                 next_token = None
             running = next_token
+
+            rate_limit_remaining = int(resp.headers.get('x-rate-limit-remaining'))
+            rate_limit_reset = int(resp.headers.get('x-rate-limit-reset'))
+            if rate_limit_remaining == 0:
+                wait_duration = rate_limit_reset - math.floor(time.time())
+                logger.info('sleep for ', wait_duration, ' seconds')
+                await asyncio.sleep(wait_duration)
+
             yield res
 
     # @staticmethod
