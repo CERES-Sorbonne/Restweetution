@@ -71,7 +71,7 @@ class Searcher:
                 bulk_data.add_rules([rule_copy])
 
                 self._logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
-                self.storage_manager.save_bulk(bulk_data)
+                await self.storage_manager.main_storage.save_bulk(bulk_data)
             except Exception as e:
                 self._logger.warning(e)
 
