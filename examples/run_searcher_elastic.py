@@ -18,7 +18,7 @@ async def launch():
     # await view.save()
     await searcher.collect(rule=main_conf.searcher_rule, count_tweets=False, fields=main_conf.query_fields,
                            recent=False, start_time=datetime(2017, 11, 10),
-                           end_time=datetime(2019, 10, 20), max_results=100)
+                           end_time=datetime(2018, 10, 20), max_results=100)
 
 
 try:
