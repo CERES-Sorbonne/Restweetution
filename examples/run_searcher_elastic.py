@@ -14,11 +14,11 @@ async def launch():
     main_conf = config.get_config_from_file(os.getenv('CONFIG'))
     searcher = main_conf.searcher
     view = ElasticDashboard(main_conf.storage_manager.main_storage, main_conf.storages['ceres_elastic'], 'renaud')
-    await view.load()
-    await view.save()
+    # await view.load()
+    # await view.save()
     await searcher.collect(rule=main_conf.searcher_rule, count_tweets=False, fields=main_conf.query_fields,
-                           recent=False, start_time=datetime(2017, 11, 10, 16, 44, 20, 323095),
-                           end_time=datetime(2020, 9, 29), max_results=100)
+                           recent=False, start_time=datetime(2017, 11, 10),
+                           end_time=datetime(2019, 10, 20), max_results=100)
 
 
 try:

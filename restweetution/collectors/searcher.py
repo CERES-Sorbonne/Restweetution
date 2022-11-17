@@ -56,7 +56,7 @@ class Searcher:
                 bulk_data.add(**parse_includes(includes))
 
                 # set collected tweets to rule
-                print(tweets[0].created_at)
+                self._logger.info(tweets[0].created_at)
                 collected_at = datetime.datetime.now()
                 # use copy of rule to avoid polluting global object
                 rule_copy = rule.copy()
