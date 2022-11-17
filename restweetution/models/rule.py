@@ -59,6 +59,7 @@ class Rule(BaseModel):
     def __init__(self, tag: str = None, **kwargs):
         if not tag:
             tag = 'default'
+        # print(kwargs['collected_tweets'])
         super().__init__(tag=tag, **kwargs)
 
     def copy(self, **kwargs):

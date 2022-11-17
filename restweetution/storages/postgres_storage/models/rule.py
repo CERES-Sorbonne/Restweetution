@@ -23,7 +23,8 @@ class Rule(Base):
     def to_dict(self):
         data = super().to_dict()
         if 'collected_tweets' in self.__dict__:
-            data['collected_tweets'] = {t.tweet_id: t for t in self.collected_tweets}
+            data['collected_tweets'] = {t.tweet_id: t.to_dict() for t in self.collected_tweets}
+            print(data['collected_tweets'])
         return data
 
 
