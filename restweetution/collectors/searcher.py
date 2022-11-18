@@ -3,11 +3,10 @@ import datetime
 import logging
 import math
 import time
-from typing import Callable, List, Dict
+from typing import Callable, List
 
 import aiohttp
 import tweepy.errors
-from pydantic import BaseModel
 from tweepy.asynchronous import AsyncClient
 
 from restweetution.collectors.response_parser import parse_includes
@@ -20,6 +19,7 @@ from restweetution.storage_manager import StorageManager
 
 logger = logging.getLogger('Searcher')
 
+
 class Searcher:
     def __init__(self, storage: StorageManager, bearer_token, fields: QueryFields = None, **kwargs):
         super().__init__()
@@ -29,7 +29,8 @@ class Searcher:
         self._client = AsyncClient(bearer_token=bearer_token, return_type=aiohttp.ClientResponse, **kwargs)
         self._default_fields = fields if fields else QueryFields()
 
-    async def collect(self, rule: SearcherRule, fields: QueryFields = None, recent=True, max_results=10, count_tweets=True, **kwargs):
+    async def collect(self, rule: SearcherRule, fields: QueryFields = None, recent=True, max_results=10,
+                      count_tweets=True, **kwargs):
         self._logger.info('Start search loop')
 
         res = await self.storage_manager.request_rules([rule])
@@ -56,7 +57,6 @@ class Searcher:
                 bulk_data.add(**parse_includes(includes))
 
                 # set collected tweets to rule
-                self._logger.info(tweets[0].id)
                 collected_at = datetime.datetime.now()
                 # use copy of rule to avoid polluting global object
                 rule_copy = rule.copy()
@@ -190,14 +190,13 @@ class Searcher:
             rate_limit_reset = int(resp.headers.get('x-rate-limit-reset'))
             if rate_limit_remaining == 0:
                 wait_duration = rate_limit_reset - math.floor(time.time())
-                logger.info('sleep for ', wait_duration, ' seconds')
+                logger.info('sleep for ', str(wait_duration), ' seconds')
                 await asyncio.sleep(wait_duration)
 
             yield res
 
     # @staticmethod
     # def parse_headers(resp: aiohttp.ClientResponse):
-
 
     @staticmethod
     async def _lookup_loop(lookup_function: Callable, get_function: Callable, values: List, fields: dict,

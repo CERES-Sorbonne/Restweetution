@@ -1,12 +1,10 @@
 import asyncio
-import json
 import logging
 from typing import List
 
 from restweetution.collectors import Streamer
 from restweetution.models.config.config import Config
 from restweetution.storage_manager import StorageManager
-from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 logger = logging.getLogger('Restweetution')
 
