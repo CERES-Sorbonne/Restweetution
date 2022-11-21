@@ -31,7 +31,7 @@ class MediaDownloader:
 
         self._storage = storage
 
-        self.active = False
+        self._active = False
         self.set_active(active)
 
         self._file_helper = FileStorageHelper(root)
@@ -52,7 +52,7 @@ class MediaDownloader:
         :param medias: List of Media to save
         """
         await self._storage.save_medias(medias)
-        if not self.active:
+        if not self._active:
             for m in medias:
                 self._add_download_task(m)
 
@@ -61,11 +61,14 @@ class MediaDownloader:
         Set automatic download of Medias that are added to the storage
         :param value: True or False
         """
-        self.active = value
-        if self.active:
+        self._active = value
+        if self._active:
             self._storage.save_event.add(self._medias_save_event_handler)
         elif self._medias_save_event_handler in self._storage.save_event:
             self._storage.save_event.remove(self._medias_save_event_handler)
+
+    def get_active(self):
+        return self._active
 
     def get_root(self):
         return self._file_helper.root
@@ -80,7 +83,7 @@ class MediaDownloader:
         return self._process_queue_task is not None
 
     def is_active(self):
-        return self.active
+        return self._active
 
     def get_status(self):
         return {

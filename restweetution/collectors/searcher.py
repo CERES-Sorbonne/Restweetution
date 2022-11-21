@@ -15,32 +15,31 @@ from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.rule import SearcherRule
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse
 from restweetution.models.twitter import Tweet, Includes, User
-from restweetution.storage_manager import StorageManager
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 logger = logging.getLogger('Searcher')
 
 
 class Searcher:
-    def __init__(self, storage: StorageManager, bearer_token, fields: QueryFields = None, **kwargs):
+    def __init__(self, storage: PostgresStorage, bearer_token, fields: QueryFields = None, **kwargs):
         super().__init__()
 
-        self.storage_manager = storage
-        self._logger = logging.getLogger('Searcher')
+        self.storage = storage
         self._client = AsyncClient(bearer_token=bearer_token, return_type=aiohttp.ClientResponse, **kwargs)
         self._default_fields = fields if fields else QueryFields()
 
     async def collect(self, rule: SearcherRule, fields: QueryFields = None, recent=True, max_results=10,
                       count_tweets=True, **kwargs):
-        self._logger.info('Start search loop')
+        logger.info('Start search loop')
 
-        res = await self.storage_manager.request_rules([rule])
+        res = await self.storage.request_rules([rule])
         rule = res[0]
 
         query = rule.query
 
         if count_tweets:
             count = await self.get_tweets_count(query, recent=recent, granularity='day', **kwargs)
-            self._logger.info(f'Retrieving {count} tweets')
+            logger.info(f'Retrieving {count} tweets')
 
         if not fields:
             fields = self._default_fields
@@ -70,10 +69,10 @@ class Searcher:
 
                 bulk_data.add_rules([rule_copy])
 
-                self._logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
-                await self.storage_manager.main_storage.save_bulk(bulk_data)
+                logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
+                await self.storage.save_bulk(bulk_data)
             except Exception as e:
-                self._logger.warning(e)
+                logger.warning(e)
 
     async def get_tweets_count(self, query, recent=True, **kwargs):
         count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count

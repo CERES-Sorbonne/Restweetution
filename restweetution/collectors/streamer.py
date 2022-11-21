@@ -10,15 +10,17 @@ from restweetution.errors import ResponseParseError, TwitterAPIError, StorageErr
     UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.rule import StreamerRule
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.rule import StreamerRule, StreamAPIRule
 from restweetution.models.twitter.tweet import TweetResponse
-from restweetution.storage_manager import StorageManager
+from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
+
+logger = logging.getLogger('Streamer')
 
 
 class Streamer:
-    def __init__(self, bearer_token, storage_manager: StorageManager, verbose: bool = False):
+    def __init__(self, bearer_token, storage: PostgresStorage, verbose: bool = False):
         """
         The Streamer is the class used to connect to the Twitter Stream API and fetch live tweets
         """
@@ -38,9 +40,8 @@ class Streamer:
         # self._client2 = AsyncStreamingClient(bearer_token=bearer_token)
         self._client = TwitterClient(token=bearer_token)
 
-        self._storage_manager = storage_manager
+        self._storage = storage
 
-        self._logger = logging.getLogger('Streamer')
         self._tweet_count = 0
         self._verbose = verbose
 
@@ -133,7 +134,7 @@ class Streamer:
         # select only the rules that where successfully added
         rules = [r for r in rules if r.api_id]
         # generate or get the rule ID from storage
-        rules = await self._storage_manager.request_rules(rules)
+        rules = await self._storage.request_rules(rules)
 
         # cache and save rules for streamer usage
         self._cache_rules(rules)
@@ -156,7 +157,7 @@ class Streamer:
         for rule in rules:
             self._api_id_to_rule[rule.api_id] = rule
 
-    def _update_active_rules(self,rules: List[StreamerRule]):
+    def _update_active_rules(self, rules: List[StreamerRule]):
         for rule in rules:
             self._active_rules[rule.id] = rule
 
@@ -180,17 +181,17 @@ class Streamer:
             text = tweet.data.text.split('\n')[0]
             if len(text) > 80:
                 text = text[0:80] + '..'
-            self._logger.info(f'id: {tweet.data.id} - {text}')
+            logger.info(f'id: {tweet.data.id} - {text}')
         if self._tweet_count % 10 == 0:
-            self._logger.info(f'{self._tweet_count} tweets collected')
+            logger.info(f'{self._tweet_count} tweets collected')
 
     async def _main_error_handler(self, error: Exception):
         trace = traceback.format_exc()
-        self._logger.exception(trace)
+        logger.exception(trace)
         # self._logger.warning(f'Error: {type(error)}')
         if isinstance(error, RESTweetutionError):
             error_data = ErrorModel(error=error, traceback=trace)
-            self._storage_manager.save_error(error_data)
+            asyncio.create_task(self._storage.save_error(error_data))
 
     async def _tweet_response_to_bulk_data(self, tweet_res: TweetResponse):
         """
@@ -215,7 +216,7 @@ class Streamer:
         rules = self._get_cache_rules([r.id for r in tweet_res.matching_rules])
 
         if not rules:
-            self._logger.warning('No rule matched requested rules')
+            logger.warning('No rule matched requested rules')
             return
 
         # Mark the tweets as collected by the rules
@@ -299,7 +300,7 @@ class Streamer:
         # send data to storage_manager
         try:
             bulk_data.timestamp = datetime.datetime.now()
-            self._storage_manager.save_bulk(bulk_data)
+            asyncio.create_task(self._storage.save_bulk(bulk_data))
         except Exception as e:
             raise StorageError('Unexpected StorageManager bulk_save function error') from e
 
@@ -321,11 +322,11 @@ class Streamer:
             await self.set_rules(rules)
 
         if len(self.get_rules()) == 0:
-            self._logger.warning('No rules are set, close streamer')
+            logger.warning('No rules are set, close streamer')
             return
 
-        self._logger.info(f"Collecting with following rules: ")
-        self._logger.info('\n'.join([f'{r.query}, tag: {r.tag} id: {r.id}' for r in self.get_rules()]))
+        logger.info(f"Collecting with following rules: ")
+        logger.info('\n'.join([f'{r.query}, tag: {r.tag} id: {r.id}' for r in self.get_rules()]))
 
         async for line in self._client.connect_tweet_stream(params=fields):
             asyncio.create_task(self._handle_line_response(line))

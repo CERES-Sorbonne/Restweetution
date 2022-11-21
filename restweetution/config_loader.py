@@ -1,15 +1,14 @@
 import json
-from typing import Optional
 
 import yaml
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
+from restweetution.media_downloader import MediaDownloader
 from restweetution.models.config.config import Config
 from restweetution.models.config.stream_query_params import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.rule import StreamerRule, SearcherRule
-from restweetution.storage_manager import StorageManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.exporter.csv_exporter import CSVExporter
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
@@ -61,15 +60,21 @@ def build_config(data: dict):
 
     parse_auth_config(main_conf, data)
     parse_storage_config(main_conf, data)
-    parse_storage_manager_config(main_conf, data)
+    parse_media_downloader_config(main_conf, data)
+    parse_exporter_config(main_conf, data)
     parse_streamer_config(main_conf, data)
     parse_query_fields(main_conf, data)
     parse_searcher_rule(main_conf, data)
 
-    if 'persistent_file' in data:
-        main_conf.persistent_path = data['persistent_file']
-
     return main_conf
+
+
+def parse_media_downloader_config(main_conf, data):
+    if 'media_root_dir' in data:
+        media_root_dir = data['media_root_dir']
+        if 'media_download_active' in data:
+            main_conf.media_download_active = data['media_download_active']
+        main_conf.media_downloader = MediaDownloader(media_root_dir, main_conf.storage, main_conf.media_download_active)
 
 
 def parse_streamer_config(main_conf: Config, data: dict):
@@ -78,8 +83,8 @@ def parse_streamer_config(main_conf: Config, data: dict):
     :param main_conf: Config
     :param data: raw config data
     """
-    if main_conf.storage_manager:
-        streamer = Streamer(bearer_token=main_conf.bearer_token, storage_manager=main_conf.storage_manager)
+    if main_conf.storage:
+        streamer = Streamer(bearer_token=main_conf.bearer_token, storage=main_conf.storage)
         if 'streamer' in data:
             s_data = data['streamer']
             if 'verbose' in s_data:
@@ -129,14 +134,21 @@ def parse_storage_config(main_conf: Config, data: dict):
     :param main_conf: Config
     :param data: raw config data
     """
-    if 'storages' in data:
-        for key, value in data['storages'].items():
-            storage = create_storage(key, value)
-            main_conf.storage_list.append(storage)
-            main_conf.storages[storage.name] = storage
+    if 'storage' in data:
+        storage = PostgresStorage(name='System Storage', **data['storage'])
+        main_conf.storage = storage
 
-def write_config(main_conf):
-    pass
+
+def parse_exporter_config(main_conf: Config, data: dict):
+    """
+    Parsing of storage options
+    :param main_conf: Config
+    :param data: raw config data
+    """
+    if 'exporters' in data:
+        for key, value in data['exporters'].items():
+            exporter = create_exporter(key, value)
+            main_conf.exporters[exporter.name] = exporter
 
 
 def parse_searcher_rule(main_conf: Config, data: dict):
@@ -144,61 +156,32 @@ def parse_searcher_rule(main_conf: Config, data: dict):
         data = data['searcher']
         if 'rule' in data:
             main_conf.searcher_rule = SearcherRule(**data['rule'])
-        if main_conf.bearer_token and main_conf.storage_manager:
-            main_conf.searcher = Searcher(storage=main_conf.storage_manager, bearer_token=main_conf.bearer_token)
+        if main_conf.bearer_token and main_conf.storage:
+            main_conf.searcher = Searcher(storage=main_conf.storage, bearer_token=main_conf.bearer_token)
 
 
-def parse_storage_manager_config(main_conf: Config, data: dict):
-    if 'storage_manager' not in data:
-        return
-    data = data['storage_manager']
-    if data is None:
-        return
-
-    if 'main_storage' not in data:
-        return
-
-    main_storage_name = data['main_storage']
-
-    storage_tags = {main_storage_name: []}  # default value
-    if 'tags' in data and data['tags']:
-        for s_name in data['tags']:
-            tags = data['tags'][s_name]
-            if tags is True:
-                tags = []
-            storage_tags[s_name] = tags
-
-    if 'media_download' in data:
-        main_conf.media_download = data['media_download']
-    if 'media_root_dir' in data:
-        main_conf.media_root_dir = data['media_root_dir']
-
-    main_conf.storage_tags = storage_tags
-    main_conf.storage_manager = create_storage_manager(main_conf, main_storage_name)
+# def create_storage_manager(main_conf: Config, main_storage_name: str) -> Optional[StorageManager]:
+#     """
+#     Create a storage_manager and set parameters according to config
+#     :param main_conf: Config
+#     :param main_storage_name: name of the main storage
+#     :return: storage_manager
+#     """
+#     main_storage: PostgresStorage = main_conf.storages[main_storage_name]
+#
+#     manager = StorageManager(main_storage=main_storage,
+#                              media_root_dir=main_conf.media_root_dir,
+#                              download_media=main_conf.media_download)
+#     for s_name in main_conf.storage_tags:
+#         if s_name == main_storage_name:
+#             continue
+#         storage = main_conf.storages[s_name]
+#         tags = main_conf.storage_tags[s_name]
+#         manager.add_storage(storage=storage, tags=tags)
+#     return manager
 
 
-def create_storage_manager(main_conf: Config, main_storage_name: str) -> Optional[StorageManager]:
-    """
-    Create a storage_manager and set parameters according to config
-    :param main_conf: Config
-    :param main_storage_name: name of the main storage
-    :return: storage_manager
-    """
-    main_storage: PostgresStorage = main_conf.storages[main_storage_name]
-
-    manager = StorageManager(main_storage=main_storage,
-                             media_root_dir=main_conf.media_root_dir,
-                             download_media=main_conf.media_download)
-    for s_name in main_conf.storage_tags:
-        if s_name == main_storage_name:
-            continue
-        storage = main_conf.storages[s_name]
-        tags = main_conf.storage_tags[s_name]
-        manager.add_storage(storage=storage, tags=tags)
-    return manager
-
-
-def create_storage(name: str, data: dict):
+def create_exporter(name: str, data: dict):
     """
     Create a storage and set parameters according to config
     :param name: name of the storage, used for identification

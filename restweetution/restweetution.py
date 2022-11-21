@@ -15,7 +15,7 @@ class Restweetution:
         self._streamer: Streamer = config.streamer
         self._searcher = config.searcher
         self._searcher_rule = config.searcher_rule
-        self._storage_manager: StorageManager = config.storage_manager
+        self._storage_manager: StorageManager = config.storage
 
         self._all_rules_cache = []
 
