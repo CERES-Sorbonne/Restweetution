@@ -13,8 +13,8 @@ main_conf = config.get_config_from_file(os.getenv('CONFIG'))
 
 
 async def launch():
-    postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
-    elastic_storage: ElasticStorage = main_conf.storages['ceres_elastic']
+    postgres_storage: PostgresStorage = main_conf.storage
+    elastic_storage: ElasticStorage = main_conf.exporters['ceres_elastic']
 
     view = ElasticDashboard(in_storage=postgres_storage, out_storage=elastic_storage)
     # await view.load()

@@ -4,7 +4,6 @@ import os
 
 import restweetution.config_loader as config
 from restweetution.data_view.row_view import RowView
-from restweetution.storages.exporter.csv_exporter import CSVExporter
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
 logging.basicConfig()
@@ -15,7 +14,7 @@ main_conf = config.get_config_from_file(os.getenv('CONFIG'))
 
 async def launch():
 
-    postgres_storage: PostgresStorage = main_conf.storages['local_postgres']
+    postgres_storage: PostgresStorage = main_conf.storage
     exporter = main_conf.storages['csv']
 
     fields = ['id', 'author_username', 'lang', 'annotations', 'media_sha1s']
