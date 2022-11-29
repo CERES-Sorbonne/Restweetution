@@ -116,11 +116,11 @@ class Tweet(BaseModel):
 
 
 class Includes(BaseModel):
-    media: Optional[List[Media]]
-    users: Optional[List[User]]
-    places: Optional[List[Place]]
-    polls: Optional[List[Poll]]
-    tweets: Optional[List[Tweet]]
+    media: List[Media] = []
+    users: List[User] = []
+    places: List[Place] = []
+    polls: List[Poll] = []
+    tweets: List[Tweet] = []
 
 
 class TweetResponse(BaseModel):

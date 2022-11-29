@@ -21,13 +21,15 @@ from . import models
 from .helpers import get_helper, save_helper, get_statement, request_history_update
 from .models import TweetPublicMetricsHistory
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
+from ...models.config.user_config import UserConfig
 
 STORAGE_TYPE = 'postgres'
 logger = logging.getLogger('PostgresStorage')
 
+
 class PostgresStorage(Storage):
 
-    def __init__(self, name: str, url: str, **kwargs):
+    def __init__(self, url: str, name: str = 'postgres', **kwargs):
         """
         Storage for postgres
         :param name: Name of the storage. Human friendly identifier
@@ -112,6 +114,15 @@ class PostgresStorage(Storage):
             pg_error = models.Error()
             pg_error.update(error.dict())
             session.add(pg_error)
+            await session.commit()
+
+    async def save_user_configs(self, user_configs: List[UserConfig]):
+        async with self._async_session() as session:
+            for config in user_configs:
+                pg_config = models.UserConfig()
+                pg_config.update(config.dict())
+                pg_res: models.UserConfig = await session.merge(pg_config)
+                # print(pg_res.bearer_token)
             await session.commit()
 
     # get functions
@@ -208,6 +219,15 @@ class PostgresStorage(Storage):
             res = await session.execute(stmt)
             res = res.unique().scalars().all()
             res = [CustomData(**r.to_dict()) for r in res]
+            return res
+
+    async def get_user_configs(self) -> List[UserConfig]:
+        async with self._async_session() as session:
+            stmt = select(models.UserConfig)
+            res = await session.execute(stmt)
+            res = res.unique().scalars().all()
+            # print(res[0].to_dict())
+            res = [UserConfig(**r.to_dict()) for r in res]
             return res
 
     # Delete functions

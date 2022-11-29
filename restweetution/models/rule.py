@@ -32,6 +32,9 @@ class Rule(BaseModel):
     # tweet_ids: Set[str] = set()  # Set of collected tweet ids
     collected_tweets: Dict[str, CollectedTweet] = {}
 
+    def config(self):
+        return {"query": self.query, "tag": self.tag}
+
     def collected_tweets_list(self):
         return self.collected_tweets.values()
 
@@ -86,14 +89,13 @@ class Rule(BaseModel):
 class StreamerRule(Rule):
     api_id: Optional[str]
 
-    def __init__(self, query: str, tag: str, name=None, **kwargs):
-        name = f'Streamer_{tag}' if name is None else name
+    def __init__(self, query: str, tag: str, **kwargs):
         if 'type' in kwargs:
             if kwargs['type'] != 'streamer':
                 raise ValueError('Trying to initialize a StreamerRule of type ' + kwargs['type'])
             kwargs.pop('type')
 
-        super().__init__(type='streamer', query=query, tag=tag, name=name, **kwargs)
+        super().__init__(type='streamer', query=query, tag=tag, **kwargs)
 
     def get_api_rule(self):
         if self.api_id:
@@ -103,17 +105,13 @@ class StreamerRule(Rule):
 
 
 class SearcherRule(Rule):
-    def __init__(self, query: str, tag: str, name=None, **kwargs):
-        name = f'Searcher_{tag}' if name is None else name
-
-        super().__init__(type='searcher', query=query, tag=tag, name=name, **kwargs)
+    def __init__(self, query: str, tag: str, **kwargs):
+        super().__init__(type='searcher', query=query, tag=tag, **kwargs)
 
 
 class StorageRule(Rule):
-    def __init__(self, tag: str, name=None, **kwargs):
-        name = f'Storage_{tag}' if name is None else name
-
-        super().__init__(type='storage', tag=tag, name=name, **kwargs)
+    def __init__(self, tag: str, **kwargs):
+        super().__init__(type='storage', tag=tag, **kwargs)
 
 
 class DefaultRule(StorageRule):

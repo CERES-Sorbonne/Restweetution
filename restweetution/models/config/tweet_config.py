@@ -28,7 +28,7 @@ class QueryFields(BaseModel):
     place_fields: Optional[List[PlaceField]]
     poll_fields: Optional[List[PollField]]
 
-    def dict(self, join='_', **kwargs):
+    def twitter_format(self, join='_', **kwargs):
         res = {}
         if self.expansions:
             res['expansions'] = ",".join(self.expansions)

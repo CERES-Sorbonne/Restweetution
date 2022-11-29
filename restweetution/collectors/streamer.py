@@ -3,13 +3,15 @@ import datetime
 import json
 import logging
 import traceback
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.stream_query_params import ALL_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import StreamerRule
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.tweet import TweetResponse
@@ -47,6 +49,8 @@ class Streamer:
 
         set_error_handler(self._main_error_handler)
 
+        self._collect_task: Optional[asyncio.Task] = None
+
     def set_backfill_minutes(self, backfill_minutes: int):
         # compute request parameters
         self._params['backfill_minutes'] = backfill_minutes
@@ -71,7 +75,7 @@ class Streamer:
         """
         await self.remove_rules([r.id for r in self.get_rules()])
 
-    async def set_rules(self, rules: List[StreamerRule]) -> List[StreamerRule]:
+    async def set_rules(self, rules: List[RuleConfig]) -> List[StreamerRule]:
         """
         Like add_rule but instead removes all rules and then set the rules :rules:
         :param rules: a dict in the form tag: rule
@@ -93,8 +97,9 @@ class Streamer:
     def _clear_rule_cache(self):
         self._api_id_to_rule = {}
 
-    async def add_rules(self, rules: List[StreamerRule]) -> List[StreamerRule]:
+    async def add_rules(self, rules: List[RuleConfig]) -> List[StreamerRule]:
 
+        rules = [StreamerRule(tag=r.tag, query=r.query) for r in rules]
         api_rules = await self.get_api_rules()
 
         # find rules with same query/value but different tag
@@ -308,15 +313,16 @@ class Streamer:
         if 'errors' in data:
             raise TwitterAPIError('Streamer response has error field', data=data)
 
-    async def collect(self, rules: List[StreamerRule] = None, fields: QueryFields = None):
+    async def collect(self, rules: List[RuleConfig] = None, fields: QueryFields = None):
         """
         Main method to collect tweets in a stream
         an int between 1 and 5 to tell the stream to fetch tweets from the past minutes.
         """
         # super().collect()
 
+        # TODO: should work without full config/ crashes right now
         if not fields:
-            fields = {}
+            fields = ALL_CONFIG
 
         if rules:
             await self.set_rules(rules)
@@ -330,3 +336,18 @@ class Streamer:
 
         async for line in self._client.connect_tweet_stream(params=fields):
             asyncio.create_task(self._handle_line_response(line))
+
+    def start_collection(self, rules: List[StreamerRule] = None, fields: QueryFields = None):
+        if self.is_running():
+            raise Exception('Streamer Collect Task already Running')
+        self._collect_task = asyncio.create_task(self.collect(rules, fields))
+        return self._collect_task
+
+    def stop_collection(self):
+        if self._collect_task:
+            self._collect_task.cancel()
+            self._collect_task = None
+
+    def is_running(self):
+        return self._collect_task is not None and not self._collect_task.done()
+

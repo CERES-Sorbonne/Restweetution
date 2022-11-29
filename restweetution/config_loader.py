@@ -7,7 +7,9 @@ from restweetution.collectors.searcher import Searcher
 from restweetution.media_downloader import MediaDownloader
 from restweetution.models.config.config import Config
 from restweetution.models.config.stream_query_params import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
+from restweetution.models.config.system_config import SystemConfig
 from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.user_config import UserConfig
 from restweetution.models.rule import StreamerRule, SearcherRule
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.exporter.csv_exporter import CSVExporter
@@ -22,6 +24,21 @@ def get_config_from_file(file_path: str):
     """
     conf = read_conf(file_path=file_path)
     return build_config(conf)
+
+
+def get_system_instance_from_config(file_path: str):
+    conf = read_conf(file_path=file_path)
+    if 'system' in conf:
+        system_config = SystemConfig(**conf['system'])
+    else:
+        raise Exception('no system config found in file')
+    if 'user' in conf:
+        user_config = UserConfig(**conf['user'])
+
+
+def load_system_config(file_path: str):
+    config = read_conf(file_path)
+    return SystemConfig(**config)
 
 
 def read_conf(file_path: str):
@@ -126,6 +143,8 @@ def parse_auth_config(main_conf: Config, data: dict):
     """
     if 'bearer_token' in data:
         main_conf.bearer_token = data['bearer_token']
+    if 'name' in data:
+        main_conf.name = data['name']
 
 
 def parse_storage_config(main_conf: Config, data: dict):

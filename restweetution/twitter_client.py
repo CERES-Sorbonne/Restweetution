@@ -33,14 +33,14 @@ class TwitterClient:
         while True:
             try:
                 async with self._get_client() as session:
-                    async with session.get("/2/tweets/search/stream", params=params.dict(join='.')) as resp:
+                    async with session.get("/2/tweets/search/stream", params=params.twitter_format(join='.')) as resp:
                         async for line in resp.content:
                             # print(resp.headers)
                             yield line
             except KeyboardInterrupt as e:
                 raise e
             except BaseException as e:
-                self._logger.warning(f'Tweet Stream {type(e)}')
+                self._logger.warning(f'Tweet Stream {e}')
                 raise e
             print('wait: ', wait_time)
             await asyncio.sleep(wait_time)
@@ -84,6 +84,7 @@ class TwitterClient:
                 res = await r.json()
                 if not res.get('data'):
                     res['data'] = []
+                # print(res)
                 res = StreamRuleResponse(**res)
                 # rules = [StreamerRule(tag=r.tag, query=r.value, api_id=r.id) for r in res.data]
                 rules = res.data

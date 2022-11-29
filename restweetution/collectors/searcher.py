@@ -3,7 +3,8 @@ import datetime
 import logging
 import math
 import time
-from typing import Callable, List
+import traceback
+from typing import Callable, List, Optional
 
 import aiohttp
 import tweepy.errors
@@ -12,6 +13,7 @@ from tweepy.asynchronous import AsyncClient
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import SearcherRule
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse
 from restweetution.models.twitter import Tweet, Includes, User
@@ -21,6 +23,8 @@ logger = logging.getLogger('Searcher')
 
 
 class Searcher:
+    _rule: Optional[SearcherRule] = None
+
     def __init__(self, storage: PostgresStorage, bearer_token, fields: QueryFields = None, **kwargs):
         super().__init__()
 
@@ -28,13 +32,50 @@ class Searcher:
         self._client = AsyncClient(bearer_token=bearer_token, return_type=aiohttp.ClientResponse, **kwargs)
         self._default_fields = fields if fields else QueryFields()
 
-    async def collect(self, rule: SearcherRule, fields: QueryFields = None, recent=True, max_results=10,
+        self._collect_task: Optional[asyncio.Task] = None
+
+    def start_collection(self, rule: RuleConfig = None, fields: QueryFields = None):
+        if self.is_running():
+            raise Exception('Searcher Collect Task already Running')
+        self._collect_task = asyncio.create_task(self.collect(rule=rule, fields=fields))
+        return self._collect_task
+
+    def stop_collection(self):
+        if self._collect_task:
+            self._collect_task.cancel()
+            self._collect_task = None
+
+    def is_running(self):
+        return self._collect_task is not None and not self._collect_task.done()
+
+    async def set_rule(self, rule: RuleConfig):
+        rule = SearcherRule(query=rule.query, tag=rule.tag)
+        res = await self.storage.request_rules([rule])
+        if res:
+            self._rule = res[0]
+
+        return self._rule
+
+    def remove_rule(self):
+        self._rule = None
+        if self.is_running():
+            self.stop_collection()
+
+    def get_rule(self):
+        return self._rule
+
+    async def collect(self, rule: RuleConfig = None, fields: QueryFields = None, recent=True, max_results=100,
                       count_tweets=True, **kwargs):
         logger.info('Start search loop')
 
-        res = await self.storage.request_rules([rule])
-        rule = res[0]
+        if rule:
+            await self.set_rule(rule)
 
+        if not self._rule:
+            Exception('Searcher cannot start collecting without rule !!')
+            return
+
+        rule = self._rule
         query = rule.query
 
         if count_tweets:
@@ -46,7 +87,7 @@ class Searcher:
 
         search_function = self._client.search_recent_tweets if recent else self._client.search_all_tweets
 
-        async for res in self._token_loop(search_function, query, **fields.dict(), max_results=max_results, **kwargs):
+        async for res in self._token_loop(search_function, query, **fields.twitter_format(), max_results=max_results, **kwargs):
             try:
                 bulk_data = BulkData()
                 tweets = [Tweet(**t) for t in res.data]
@@ -69,9 +110,10 @@ class Searcher:
 
                 bulk_data.add_rules([rule_copy])
 
-                logger.info(f'Save: {len(bulk_data.get_tweets())} tweets')
+                logger.info(f'Received: {len(bulk_data.get_tweets())} tweets')
                 await self.storage.save_bulk(bulk_data)
             except Exception as e:
+                logger.warning(traceback.format_exc())
                 logger.warning(e)
 
     async def get_tweets_count(self, query, recent=True, **kwargs):
@@ -92,7 +134,7 @@ class Searcher:
                 lookup_function=self._ids_lookup,
                 get_function=self._client.get_tweets,
                 values=ids,
-                fields=fields.dict(),
+                fields=fields.twitter_format(),
                 max_per_loop=max_per_loop
         ):
             result = LookupResponse(
@@ -145,7 +187,7 @@ class Searcher:
                 lookup_function=lookup_function,
                 get_function=self._client.get_users,
                 values=values,
-                fields=fields.dict(),
+                fields=fields.twitter_format(),
                 max_per_loop=max_per_loop
         ):
             result = LookupResponse(

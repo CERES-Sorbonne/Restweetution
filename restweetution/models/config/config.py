@@ -12,6 +12,7 @@ from restweetution.storages.postgres_storage.postgres_storage import PostgresSto
 
 
 class Config(BaseModel):
+    name: str = 'Default Name'
     bearer_token: Optional[str]
 
     storage: Optional[PostgresStorage]
