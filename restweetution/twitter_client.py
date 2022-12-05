@@ -21,7 +21,8 @@ class TwitterClient:
     def _get_client(self):
         self._client = aiohttp.ClientSession(headers=self._headers,
                                              timeout=ClientTimeout(),
-                                             base_url=self.base_url)
+                                             base_url=self.base_url,
+                                             connector=aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True))
         return self._client
 
     def set_error_handler(self, error_handler: Callable):

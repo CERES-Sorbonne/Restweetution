@@ -61,7 +61,7 @@ onMounted(() => {
     <div class="text-center">
         <button type="button" class="btn btn-primary" @click="triggerStartStop">{{streamer.running ? 'Stop' : 'Start'}}</button>
         <button type="button" class="btn btn-primary ms-1" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
-        <button type="button" class="btn btn-primary ms-1" @click="showApiInfo = !showApiInfo"><span v-if="!showApiInfo">[Debug] Show API rules</span><span v-if="showApiInfo">[Debug] Hide Api Rules</span></button>
+        <!-- <button type="button" class="btn btn-primary ms-1" @click="showApiInfo = !showApiInfo"><span v-if="!showApiInfo">[Debug] Show API rules</span><span v-if="showApiInfo">[Debug] Hide Api Rules</span></button> -->
     </div>
     <br>
     <br>
