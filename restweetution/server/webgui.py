@@ -56,6 +56,12 @@ async def add_user(user_config: UserConfig):
     return await all_users()
 
 
+@app.post('/users/del')
+async def del_users(names: List[str]):
+    await restweet.remove_user_instances(names)
+    return await all_users()
+
+
 # @app.get("/downloader")
 # async def downloader():
 #     return {
@@ -116,7 +122,7 @@ async def streamer_add_rule(rules: List[RuleConfig], user_id):
     user = restweet.user_instances[user_id]
     streamer_rules = await user.streamer_add_rules(rules)
     await restweet.save_user_config(user_id)
-    return streamer_rules
+    return await streamer_info(user_id)
 
 
 @app.post("/streamer/del/rules/{user_id}")
@@ -124,7 +130,15 @@ async def streamer_del_rule(ids: List[int], user_id):
     user = restweet.user_instances[user_id]
     streamer_rules = await user.streamer_del_rules(ids)
     await restweet.save_user_config(user_id)
-    return streamer_rules
+    return await streamer_info(user_id)
+
+
+@app.post("/streamer/set/rule/{user_id}")
+async def searcher_set_rule(rules: List[RuleConfig], user_id):
+    user = restweet.user_instances[user_id]
+    await user.streamer_set_rules(rules)
+    await restweet.save_user_config(user_id)
+    return await streamer_info(user_id)
 
 
 @app.post("/streamer/start/{user_id}")
@@ -159,7 +173,7 @@ async def searcher_set_rule(rules: RuleConfig, user_id):
     user = restweet.user_instances[user_id]
     await user.searcher_set_rule(rules)
     await restweet.save_user_config(user_id)
-    return user.searcher_get_rule()
+    return await searcher_info(user_id)
 
 
 @app.post("/searcher/del/rule/{user_id}")
@@ -167,7 +181,7 @@ async def searcher_del_rule(user_id):
     user = restweet.user_instances[user_id]
     user.searcher_del_rule()
     await restweet.save_user_config(user_id)
-    return user.searcher_get_rule()
+    return await searcher_info(user_id)
 
 
 @app.post("/searcher/start/{user_id}")

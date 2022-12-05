@@ -340,7 +340,7 @@ class Streamer:
     def start_collection(self, rules: List[StreamerRule] = None, fields: QueryFields = None):
         if self.is_running():
             raise Exception('Streamer Collect Task already Running')
-        self._collect_task = asyncio.create_task(self.collect(rules, fields))
+        self._collect_task = asyncio.create_task(self.collect(rules=rules, fields=fields))
         return self._collect_task
 
     def stop_collection(self):

@@ -240,6 +240,12 @@ class PostgresStorage(Storage):
             await session.execute(stmt)
             await session.commit()
 
+    async def del_user_configs(self, names: List[str]):
+        async with self._async_session() as session:
+            stmt = delete(models.UserConfig).filter(models.UserConfig.name.in_(names))
+            await session.execute(stmt)
+            await session.commit()
+
     # private utils
 
     @staticmethod

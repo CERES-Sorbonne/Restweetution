@@ -14,10 +14,10 @@ async def async_main():
     storage = main_conf.storage
 
     async with storage.get_engine().begin() as conn:
-        # await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
-        await storage.save_user_configs([UserConfig(bearer_token=main_conf.bearer_token, name='local_conf')])
+        # await storage.save_user_configs([UserConfig(bearer_token=main_conf.bearer_token, name='local_conf')])
 
     await storage.get_engine().dispose()
 

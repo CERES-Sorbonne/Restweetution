@@ -52,6 +52,19 @@ function triggerEdit() {
     }
 }
 
+function addUser() {
+    if(!newUserValid) {
+        return
+    }
+
+    store.addUser(newUser.name, newUser.bearer_token).then(x => cleanNewUser())
+}
+
+function deleteSelectedUsers(){
+    let selectedUsers = Object.keys(selected).filter(s => selected[s])
+    store.deleteUsers(selectedUsers)
+} 
+
 function cleanSelected() {
     Object.keys(selected).forEach(k => {
         if(!store.users[k]) {
@@ -71,22 +84,35 @@ const newUserValid = computed(() => {
 </script>
 
 <template>
-    <h5 class="text-center">Users</h5>
-    <div class="text-center">
-        <button type="button" class="btn btn-primary ms-1" @click="triggerEdit"><span v-if="!edit">Edit Users</span><span v-if="edit">Stop Edit</span></button>
-    </div>
     <br />
-    <div class="row" v-show="edit">
-        <div class="col-sm-1"><button :disabled="!anySelected" type="button" class="btn btn-primary" >Delete</button></div>
-        <div class="col-sm-1 gl-1"><button :disabled="!newUserValid" type="button" class="btn btn-primary" >Add</button></div>
-        <div class="col-sm-3 g-0">
-            <input type="text" v-model="newUser.name" name="name" class="form-control" placeholder="Unique Name">
-        </div>
-        <div class="col-sm-5 g-0">
-            <input type="text" v-model="newUser.bearer_token" name="name" class="form-control" placeholder="bearer_token">
-        </div>
-    </div>
+    <h2 class="text-center">Users</h2>
     <br />
+    <div class="text-left pb-1">
+        <button type="button" class="btn btn-primary" @click="triggerEdit">{{edit ? 'Stop Edit' : 'Edit'}}</button>
+        <span v-if="edit">
+        <button type="button" class="btn btn-primary ms-1" :disabled="!anySelected" @click="deleteSelectedUsers">Delete</button>
+        <button type="button" class="btn btn-primary ms-1" :disabled="!newUserValid" @click="addUser"> Add</button>
+        <div class="input-group pt-2 pb-1">
+        <span class="input-group-text">New User</span>
+            <input type="text" v-model="newUser.name" class="form-control" placeholder="Unique Name">
+            <input type="text" v-model="newUser.bearer_token" class="form-control w-50" placeholder="bearer_token">
+        </div>
+        <!-- <input type="text" v-model="newUser.name" name="name" class="" placeholder="Unique Name" /> -->
+        <!-- <input type="text" v-model="newUser.bearer_token" name="bearer_token" class="" placeholder="bearer_token" /> -->
+        </span>
+    </div>
+    <!-- <div class="row"> -->
+        <!-- <div class="col-sm-1"><button type="button" class="btn btn-primary" @click="triggerEdit"><span v-if="!edit">Edit</span><span v-if="edit">Stop Edit</span></button></div> -->
+        <!-- <div class="col-sm-1"><button :disabled="!anySelected" type="button" class="btn btn-primary" @click="deleteSelectedUsers">Delete</button></div> -->
+        <!-- <div class="col-sm-1 gl-1"><button :disabled="!newUserValid" type="button" class="btn btn-primary" @click="addUser">Add</button></div> -->
+        <!-- <div class="col-sm-3 g-0"> -->
+            <!-- <input type="text" v-model="newUser.name" name="name" class="form-control" placeholder="Unique Name"> -->
+        <!-- </div> -->
+        <!-- <div class="col-sm-5 g-0"> -->
+            <!-- <input type="text" v-model="newUser.bearer_token" name="name" class="form-control" placeholder="bearer_token"> -->
+        <!-- </div> -->
+    <!-- </div> -->
+    <!-- <br /> -->
     <div class="table-responsive">
         <table class="table table-striped table-sm text-nowrap table-hover">
             <thead class="table-dark">

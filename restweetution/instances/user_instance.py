@@ -49,7 +49,7 @@ class UserInstance:
 
     async def _load_streamer_task(self):
         task = self.user_config.streamer_task_config
-        if task.rules is not None:
+        if task.rules:
             streamer_rules = await self._streamer.set_rules(task.rules)
 
             options = {r.query: r.options for r in task.rules}

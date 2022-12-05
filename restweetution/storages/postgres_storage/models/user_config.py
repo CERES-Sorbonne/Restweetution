@@ -8,7 +8,7 @@ from restweetution.storages.postgres_storage.models import Base
 
 class UserConfig(Base):
     __tablename__ = 'user_config'
-    bearer_token = Column(String, primary_key=True)
+    name = Column(String, primary_key=True)
     data = Column(JSONB)
 
     def update(self, data):

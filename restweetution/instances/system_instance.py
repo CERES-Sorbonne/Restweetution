@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 from restweetution.instances.user_instance import UserInstance
 from restweetution.models.config.system_config import SystemConfig
@@ -29,11 +29,14 @@ class SystemInstance:
         self.user_instances[user_instance.get_name()] = user_instance
         return user_instance
 
-    def remove_user_instance(self, bearer_token: str):
-        if bearer_token not in self.user_instances:
-            raise Exception('No UserInstance with given token found')
+    async def remove_user_instances(self, names: List[str]):
+        for name in names:
+            if name not in self.user_instances:
+                raise Exception(f'No UserInstance with name [{name}] found | existing: [{self.user_instances.keys()}]')
 
-        self.user_instances.pop(bearer_token)
+        for name in names:
+            self.user_instances.pop(name)
+        await self.storage.del_user_configs(names)
 
     async def load_user_configs(self):
         user_configs = await self.storage.get_user_configs()

@@ -20,7 +20,7 @@ const props = defineProps({
     },
     title: {
         type: String,
-        default: 'Rule'
+        default: ''
     }
 })
 

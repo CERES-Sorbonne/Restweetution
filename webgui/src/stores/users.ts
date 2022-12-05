@@ -1,4 +1,4 @@
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, watch } from "vue";
 import { defineStore } from "pinia";
 import * as collector from "../api/collector"
 
@@ -18,8 +18,20 @@ interface User {
   searcher_task_config: Task
 }
 
+interface Streamer {
+  running: boolean
+  active_rules: any[]
+}
+
+type UserDict = {[name:string]: User}
+type StreamerDict = {[name: string]: Streamer}
+
 export const useUserStore = defineStore("users", () => {
-  const users: {[name:string]: User} = reactive({})
+  const users: UserDict = reactive({})
+  const selectedUser = ref('undefined')
+  const hasSelectedUser = computed(() => users[selectedUser.value] != undefined)
+  const streamers: StreamerDict = reactive({})
+
 
   function reset_users() {
     Object.keys(users).forEach(k => delete users[k])
@@ -28,9 +40,70 @@ export const useUserStore = defineStore("users", () => {
   function load() {
     reset_users()
     collector.getUsers().then((res) => {
-      Object.keys(res.data).forEach(k => users[k] = res.data[k])
+      registerUsers(res.data)
     })
   }
 
-  return {users, load}
+  function registerUsers(users_res: UserDict) {
+      Object.keys(users_res).forEach(k => users[k] = users_res[k])
+  }
+
+  async function addUser(username: string, bearer_token: string) {
+    const users_res = await collector.addUser(username, bearer_token);
+    registerUsers(users_res);
+    return users_res;
+  }
+
+  async function deleteUsers(names: string[]) {
+    const users_res = await collector.delUsers(names)
+    console.log(users_res)
+    reset_users()
+    registerUsers(users_res)
+    return users_res
+  }
+
+
+  function updateSelectedUserInfo() {
+    if(selectedUser.value == undefined || selectedUser.value == 'undefined') {
+      return
+    }
+    console.log(selectedUser.value)
+    updateStreamerInfo(selectedUser.value)
+  }
+
+  watch(selectedUser, updateSelectedUserInfo)
+
+async function updateStreamerInfo(user:string) {
+    const res = await collector.getStreamerInfo(user)
+    streamers[user] = res
+}
+
+async function streamerStart(user:string) {
+    const res = await collector.streamerStart(user)
+    streamers[user] = res
+}
+
+async function streamerStop(user:string) {
+  const res = await collector.streamerStop(user)
+  streamers[user] = res
+}
+
+async function streamerSetRules(user:string, rules:any) {
+  const res = await collector.streamerSetRules(user, rules)
+  streamers[user] = res
+}
+
+async function streamerAddRules(user:string, rules:any) {
+  const res = await collector.streamerAddRules(user, rules)
+  streamers[user] = res
+}
+
+async function streamerDelRules(user:string, ruleIds:number[]) {
+  const res = await collector.streamerDelRules(user, ruleIds)
+  streamers[user] = res
+}
+
+  return {users, load, addUser, deleteUsers, selectedUser, hasSelectedUser,
+    streamers, updateStreamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules
+  }
 });
