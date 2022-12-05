@@ -14,9 +14,9 @@ const props = defineProps({
     fields: {
         type: Array<string>,
         validator(value: Array<string>) {
-            return !value.some(v => !['id', 'type', 'name', 'tag', 'query', 'api_id', 'tweet_count'].includes(v))
+            return !value.some(v => !['id', 'tag', 'query', 'api_id', 'tweet_count'].includes(v))
         },
-        default: ['id', 'type', 'name', 'tag', 'query', 'tweet_count']
+        default: ['id','tag', 'query', 'tweet_count']
     },
     title: {
         type: String,
@@ -28,9 +28,6 @@ const filteredRules = computed(() => {
     let rules = props.rules
     if(filter.id !== '') {
         rules = rules.filter(r => r.id == filter.id)
-    }
-    if(filter.type !== '') {
-        rules = rules.filter(r => r.type.includes(filter.type))
     }
     if(filter.name !== '') {
         rules = rules.filter(r => r.name.includes(filter.name))
@@ -44,7 +41,6 @@ const filteredRules = computed(() => {
     return rules
 })
 const showId = computed(() => props.fields.includes('id'))
-const showType = computed(() => props.fields.includes('type'))
 const showName = computed(() => props.fields.includes('name'))
 const showTag = computed(() => props.fields.includes('tag'))
 const showQuery = computed(() => props.fields.includes('query'))
@@ -62,7 +58,6 @@ const showApiId = computed(() => props.fields.includes('api_id'))
                     <th v-if="props.delButton" class="text-center">...</th>
                     <th v-if="props.addButton" class="text-center">...</th>
                     <th v-if="showId">ID</th>
-                    <th v-if="showType">Type</th>
                     <th v-if="showName">Name</th>
                     <th v-if="showTag">Tag</th>
                     <th v-if="showQuery">Query</th>
@@ -75,13 +70,6 @@ const showApiId = computed(() => props.fields.includes('api_id'))
                     <th v-if="props.delButton"></th>
                     <th v-if="props.addButton"></th>
                     <th v-if="showId"><input style="max-width: 100px;" type="number" placeholder="ID" class="form-control" v-model="filter.id"></th>
-                    <th v-if="showType">
-                        <select style="min-width: 100px;" class="form-select" v-model="filter.type">
-                            <option value="">All</option>
-                            <option value="streamer">Streamer</option>
-                            <option value="searcher">Searcher</option>
-                        </select>
-                    </th>
                     <th v-if="showName"><input type="text" placeholder="Name" class="form-control" v-model="filter.name"></th>
                     <th v-if="showTag"><input type="text" placeholder="Tag" class="form-control" v-model="filter.tag"></th>
                     <th v-if="showQuery"><input type="text" placeholder="Query" class="form-control" v-model="filter.query"></th>
@@ -90,7 +78,6 @@ const showApiId = computed(() => props.fields.includes('api_id'))
                     <td v-if="props.delButton" @click="$emit('removeRule', rule.id)" class="text-center"><button class="btn text-danger p-0">X</button></td>
                     <td v-if="props.addButton" @click="$emit('addRule', rule)" class="text-center"><button class="btn text-success p-0">Set</button></td>
                     <td v-if="showId">{{rule.id}}</td>
-                    <td v-if="showType">{{rule.type}}</td>
                     <td v-if="showName">{{rule.name}}</td>
                     <td v-if="showTag">{{rule.tag}}</td>
                     <td v-if="showQuery">{{rule.query}}</td>

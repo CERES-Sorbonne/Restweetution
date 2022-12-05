@@ -1,7 +1,7 @@
 import datetime
 import logging
 from asyncio import Lock
-from typing import List, Iterator, Tuple, Set, Dict, Optional
+from typing import List, Iterator, Tuple, Set, Dict
 
 from sqlalchemy import delete, cast, BigInteger, func, tuple_
 from sqlalchemy import select
@@ -121,8 +121,7 @@ class PostgresStorage(Storage):
             for config in user_configs:
                 pg_config = models.UserConfig()
                 pg_config.update(config.dict())
-                pg_res: models.UserConfig = await session.merge(pg_config)
-                # print(pg_res.bearer_token)
+                await session.merge(pg_config)
             await session.commit()
 
     # get functions
@@ -174,15 +173,14 @@ class PostgresStorage(Storage):
             self,
             ids: List[str] = None,
             no_ids: List[str] = None,
-            fields: List[str] = rule_fields,
-            type_: str = None) -> List[Rule]:
+            fields: List[str] = rule_fields) -> List[Rule]:
         async with self._async_session() as session:
             fields = fields.copy()
             if 'tweet_ids' in fields:
                 fields.remove('tweet_ids')
                 fields.append('tweets')
 
-            res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields, type_=type_)
+            res = await get_helper(session, models.Rule, ids=ids, no_ids=no_ids, fields=fields)
             res = [Rule(**r.to_dict()) for r in res]
             return res
 
@@ -291,8 +289,8 @@ class PostgresStorage(Storage):
                     pg_collected.tweet_id = collected.tweet_id
                     pg_collected.collected_at = collected.collected_at
                     # Override only if True
-                    # if collected.direct_hit:
-                    pg_collected.direct_hit = collected.direct_hit
+                    if collected.direct_hit:
+                        pg_collected.direct_hit = collected.direct_hit
 
                 await session.merge(pg_collected)
 
@@ -303,7 +301,6 @@ class PostgresStorage(Storage):
     async def _get_rule(session, rule: Rule) -> models.Rule:
         stmt = select(models.Rule)
         stmt = stmt.filter(models.Rule.query == rule.query)
-        stmt = stmt.filter(models.Rule.type == rule.type)
         res = await session.execute(stmt)
         res = res.scalars().first()
         return res
@@ -337,7 +334,7 @@ class PostgresStorage(Storage):
         return rules
 
     @staticmethod
-    def should_save(value):
+    def should_save():
         return True
 
     @staticmethod

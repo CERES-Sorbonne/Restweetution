@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import RuleTable from './RuleTable.vue'
 import {useUserStore} from '@/stores/users'
 import { useRulesStore } from '@/stores/rules';
@@ -12,29 +12,14 @@ const props = defineProps({
 const userStore = useUserStore()
 const ruleStore = useRulesStore()
 
-const running = ref(false)
 const editRules = ref(false)
 const showApiInfo = ref(false)
 
-const newRule = reactive({tag: undefined, query: undefined})
-const ruleIsVerified = ref(false)
+
 const streamer = computed(() => userStore.streamers[props.selectedUser])
 const isLoaded = computed(() => streamer.value != undefined)
+const apiRules: any[] = reactive([])
 
-function verifyRule() {
-    ruleIsVerified.value = true
-}
-
-function addRule() {
-    newRule.tag = undefined
-    newRule.query = undefined
-    ruleIsVerified.value = false
-}
-
-function setRule(rule: any) {
-    newRule.tag = rule.tag
-    newRule.query = rule.query
-}
 
 function triggerStartStop() {
     if(streamer.value.running) {
@@ -45,6 +30,31 @@ function triggerStartStop() {
     }
 }
 
+function triggerDebugData() {
+    if(showApiInfo.value) {
+        showApiInfo.value = false
+        return
+    }
+
+    showApiInfo.value = true
+    apiRules.length = 0
+    apiRules.push({tag: 'loadig', query: 'loading', api_id: 'loading'})
+    userStore.getStreamerDebug(props.selectedUser).then((res) => {
+        apiRules.length = 0
+        res.api_rules.forEach(r => {
+            apiRules.push({tag: r.tag, query: r.value, api_id: r.id})
+        })
+    })
+}
+
+function addRule(rule: any) {
+    userStore.streamerAddRules(userStore.selectedUser, [rule])
+}
+
+function delRule(rule: any) {
+    userStore.streamerDelRules(userStore.selectedUser, [rule])
+}
+
 onMounted(() => {
     if(!userStore.hasSelectedUser) {
         return
@@ -52,44 +62,28 @@ onMounted(() => {
     userStore.updateStreamerInfo(props.selectedUser)
 })
 
+watch(props, () => showApiInfo.value = false)
+
 </script>
 
 <template>
     <h2 class="text-center">Streamer</h2>
-    <div v-if="isLoaded">
+    <div v-if="isLoaded && props.selectedUser != 'undefined'">
     <h6 class="text-center">Status: {{streamer.running ? 'Collecting' : 'Stopped'}}</h6>
     <div class="text-center">
-        <button type="button" class="btn btn-primary" @click="triggerStartStop">{{streamer.running ? 'Stop' : 'Start'}}</button>
+        <button type="button" class="btn btn-primary" @click="triggerStartStop">{{streamer.running ? '- Stop -' : '- Start -'}}</button>
         <button type="button" class="btn btn-primary ms-1" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
-        <!-- <button type="button" class="btn btn-primary ms-1" @click="showApiInfo = !showApiInfo"><span v-if="!showApiInfo">[Debug] Show API rules</span><span v-if="showApiInfo">[Debug] Hide Api Rules</span></button> -->
+        <br />
+        <button type="button" class="btn btn-secondary ms-1 mt-2" @click="triggerDebugData"><span v-if="!showApiInfo">[Debug]</span><span v-if="showApiInfo">[Debug] Hide Api Rules</span></button>
     </div>
     <br>
     <br>
 
-    <!-- <div v-show="showApiInfo">
-        <RuleTable title="[DEBUG] Streamer Rules on Twitter API" :rules="store.apiStreamerRules" :fields="['api_id', 'tag', 'query']"/>
-    </div> -->
-
-    <div v-show="editRules">
-        <form action="/streamer/add_rule" method="POST">
-            <h6>Add Rule</h6>
-            <div class="row">
-                <div class="col-sm-6">
-                    <input type="text" v-model="newRule.tag" name="tag" class="form-control" placeholder="Tag">
-                </div>
-            </div>
-            <textarea type="text" v-model="newRule.query" name="query" rows="3" cols="40" class="form-control mt-2" placeholder="querry"></textarea>
-            <div class="row">
-                <div class="col-sm-6">
-                    <input type="submit" class="form-control mt-2" value="Verify" @click.prevent="verifyRule">
-                </div>
-                <div class="col-sm-6">
-                    <input :disabled="!ruleIsVerified" type="submit" class="col-sm-3 form-control mt-2" value="Add" @click.prevent="addRule">
-                </div>
-            </div>
-        </form>
+    <div v-show="showApiInfo">
+        <RuleTable title="[DEBUG] Streamer Rules on Twitter API" :rules="apiRules" :fields="['api_id', 'tag', 'query']"/>
     </div>
-    <RuleTable title="Active Rules" :rules="streamer.active_rules" :delButton="editRules" @remove-rule="" :fields="['id', 'tag', 'query', 'api_id']"/>
-    <RuleTable :add-button="editRules" title="Rule History" :rules="ruleStore.orderedRules" @add-rule="setRule" :fields="['id', 'tag', 'query', 'tweet_count']"/>
+
+    <RuleTable title="Active Rules" :rules="streamer.active_rules" :delButton="editRules" @remove-rule="delRule" :fields="['id', 'tag', 'query', 'api_id']"/>
+    <RuleTable :add-button="editRules" title="Rule History" :rules="ruleStore.orderedRules" @add-rule="addRule" :fields="['id', 'tag', 'query', 'tweet_count']"/>
     </div>
 </template>

@@ -350,4 +350,3 @@ class Streamer:
 
     def is_running(self):
         return self._collect_task is not None and not self._collect_task.done()
-

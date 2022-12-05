@@ -39,7 +39,8 @@ class BulkData(BaseModel):
             if k not in self.rules:
                 self.rules[k] = other.rules[k]
             else:
-                self.rules[k].tweet_ids.update(other.rules[k].tweet_ids)
+                for c in other.rules[k].collected_tweets:
+                    self.rules[k].collected_tweets[c] = other.rules[k].collected_tweets[c]
         return self
 
     def copy(self, **kwargs):
@@ -55,13 +56,27 @@ class BulkData(BaseModel):
         return other
 
     def add(self,
-            tweets: List[Tweet] = [],
-            users: List[User] = [],
-            medias: List[Media] = [],
-            places: List[Place] = [],
-            polls: List[Poll] = [],
-            rules: List[Rule] = [],
-            datas: List[CustomData] = []):
+            tweets=None,
+            users=None,
+            medias=None,
+            places=None,
+            polls=None,
+            rules=None,
+            datas=None):
+        if datas is None:
+            datas = []
+        if rules is None:
+            rules = []
+        if polls is None:
+            polls = []
+        if places is None:
+            places = []
+        if medias is None:
+            medias = []
+        if users is None:
+            users = []
+        if tweets is None:
+            tweets = []
         self.add_tweets(tweets)
         self.add_users(users)
         self.add_places(places)

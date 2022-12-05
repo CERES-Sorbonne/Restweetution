@@ -6,7 +6,7 @@ from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
 from restweetution.media_downloader import MediaDownloader
 from restweetution.models.config.tweet_config import QueryFields
-from restweetution.models.rule import SearcherRule, StreamerRule
+from restweetution.models.rule import StreamerRule, Rule
 from restweetution.storages.exporter.exporter import Exporter
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 
@@ -28,7 +28,7 @@ class Config(BaseModel):
     streamer_verbose: Optional[bool]
 
     searcher: Optional[Searcher]
-    searcher_rule: Optional[SearcherRule]
+    searcher_rule: Optional[Rule]
 
     query_fields: Optional[QueryFields]
 
@@ -53,4 +53,3 @@ class Config(BaseModel):
     #
     #         self.streamer_rules = [StreamerRule(**rule) for rule in json_data['streamer_rules']]
     #         print(self.streamer_rules)
-

@@ -10,7 +10,7 @@ from restweetution.models.config.stream_query_params import ALL_CONFIG, MEDIUM_C
 from restweetution.models.config.system_config import SystemConfig
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.config.user_config import UserConfig
-from restweetution.models.rule import StreamerRule, SearcherRule
+from restweetution.models.rule import StreamerRule, Rule
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.exporter.csv_exporter import CSVExporter
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
@@ -174,7 +174,7 @@ def parse_searcher_rule(main_conf: Config, data: dict):
     if 'searcher' in data:
         data = data['searcher']
         if 'rule' in data:
-            main_conf.searcher_rule = SearcherRule(**data['rule'])
+            main_conf.searcher_rule = Rule(**data['rule'])
         if main_conf.bearer_token and main_conf.storage:
             main_conf.searcher = Searcher(storage=main_conf.storage, bearer_token=main_conf.bearer_token)
 

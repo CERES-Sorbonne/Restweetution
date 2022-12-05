@@ -6,7 +6,8 @@ import aiohttp
 from aiohttp import ClientTimeout
 
 from restweetution.models.config.tweet_config import QueryFields
-from restweetution.models.rule import StreamRuleResponse, StreamAPIRule, StreamerRule
+from restweetution.models.config.user_config import RuleConfig
+from restweetution.models.rule import StreamRuleResponse, StreamAPIRule
 
 
 class TwitterClient:
@@ -19,16 +20,17 @@ class TwitterClient:
         self._client = None
 
     def _get_client(self):
+        connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
         self._client = aiohttp.ClientSession(headers=self._headers,
                                              timeout=ClientTimeout(),
                                              base_url=self.base_url,
-                                             connector=aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True))
+                                             connector=connector)
         return self._client
 
     def set_error_handler(self, error_handler: Callable):
         self._error_handler = error_handler
 
-    async def connect_tweet_stream(self, params: QueryFields, line_callback=None):
+    async def connect_tweet_stream(self, params: QueryFields):
         self._logger.info('Connect to stream')
         wait_time = 0
         while True:
@@ -105,3 +107,13 @@ class TwitterClient:
                 if 'data' in res:
                     valid_rules = res['data']
                 return [StreamAPIRule(**r) for r in valid_rules]
+
+    async def test_rule(self, rule: RuleConfig):
+        uri = "/2/tweets/search/stream/rules"
+        rule_data = [{'tag': rule.tag, 'value': rule.query}]
+        async with self._get_client() as session:
+            async with session.post(uri, json={"add": rule_data}, params={'dry_run': 'true'}) as r:
+                res = await r.json()
+                valid = 'errors' not in res
+                error = None if valid else res['errors']
+                return {'valid': valid, 'error': error}

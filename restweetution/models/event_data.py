@@ -1,4 +1,4 @@
-from typing import Set, Set
+from typing import Set
 
 from pydantic import BaseModel
 

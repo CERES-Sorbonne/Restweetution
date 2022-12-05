@@ -15,5 +15,3 @@ def parse_includes(includes: Includes):
         if includes.tweets:
             res['tweets'] = includes.tweets
     return res
-
-

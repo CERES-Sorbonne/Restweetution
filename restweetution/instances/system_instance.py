@@ -46,11 +46,11 @@ class SystemInstance:
     def get_user_list(self):
         return list(self.user_instances.values())
 
-    async def get_all_rules(self, type_: str = None):
-        return await self.storage.get_rules(fields=['id', 'type', 'tag', 'query', 'created_at'], type_=type_)
+    async def get_all_rules(self):
+        return await self.storage.get_rules(fields=['id', 'tag', 'query', 'created_at'])
 
-    async def get_all_rule_info(self, type_: str = None):
-        rules = await self.get_all_rules(type_=type_)
+    async def get_all_rule_info(self):
+        rules = await self.get_all_rules()
         count = await self.storage.get_rules_tweet_count()
 
         res = []

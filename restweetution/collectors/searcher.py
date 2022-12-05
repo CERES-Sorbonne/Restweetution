@@ -14,7 +14,7 @@ from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.config.user_config import RuleConfig
-from restweetution.models.rule import SearcherRule
+from restweetution.models.rule import Rule
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse
 from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
@@ -23,7 +23,7 @@ logger = logging.getLogger('Searcher')
 
 
 class Searcher:
-    _rule: Optional[SearcherRule] = None
+    _rule: Optional[Rule] = None
 
     def __init__(self, storage: PostgresStorage, bearer_token, fields: QueryFields = None, **kwargs):
         super().__init__()
@@ -49,7 +49,7 @@ class Searcher:
         return self._collect_task is not None and not self._collect_task.done()
 
     async def set_rule(self, rule: RuleConfig):
-        rule = SearcherRule(query=rule.query, tag=rule.tag)
+        rule = Rule(query=rule.query, tag=rule.tag)
         res = await self.storage.request_rules([rule])
         if res:
             self._rule = res[0]
@@ -86,8 +86,8 @@ class Searcher:
             fields = self._default_fields
 
         search_function = self._client.search_recent_tweets if recent else self._client.search_all_tweets
-
-        async for res in self._token_loop(search_function, query, **fields.twitter_format(), max_results=max_results, **kwargs):
+        fields = fields.twitter_format()
+        async for res in self._token_loop(search_function, query, **fields, max_results=max_results, **kwargs):
             try:
                 bulk_data = BulkData()
                 tweets = [Tweet(**t) for t in res.data]

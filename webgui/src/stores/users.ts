@@ -93,7 +93,7 @@ async function streamerSetRules(user:string, rules:any) {
   streamers[user] = res
 }
 
-async function streamerAddRules(user:string, rules:any) {
+async function streamerAddRules(user:string, rules:any[]) {
   const res = await collector.streamerAddRules(user, rules)
   streamers[user] = res
 }
@@ -103,7 +103,22 @@ async function streamerDelRules(user:string, ruleIds:number[]) {
   streamers[user] = res
 }
 
+async function getStreamerDebug(user:string) {
+  const res = await collector.getStreamerDebug(user)
+  return res as {api_rules: any[]}
+}
+
+async function verifyQuery(query:any) {
+  if(!hasSelectedUser.value) {
+    throw Error('Select a User first to perform verifyQuery')
+  }
+  const res = await collector.verifyQuery(selectedUser.value, query)
+  console.log(res)
+  return res as {valid: boolean, error: any}
+}
+
   return {users, load, addUser, deleteUsers, selectedUser, hasSelectedUser,
-    streamers, updateStreamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules
+    verifyQuery,
+    streamers, updateStreamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug
   }
 });

@@ -75,7 +75,6 @@ poll_fields = [
 
 rule_fields = [
     'id',
-    'type',
     'tag',
     'query',
     'created_at',

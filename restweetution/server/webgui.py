@@ -3,16 +3,13 @@ import logging
 from typing import Optional, List
 
 from fastapi import FastAPI
-from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.requests import Request
-from starlette.status import HTTP_302_FOUND
 
 import restweetution.config_loader as config
 from restweetution.instances.system_instance import SystemInstance
 from restweetution.models.config.user_config import RuleConfig, UserConfig
-from restweetution.models.rule import StreamerRule
-from restweetution.restweetution import Restweetution
+from restweetution.models.rule import Rule
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -72,25 +69,38 @@ async def del_users(names: List[str]):
 #     }
 #
 
-@app.get("/rules")
+@app.get("/rules/info")
 async def get_rules():
     return {
         "rules": await restweet.get_all_rule_info()
     }
 
 
-@app.get("/rules/streamer")
-async def get_streamer_rules():
-    return {
-        "rules": await restweet.get_all_rule_info(type_='streamer')
-    }
+@app.post("/rules/add")
+async def add_rules(rules: List[RuleConfig]):
+    rules = [Rule(**r.dict()) for r in rules]
+    await restweet.storage.request_rules(rules)
+    return await get_rules()
 
 
-@app.get("/rules/searcher")
-async def get_searcher_rules():
-    return {
-        "rules": await restweet.get_all_rule_info(type_='searcher')
-    }
+@app.post("/rules/test/{user_id}")
+async def test_rule(user_id, rule: RuleConfig):
+    user = restweet.user_instances[user_id]
+    res = await user.test_rule(rule)
+    return res
+
+# @app.get("/rules/streamer")
+# async def get_streamer_rules():
+#     return {
+#         "rules": await restweet.get_all_rule_info(type_='streamer')
+#     }
+#
+#
+# @app.get("/rules/searcher")
+# async def get_searcher_rules():
+#     return {
+#         "rules": await restweet.get_all_rule_info(type_='searcher')
+#     }
 
 
 # @app.post("/downloader/start_stop")
@@ -120,7 +130,7 @@ async def streamer_debug(user_id):
 @app.post("/streamer/add/rules/{user_id}")
 async def streamer_add_rule(rules: List[RuleConfig], user_id):
     user = restweet.user_instances[user_id]
-    streamer_rules = await user.streamer_add_rules(rules)
+    await user.streamer_add_rules(rules)
     await restweet.save_user_config(user_id)
     return await streamer_info(user_id)
 
@@ -128,7 +138,7 @@ async def streamer_add_rule(rules: List[RuleConfig], user_id):
 @app.post("/streamer/del/rules/{user_id}")
 async def streamer_del_rule(ids: List[int], user_id):
     user = restweet.user_instances[user_id]
-    streamer_rules = await user.streamer_del_rules(ids)
+    await user.streamer_del_rules(ids)
     await restweet.save_user_config(user_id)
     return await streamer_info(user_id)
 

@@ -22,7 +22,7 @@ export async function delUsers(names: string[]) {
 }
 
 export async function getRules() {
-    const res = await axios.get(BASE_URL + '/rules');
+    const res = await axios.get(BASE_URL + '/rules/info');
     return res.data;
 }
 
@@ -46,12 +46,27 @@ export async function streamerSetRules(user:string, rules:any) {
     return res.data
 }
 
-export async function streamerAddRules(user:string, rules:any) {
-    const res = await axios.post(BASE_URL + '/streamer/add/rules' + user, rules)
+export async function streamerAddRules(user:string, rules:any[]) {
+    const res = await axios.post(BASE_URL + '/streamer/add/rules/' + user, rules)
     return res.data
 }
 
 export async function streamerDelRules(user:string, ruleIds:number[]) {
-    const res = await axios.post(BASE_URL + '/streamer/del/rules' + user, ruleIds)
+    const res = await axios.post(BASE_URL + '/streamer/del/rules/' + user, ruleIds)
+    return res.data
+}
+
+export async function getStreamerDebug(user:string) {
+    const res = await axios.get(BASE_URL + '/streamer/debug/' + user)
+    return res.data
+}
+
+export async function verifyQuery(user: string, query:any) {
+    const res = await axios.post(BASE_URL + '/rules/test/' + user, query)
+    return res.data
+}
+
+export async function addRules(rules: any[]) {
+    const res = await axios.post(BASE_URL + '/rules/add', rules)
     return res.data
 }

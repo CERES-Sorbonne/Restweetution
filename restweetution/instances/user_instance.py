@@ -42,6 +42,10 @@ class UserInstance:
     def get_name(self):
         return self.user_config.name
 
+    async def test_rule(self, rule: RuleConfig):
+        res = await self._streamer._client.test_rule(rule)
+        return res
+
     def _create_streamer(self):
         if self._streamer:
             raise Exception('Streamer already exist')

@@ -8,7 +8,6 @@ from restweetution.storages.postgres_storage.models import Base
 class Rule(Base):
     __tablename__ = 'rule'
     id = Column(Integer, primary_key=True)
-    type = Column(String)
     tag = Column(String)
     query = Column(String, nullable=True)
     collected_tweets = relationship('CollectedTweet', back_populates='rule', cascade='all, delete-orphan')
