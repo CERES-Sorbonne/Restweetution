@@ -87,9 +87,9 @@ class ReferencedTweet(BaseModel):
 
 
 class Withheld(BaseModel):
-    copyright: bool
-    country_codes: List[str]
-    scope: str
+    copyright: Optional[bool]
+    country_codes: Optional[List[str]]
+    scope: Optional[str]
 
 
 class Tweet(BaseModel):

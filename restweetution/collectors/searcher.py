@@ -13,31 +13,35 @@ from tweepy.asynchronous import AsyncClient
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.tweet_config import QueryFields
-from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import Rule
-from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse
+from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse, \
+    SearcherConfig, TimeWindow
 from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
+from restweetution.utils import Event
+
+from restweetution.models.config.user_config import RuleConfig
 
 logger = logging.getLogger('Searcher')
 
 
 class Searcher:
-    _rule: Optional[Rule] = None
-
-    def __init__(self, storage: PostgresStorage, bearer_token, fields: QueryFields = None, **kwargs):
+    def __init__(self, storage: PostgresStorage, bearer_token):
         super().__init__()
 
         self.storage = storage
-        self._client = AsyncClient(bearer_token=bearer_token, return_type=aiohttp.ClientResponse, **kwargs)
-        self._default_fields = fields if fields else QueryFields()
+        self._client = AsyncClient(bearer_token=bearer_token, return_type=aiohttp.ClientResponse)
+
+        self._config = SearcherConfig()
 
         self._collect_task: Optional[asyncio.Task] = None
 
-    def start_collection(self, rule: RuleConfig = None, fields: QueryFields = None):
+        self.event_update: Event = Event()
+
+    def start_collection(self):
         if self.is_running():
             raise Exception('Searcher Collect Task already Running')
-        self._collect_task = asyncio.create_task(self.collect(rule=rule, fields=fields))
+        self._collect_task = asyncio.create_task(self.count_and_collect())
         return self._collect_task
 
     def stop_collection(self):
@@ -52,42 +56,65 @@ class Searcher:
         rule = Rule(query=rule.query, tag=rule.tag)
         res = await self.storage.request_rules([rule])
         if res:
-            self._rule = res[0]
+            self._config.set_rule(res[0])
 
-        return self._rule
+        return self.get_rule()
+
+    async def set_config(self, config: SearcherConfig):
+        if config.rule:
+            await self.set_rule(RuleConfig(tag=config.rule.tag, query=config.rule.query))
+        self._config = config
+
+    def set_time_window(self, start: datetime = None, end: datetime = None):
+        if self.is_running():
+            raise Exception('Cannot change time frame during collection. please use stop_collection() first')
+        self._config.time_window = TimeWindow(start=start, end=end)
+        self._config.reset_counters()
+
+    def get_config(self):
+        return self._config
 
     def remove_rule(self):
-        self._rule = None
+        self._config.set_rule(None)
         if self.is_running():
             self.stop_collection()
 
     def get_rule(self):
-        return self._rule
+        return self._config.rule
 
-    async def collect(self, rule: RuleConfig = None, fields: QueryFields = None, recent=True, max_results=100,
-                      count_tweets=True, **kwargs):
-        logger.info('Start search loop')
+    def get_time_params(self):
+        params = {}
 
-        if rule:
-            await self.set_rule(rule)
+        start = self._config.time_window.start
+        if start:
+            params['start_time'] = start
+        end = self._config.time_window.end
+        if end:
+            params['end_time'] = time
+        cursor = self._config.time_window.cursor
+        if cursor:
+            params['until_id'] = cursor
 
-        if not self._rule:
-            Exception('Searcher cannot start collecting without rule !!')
-            return
+        return params
 
-        rule = self._rule
+    async def collect(self):
+        logger.info('Start Searcher')
+
+        if not self._config.rule:
+            raise Exception('The streamer has no rule to collect. Use set_rule()')
+
+        params = self.get_time_params()
+
+        search_function = self._client.search_recent_tweets if self._config.recent else self._client.search_all_tweets
+
+        rule = self._config.rule
+        fields = self._config.fields.twitter_format()
         query = rule.query
+        max_results = self._config.max_results
 
-        if count_tweets:
-            count = await self.get_tweets_count(query, recent=recent, granularity='day', **kwargs)
-            logger.info(f'Retrieving {count} tweets')
+        logger.info(f'time params: {params}')
 
-        if not fields:
-            fields = self._default_fields
-
-        search_function = self._client.search_recent_tweets if recent else self._client.search_all_tweets
-        fields = fields.twitter_format()
-        async for res in self._token_loop(search_function, query, **fields, max_results=max_results, **kwargs):
+        async for res in self._token_loop(search_function, query, **fields, max_results=max_results,  **params):
             try:
                 bulk_data = BulkData()
                 tweets = [Tweet(**t) for t in res.data]
@@ -112,23 +139,43 @@ class Searcher:
 
                 logger.info(f'Received: {len(bulk_data.get_tweets())} tweets')
                 await self.storage.save_bulk(bulk_data)
+
+                smallest_id = min([int(id_) for id_ in direct_ids])
+                self._config.time_window.cursor = str(smallest_id)
+                self._config.collected_count += len(direct_ids)
+                asyncio.create_task(self.event_update(self._config))
+
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 logger.warning(e)
 
-    async def get_tweets_count(self, query, recent=True, **kwargs):
+    async def get_collect_count(self):
+        if not self._config.rule:
+            raise Exception('No rule set on Streamer, cannot count. Use set_rule()')
+        logger.info('Start Count...')
+        recent = self._config.recent
+        query = self._config.rule.query
+        params = self.get_time_params()
         count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
 
         total_count = 0
-        async for res in self._token_loop(count_func, query=query, **kwargs):
+        async for res in self._token_loop(count_func, query=query, **params):
             count = CountResponse(**res.dict())
             total_count += count.meta.total_tweet_count
+            self._config.total_count = total_count
 
+        asyncio.create_task(self.event_update(self._config))
+        logger.info(f'Found {total_count} tweets to collect')
         return total_count
+
+    async def count_and_collect(self):
+        if not self._config.has_count():
+            await self.get_collect_count()
+        await self.collect()
 
     async def get_tweets_as_stream(self, ids: List[str], fields: QueryFields = None, max_per_loop: int = 100):
         if not fields:
-            fields = self._default_fields
+            fields = self._config.fields
 
         async for res in self._lookup_loop(
                 lookup_function=self._ids_lookup,
@@ -154,7 +201,7 @@ class Searcher:
         if not ids:
             return
         if not fields:
-            fields = self._default_fields
+            fields = self._config.fields
 
         result = LookupResponse(requested=ids)
         async for res in self.get_tweets_as_stream(ids=ids, fields=fields, max_per_loop=max_per_loop):
@@ -165,7 +212,7 @@ class Searcher:
         if not ids and not usernames:
             return
         if not fields:
-            fields = self._default_fields
+            fields = self._config.fields
 
         result = LookupResponse()
         async for res in self.get_users_as_stream(ids=ids, usernames=usernames, fields=fields, **kwargs):
@@ -178,7 +225,7 @@ class Searcher:
         if not ids and not usernames:
             return
         if not fields:
-            fields = self._default_fields
+            fields = self._config.fields
 
         lookup_function = self._ids_lookup if ids else self._usernames_lookup
         values = ids if ids else usernames

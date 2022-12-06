@@ -18,7 +18,7 @@ async def launch():
     # status_view = StatusView(main_conf.storage, elastic_storage)
 
     streamer = main_conf.streamer
-    await streamer.collect(main_conf.streamer_rules, main_conf.query_fields)
+    await streamer.collect(main_conf.streamer_rules)
 
 loop = asyncio.get_event_loop()
 loop.create_task(launch())

@@ -12,7 +12,7 @@ async def launch():
     main_conf = config.get_config_from_file(os.getenv('CONFIG'))
     searcher = main_conf.searcher
     # view = ElasticDashboard(main_conf.storage_manager.main_storage, main_conf.storages['ceres_elastic'], 'renaud')
-    await searcher.collect(rule=main_conf.searcher_rule, fields=main_conf.query_fields, max_results=100)
+    await searcher.collect()
 
 
 try:

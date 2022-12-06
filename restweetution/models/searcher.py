@@ -1,9 +1,12 @@
 from datetime import datetime
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
 
 from pydantic import BaseModel
 
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.stream_query_params import ALL_CONFIG
+from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.rule import Rule
 
 
 class CountUnit(BaseModel):
@@ -54,3 +57,31 @@ class LookupResponse(BaseModel):
         self.meta.update(other.meta)
 
         return self
+
+
+class TimeWindow(BaseModel):
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
+    cursor: Optional[str] = None
+
+
+class SearcherConfig(BaseModel):
+    rule: Optional[Rule] = None
+    fields: QueryFields = ALL_CONFIG
+    time_window = TimeWindow()
+    recent: bool = True
+    total_count: int = -1
+    collected_count: int = 0
+    max_results = 100
+
+    def set_rule(self, rule: Optional[Rule]):
+        self.rule = rule
+        self.reset_counters()
+        self.time_window.cursor = None
+
+    def has_count(self):
+        return self.total_count != -1
+
+    def reset_counters(self):
+        self.total_count = -1
+        self.collected_count = 0

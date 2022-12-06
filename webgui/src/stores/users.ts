@@ -23,14 +23,25 @@ interface Streamer {
   active_rules: any[]
 }
 
+interface Searcher {
+  running: boolean
+  rule: {query:string, tag:string}
+  recent: boolean
+  start_date: Date
+  cursor_date: Date
+  end_date: Date
+}
+
 type UserDict = {[name:string]: User}
 type StreamerDict = {[name: string]: Streamer}
+type SearcherDict = {[name: string]: Searcher}
 
 export const useUserStore = defineStore("users", () => {
   const users: UserDict = reactive({})
   const selectedUser = ref('undefined')
   const hasSelectedUser = computed(() => users[selectedUser.value] != undefined)
   const streamers: StreamerDict = reactive({})
+  const searchers: SearcherDict = reactive({})
 
 
   function reset_users() {
@@ -118,6 +129,26 @@ export const useUserStore = defineStore("users", () => {
     const res = await collector.verifyQuery(selectedUser.value, query)
     console.log(res)
     return res as {valid: boolean, error: any}
+  }
+
+  async function searcherInfo(user_id: string) {
+      const res = await collector.searcherInfo(user_id)
+      searchers[user_id] = res
+  }
+
+  async function searcherStart(user_id: string) {
+      const res = await collector.searcherStart(user_id)
+      return res.data
+  }
+
+  async function searcherStop(user_id: string) {
+      const res = await collector.searcherStop(user_id)
+      return res.data
+  }
+
+  async function searcherSetRule(user_id: string, rule:any) {
+      const res = await collector.searcherSetRule(user_id, rule)
+      return res.data
   }
 
   let usr = localStorage.getItem('user')

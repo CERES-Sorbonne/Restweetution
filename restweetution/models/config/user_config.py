@@ -1,21 +1,17 @@
 from abc import ABC
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from pydantic import BaseModel
 
 from restweetution.models.config.stream_query_params import ALL_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
-
-
-class RuleOptions(BaseModel):
-    download_media: bool = False
+from restweetution.models.searcher import SearcherConfig
 
 
 class RuleConfig(BaseModel):
     tag: str  # Tag that can be shared with other rules
     query: str  # Query string (streamer or searcher) Can also be used to describe custom rules
-    options: RuleOptions = RuleOptions()
 
 
 class TaskConfig(BaseModel, ABC):
@@ -37,10 +33,7 @@ class StreamerTaskConfig(TaskConfig):
 
 
 class SearcherTaskConfig(TaskConfig):
-    rule: Optional[RuleConfig]
-    total_tweet_count: int = 0
-    collected_tweet_count: int = 0
-    finished: bool = False
+    config: SearcherConfig = SearcherConfig()
 
 
 class UserConfig(BaseModel):

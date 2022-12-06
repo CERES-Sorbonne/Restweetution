@@ -70,3 +70,23 @@ export async function addRules(rules: any[]) {
     const res = await axios.post(BASE_URL + '/rules/add', rules)
     return res.data
 }
+
+export async function searcherInfo(user_id: string) {
+    const res = await axios.get(BASE_URL + '/searcher/info/' + user_id)
+    return res.data
+}
+
+export async function searcherStart(user_id: string) {
+    const res = await axios.post(BASE_URL + '/searcher/start/' + user_id)
+    return res.data
+}
+
+export async function searcherStop(user_id: string) {
+    const res = await axios.post(BASE_URL + '/searcher/stop/' + user_id)
+    return res.data
+}
+
+export async function searcherSetRule(user_id: string, rule:any) {
+    const res = await axios.post(BASE_URL + '/searcher/set/rule/' + user_id, rule)
+    return res.data
+}

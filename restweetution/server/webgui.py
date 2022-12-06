@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import restweetution.config_loader as config
+from restweetution.collectors.searcher import TimeWindow
 from restweetution.instances.system_instance import SystemInstance
 from restweetution.models.config.user_config import RuleConfig, UserConfig
 from restweetution.models.rule import Rule
@@ -88,6 +89,7 @@ async def test_rule(user_id, rule: RuleConfig):
     user = restweet.user_instances[user_id]
     res = await user.test_rule(rule)
     return res
+
 
 # @app.get("/rules/streamer")
 # async def get_streamer_rules():
@@ -172,10 +174,10 @@ async def streamer_stop(user_id):
 @app.get("/searcher/info/{user_id}")
 async def searcher_info(user_id):
     user = restweet.user_instances[user_id]
-    return {
-        "running": user.searcher_is_running(),
-        "rule": user.searcher_get_rule(),
-    }
+    res = user.searcher_get_config().dict()
+    res["running"] = user.searcher_is_running()
+    return res
+
 
 
 @app.post("/searcher/set/rule/{user_id}")
@@ -208,6 +210,14 @@ async def searcher_start(user_id):
 async def searcher_stop(user_id):
     user = restweet.user_instances[user_id]
     user.searcher_stop()
+    await restweet.save_user_config(user_id)
+    return await searcher_info(user_id)
+
+
+@app.post("/searcher/set/time/{user_id}")
+async def searcher_set_time(user_id, time_window: TimeWindow):
+    user = restweet.user_instances[user_id]
+    user.searcher_set_time_window(start=time_window.start, end=time_window.end)
     await restweet.save_user_config(user_id)
     return await searcher_info(user_id)
 
