@@ -97,22 +97,8 @@ const newUserValid = computed(() => {
             <input type="text" v-model="newUser.name" class="form-control" placeholder="Unique Name">
             <input type="text" v-model="newUser.bearer_token" class="form-control w-50" placeholder="bearer_token">
         </div>
-        <!-- <input type="text" v-model="newUser.name" name="name" class="" placeholder="Unique Name" /> -->
-        <!-- <input type="text" v-model="newUser.bearer_token" name="bearer_token" class="" placeholder="bearer_token" /> -->
         </span>
     </div>
-    <!-- <div class="row"> -->
-        <!-- <div class="col-sm-1"><button type="button" class="btn btn-primary" @click="triggerEdit"><span v-if="!edit">Edit</span><span v-if="edit">Stop Edit</span></button></div> -->
-        <!-- <div class="col-sm-1"><button :disabled="!anySelected" type="button" class="btn btn-primary" @click="deleteSelectedUsers">Delete</button></div> -->
-        <!-- <div class="col-sm-1 gl-1"><button :disabled="!newUserValid" type="button" class="btn btn-primary" @click="addUser">Add</button></div> -->
-        <!-- <div class="col-sm-3 g-0"> -->
-            <!-- <input type="text" v-model="newUser.name" name="name" class="form-control" placeholder="Unique Name"> -->
-        <!-- </div> -->
-        <!-- <div class="col-sm-5 g-0"> -->
-            <!-- <input type="text" v-model="newUser.bearer_token" name="name" class="form-control" placeholder="bearer_token"> -->
-        <!-- </div> -->
-    <!-- </div> -->
-    <!-- <br /> -->
     <div class="table-responsive">
         <table class="table table-striped table-sm text-nowrap table-hover">
             <thead class="table-dark">

@@ -71,51 +71,59 @@ export const useUserStore = defineStore("users", () => {
     updateStreamerInfo(selectedUser.value)
   }
 
-  watch(selectedUser, updateSelectedUserInfo)
+  watch(selectedUser, () => {
+    updateSelectedUserInfo()
+    localStorage.setItem('user', selectedUser.value)
+  })
 
-async function updateStreamerInfo(user:string) {
-    const res = await collector.getStreamerInfo(user)
-    streamers[user] = res
-}
-
-async function streamerStart(user:string) {
-    const res = await collector.streamerStart(user)
-    streamers[user] = res
-}
-
-async function streamerStop(user:string) {
-  const res = await collector.streamerStop(user)
-  streamers[user] = res
-}
-
-async function streamerSetRules(user:string, rules:any) {
-  const res = await collector.streamerSetRules(user, rules)
-  streamers[user] = res
-}
-
-async function streamerAddRules(user:string, rules:any[]) {
-  const res = await collector.streamerAddRules(user, rules)
-  streamers[user] = res
-}
-
-async function streamerDelRules(user:string, ruleIds:number[]) {
-  const res = await collector.streamerDelRules(user, ruleIds)
-  streamers[user] = res
-}
-
-async function getStreamerDebug(user:string) {
-  const res = await collector.getStreamerDebug(user)
-  return res as {api_rules: any[]}
-}
-
-async function verifyQuery(query:any) {
-  if(!hasSelectedUser.value) {
-    throw Error('Select a User first to perform verifyQuery')
+  async function updateStreamerInfo(user:string) {
+      const res = await collector.getStreamerInfo(user)
+      streamers[user] = res
   }
-  const res = await collector.verifyQuery(selectedUser.value, query)
-  console.log(res)
-  return res as {valid: boolean, error: any}
-}
+
+  async function streamerStart(user:string) {
+      const res = await collector.streamerStart(user)
+      streamers[user] = res
+  }
+
+  async function streamerStop(user:string) {
+    const res = await collector.streamerStop(user)
+    streamers[user] = res
+  }
+
+  async function streamerSetRules(user:string, rules:any) {
+    const res = await collector.streamerSetRules(user, rules)
+    streamers[user] = res
+  }
+
+  async function streamerAddRules(user:string, rules:any[]) {
+    const res = await collector.streamerAddRules(user, rules)
+    streamers[user] = res
+  }
+
+  async function streamerDelRules(user:string, ruleIds:number[]) {
+    const res = await collector.streamerDelRules(user, ruleIds)
+    streamers[user] = res
+  }
+
+  async function getStreamerDebug(user:string) {
+    const res = await collector.getStreamerDebug(user)
+    return res as {api_rules: any[]}
+  }
+
+  async function verifyQuery(query:any) {
+    if(!hasSelectedUser.value) {
+      throw Error('Select a User first to perform verifyQuery')
+    }
+    const res = await collector.verifyQuery(selectedUser.value, query)
+    console.log(res)
+    return res as {valid: boolean, error: any}
+  }
+
+  let usr = localStorage.getItem('user')
+  if(usr) {
+    selectedUser.value = usr
+  }
 
   return {users, load, addUser, deleteUsers, selectedUser, hasSelectedUser,
     verifyQuery,

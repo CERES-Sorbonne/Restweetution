@@ -2,11 +2,20 @@
 import { reactive, computed, watch } from 'vue'
 import { stringifyQuery } from 'vue-router';
 
+const emits = defineEmits(["selected"]);
+
 const filter = reactive({id: '', type: '', name: '', tag: '', query: ''})
 
+const selected: any = reactive({})
+
+function resetSelected() {
+    Object.keys(selected).forEach(k => delete selected[k])
+}
+
 const props = defineProps({
-    delButton: Boolean,
-    addButton: Boolean,
+    selectable: Boolean,
+    loading: Boolean,
+    actionName: String,
     rules: {
         type: Array<any>,
         required: true
@@ -46,17 +55,30 @@ const showTag = computed(() => props.fields.includes('tag'))
 const showQuery = computed(() => props.fields.includes('query'))
 const showTweetCount = computed(() => props.fields.includes('tweet_count'))
 const showApiId = computed(() => props.fields.includes('api_id'))
+const anySelected = computed(() => Object.keys(selected).length > 0)
+
+function selectedEvent() {
+    emits('selected', props.rules.filter(r => selected[r.id]))
+    resetSelected()
+}
+
+watch(props, () => {
+    if(!props.selectable) {
+        resetSelected()
+    }
+})
 
 </script>
 
 <template>
     <div class="table-responsive">
         <h5 class="text-center">{{props.title}}</h5>
+        <button v-if="selectable" type="button" class="btn btn-primary mb-1" :disabled="!anySelected" @click="selectedEvent">{{actionName}}</button>
+        <button v-if="loading" type="button" class="btn btn-secondary mb-1" :disabled="true" @click="selectedEvent">Loading...</button>
         <table class="table table-striped table-sm text-nowrap table-hover">
             <thead class="table-dark">
                 <tr>
-                    <th v-if="props.delButton" class="text-center">...</th>
-                    <th v-if="props.addButton" class="text-center">...</th>
+                    <th v-if="props.selectable" class="text-center">...</th>
                     <th v-if="showId">ID</th>
                     <th v-if="showName">Name</th>
                     <th v-if="showTag">Tag</th>
@@ -67,16 +89,14 @@ const showApiId = computed(() => props.fields.includes('api_id'))
             </thead>
             <tbody>
                 <tr>
-                    <th v-if="props.delButton"></th>
-                    <th v-if="props.addButton"></th>
+                    <th v-if="props.selectable"></th>
                     <th v-if="showId"><input style="max-width: 100px;" type="number" placeholder="ID" class="form-control" v-model="filter.id"></th>
                     <th v-if="showName"><input type="text" placeholder="Name" class="form-control" v-model="filter.name"></th>
                     <th v-if="showTag"><input type="text" placeholder="Tag" class="form-control" v-model="filter.tag"></th>
                     <th v-if="showQuery"><input type="text" placeholder="Query" class="form-control" v-model="filter.query"></th>
                 </tr>
                 <tr v-for="rule in filteredRules">
-                    <td v-if="props.delButton" @click="$emit('removeRule', rule.id)" class="text-center"><button class="btn text-danger p-0">X</button></td>
-                    <td v-if="props.addButton" @click="$emit('addRule', rule)" class="text-center"><button class="btn text-success p-0">Set</button></td>
+                    <td v-if="props.selectable" class="text-center"><input :disabled="loading" type="checkbox" v-model="selected[rule.id]" :value="rule.id"></td>
                     <td v-if="showId">{{rule.id}}</td>
                     <td v-if="showName">{{rule.name}}</td>
                     <td v-if="showTag">{{rule.tag}}</td>
@@ -90,9 +110,9 @@ const showApiId = computed(() => props.fields.includes('api_id'))
 </template>
 
 <style scoped>
-input {
+/* input {
     min-width: 70px;
-}
+} */
 /* .table-hover tbody tr:hover td{
   background-color: green;
 } */

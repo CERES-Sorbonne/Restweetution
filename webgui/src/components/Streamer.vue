@@ -14,10 +14,18 @@ const ruleStore = useRulesStore()
 
 const editRules = ref(false)
 const showApiInfo = ref(false)
-
+const loading = ref(false)
 
 const streamer = computed(() => userStore.streamers[props.selectedUser])
 const isLoaded = computed(() => streamer.value != undefined)
+const availableRules = computed(() => {
+    let active: any = {}
+    if(streamer.value) {
+        streamer.value.active_rules.forEach((r) => active[r.id] = true)
+    }
+    return ruleStore.orderedRules.filter((r:any) => !active[r.id])
+})
+
 const apiRules: any[] = reactive([])
 
 
@@ -47,12 +55,16 @@ function triggerDebugData() {
     })
 }
 
-function addRule(rule: any) {
-    userStore.streamerAddRules(userStore.selectedUser, [rule])
+function addRules(rules: any[]) {
+    loading.value = true
+    userStore.streamerAddRules(userStore.selectedUser, rules).
+    then(() => loading.value = false)
 }
 
-function delRule(rule: any) {
-    userStore.streamerDelRules(userStore.selectedUser, [rule])
+function delRules(rules: any) {
+    loading.value = true
+    userStore.streamerDelRules(userStore.selectedUser, rules.map((r:any) => r.id)).
+    then(() => loading.value = false)
 }
 
 onMounted(() => {
@@ -82,8 +94,10 @@ watch(props, () => showApiInfo.value = false)
     <div v-show="showApiInfo">
         <RuleTable title="[DEBUG] Streamer Rules on Twitter API" :rules="apiRules" :fields="['api_id', 'tag', 'query']"/>
     </div>
-
-    <RuleTable title="Active Rules" :rules="streamer.active_rules" :delButton="editRules" @remove-rule="delRule" :fields="['id', 'tag', 'query', 'api_id']"/>
-    <RuleTable :add-button="editRules" title="Rule History" :rules="ruleStore.orderedRules" @add-rule="addRule" :fields="['id', 'tag', 'query', 'tweet_count']"/>
+    <h5 class="text-center">Active Rules</h5>
+    <RuleTable action-name="Remove" :loading="loading" :rules="streamer.active_rules" :selectable="editRules" @selected="delRules" :fields="['id', 'tag', 'query', 'api_id']"/>
+    
+    <h5 class="text-center">Available Rules</h5>
+    <RuleTable action-name="Add" :loading="loading" :selectable="editRules" :rules="availableRules" @selected="addRules" :fields="['id', 'tag', 'query', 'tweet_count']"/>
     </div>
 </template>
