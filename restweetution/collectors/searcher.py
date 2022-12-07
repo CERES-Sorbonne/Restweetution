@@ -12,10 +12,11 @@ from tweepy.asynchronous import AsyncClient
 
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.stream_query_params import ALL_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.rule import Rule
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse, \
-    SearcherConfig, TimeWindow
+    TimeWindow
 from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.utils import Event
@@ -32,7 +33,10 @@ class Searcher:
         self.storage = storage
         self._client = AsyncClient(bearer_token=bearer_token, return_type=aiohttp.ClientResponse)
 
-        self._config = SearcherConfig()
+        self._rule: Optional[Rule] = None
+        self._fields: QueryFields = ALL_CONFIG
+        self._time_window = TimeWindow()
+        self._max_results = 100
 
         self._collect_task: Optional[asyncio.Task] = None
 
@@ -56,65 +60,77 @@ class Searcher:
         rule = Rule(query=rule.query, tag=rule.tag)
         res = await self.storage.request_rules([rule])
         if res:
-            self._config.set_rule(res[0])
+            self._rule = res[0]
+            self._time_window.reset_cursor()
 
         return self.get_rule()
 
-    async def set_config(self, config: SearcherConfig):
-        if config.rule:
-            await self.set_rule(RuleConfig(tag=config.rule.tag, query=config.rule.query))
-        self._config = config
-
-    def set_time_window(self, start: datetime = None, end: datetime = None):
+    def set_fields(self, fields: QueryFields):
         if self.is_running():
-            raise Exception('Cannot change time frame during collection. please use stop_collection() first')
-        self._config.time_window = TimeWindow(start=start, end=end)
-        self._config.reset_counters()
+            raise Exception('Cannot change fields during collection. Please use stop_collection() before')
+        self._fields = fields
 
-    def get_config(self):
-        return self._config
+    def get_fields(self):
+        return self._fields
+
+    def set_time_window(self, time_window: TimeWindow):
+        if self.is_running():
+            raise Exception('Cannot change time_window during collection. Please use stop_collection() before')
+        self._time_window = time_window
+
+    def get_time_window(self):
+        return self._time_window
 
     def remove_rule(self):
-        self._config.set_rule(None)
+        self._rule = None
+        self._time_window.reset_cursor()
         if self.is_running():
             self.stop_collection()
 
     def get_rule(self):
-        return self._config.rule
+        return self._rule
 
-    def get_time_params(self):
+    def get_search_time_params(self):
         params = {}
-
-        start = self._config.time_window.start
+        start = self._time_window.start
+        end = self._time_window.end
+        cursor = self._time_window.cursor
         if start:
             params['start_time'] = start
-        end = self._config.time_window.end
-        if end:
-            params['end_time'] = time
-        cursor = self._config.time_window.cursor
         if cursor:
-            params['until_id'] = cursor
+            params['end_time'] = cursor
+        elif end:
+            params['end_time'] = end
+        return params
 
+    def get_count_time_params(self):
+        params = {}
+        end = self._time_window.end
+        start = self._time_window.start
+        if start:
+            params['start_time'] = start
+        elif end:
+            params['end_time'] = end
         return params
 
     async def collect(self):
         logger.info('Start Searcher')
 
-        if not self._config.rule:
+        if not self._rule:
             raise Exception('The streamer has no rule to collect. Use set_rule()')
 
-        params = self.get_time_params()
+        params = self.get_search_time_params()
+        recent = self._time_window.recent
+        search_function = self._client.search_recent_tweets if recent else self._client.search_all_tweets
 
-        search_function = self._client.search_recent_tweets if self._config.recent else self._client.search_all_tweets
-
-        rule = self._config.rule
-        fields = self._config.fields.twitter_format()
+        rule = self._rule
+        fields = self._fields.twitter_format()
         query = rule.query
-        max_results = self._config.max_results
+        max_results = self._max_results
 
         logger.info(f'time params: {params}')
 
-        async for res in self._token_loop(search_function, query, **fields, max_results=max_results,  **params):
+        async for res in self._token_loop(search_function, query, **fields, max_results=max_results, **params):
             try:
                 bulk_data = BulkData()
                 tweets = [Tweet(**t) for t in res.data]
@@ -140,42 +156,58 @@ class Searcher:
                 logger.info(f'Received: {len(bulk_data.get_tweets())} tweets')
                 await self.storage.save_bulk(bulk_data)
 
-                smallest_id = min([int(id_) for id_ in direct_ids])
-                self._config.time_window.cursor = str(smallest_id)
-                self._config.collected_count += len(direct_ids)
-                asyncio.create_task(self.event_update(self._config))
+                if 'created_at' in self._fields.tweet_fields:
+                    oldest = min([bulk_data.tweets[id_].created_at for id_ in direct_ids])
+                    self._time_window.cursor = oldest
+                self._time_window.collected_count += len(direct_ids)
+                asyncio.create_task(self.event_update(self._time_window))
 
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 logger.warning(e)
 
     async def get_collect_count(self):
-        if not self._config.rule:
+        if not self._rule:
             raise Exception('No rule set on Streamer, cannot count. Use set_rule()')
         logger.info('Start Count...')
-        recent = self._config.recent
-        query = self._config.rule.query
-        params = self.get_time_params()
+        recent = self._time_window.recent
+        query = self._rule.query
+        params = self.get_count_time_params()
         count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
 
         total_count = 0
         async for res in self._token_loop(count_func, query=query, **params):
             count = CountResponse(**res.dict())
             total_count += count.meta.total_tweet_count
-            self._config.total_count = total_count
 
-        asyncio.create_task(self.event_update(self._config))
+        self._time_window.total_count = total_count
+        asyncio.create_task(self.event_update(self._time_window))
         logger.info(f'Found {total_count} tweets to collect')
         return total_count
 
+    async def collect_count_test(self):
+        if not self._rule:
+            raise Exception('No rule set on Streamer, cannot count. Use set_rule()')
+        logger.info('Test Query and Time Window ..')
+        recent = self._time_window.recent
+        query = self._rule.query
+        params = self.get_count_time_params()
+        count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
+        await count_func(query=query, **params)
+        return True
+
     async def count_and_collect(self):
-        if not self._config.has_count():
-            await self.get_collect_count()
-        await self.collect()
+        try:
+            if not self._time_window.has_count():
+                await self.get_collect_count()
+            await self.collect()
+        except Exception as e:
+            logger.warning(e)
+            raise e
 
     async def get_tweets_as_stream(self, ids: List[str], fields: QueryFields = None, max_per_loop: int = 100):
         if not fields:
-            fields = self._config.fields
+            fields = self._fields
 
         async for res in self._lookup_loop(
                 lookup_function=self._ids_lookup,
@@ -201,7 +233,7 @@ class Searcher:
         if not ids:
             return
         if not fields:
-            fields = self._config.fields
+            fields = self._fields
 
         result = LookupResponse(requested=ids)
         async for res in self.get_tweets_as_stream(ids=ids, fields=fields, max_per_loop=max_per_loop):
@@ -212,7 +244,7 @@ class Searcher:
         if not ids and not usernames:
             return
         if not fields:
-            fields = self._config.fields
+            fields = self._fields
 
         result = LookupResponse()
         async for res in self.get_users_as_stream(ids=ids, usernames=usernames, fields=fields, **kwargs):
@@ -225,7 +257,7 @@ class Searcher:
         if not ids and not usernames:
             return
         if not fields:
-            fields = self._config.fields
+            fields = self._fields
 
         lookup_function = self._ids_lookup if ids else self._usernames_lookup
         values = ids if ids else usernames
@@ -260,28 +292,30 @@ class Searcher:
                     resp = await get_function(query=query, next_token=next_token, **kwargs)
                 else:
                     resp = await get_function(query=query, **kwargs)
+
+                async with resp:
+                    res = TweetPyLookupResponse(**await resp.json())
+
+                if res.meta and 'next_token' in res.meta:
+                    next_token = res.meta['next_token']
+                else:
+                    next_token = None
+                running = next_token
+
+                rate_limit_remaining = int(resp.headers.get('x-rate-limit-remaining'))
+                rate_limit_reset = int(resp.headers.get('x-rate-limit-reset'))
+                if rate_limit_remaining == 0:
+                    wait_duration = rate_limit_reset - math.floor(time.time())
+                    logger.info('sleep for ', str(wait_duration), ' seconds')
+                    await asyncio.sleep(wait_duration)
+
+                yield res
             except tweepy.errors.TooManyRequests:
                 logger.info('Unexpected TooManyRequest, sleep for 15min')
                 await asyncio.sleep(15 * 60)
                 continue
-
-            async with resp:
-                res = TweetPyLookupResponse(**await resp.json())
-
-            if res.meta and 'next_token' in res.meta:
-                next_token = res.meta['next_token']
-            else:
-                next_token = None
-            running = next_token
-
-            rate_limit_remaining = int(resp.headers.get('x-rate-limit-remaining'))
-            rate_limit_reset = int(resp.headers.get('x-rate-limit-reset'))
-            if rate_limit_remaining == 0:
-                wait_duration = rate_limit_reset - math.floor(time.time())
-                logger.info('sleep for ', str(wait_duration), ' seconds')
-                await asyncio.sleep(wait_duration)
-
-            yield res
+            except Exception as e:
+                raise e
 
     # @staticmethod
     # def parse_headers(resp: aiohttp.ClientResponse):

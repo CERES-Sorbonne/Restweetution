@@ -1,12 +1,12 @@
 from abc import ABC
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
 from restweetution.models.config.stream_query_params import ALL_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
-from restweetution.models.searcher import SearcherConfig
+from restweetution.models.searcher import TimeWindow
 
 
 class RuleConfig(BaseModel):
@@ -16,8 +16,8 @@ class RuleConfig(BaseModel):
 
 class TaskConfig(BaseModel, ABC):
     updated_at: datetime
-    fields: QueryFields = ALL_CONFIG
     is_running: bool = False
+    fields: QueryFields = ALL_CONFIG
 
     def __init__(self, **kwargs):
         if 'updated_at' not in kwargs:
@@ -33,7 +33,8 @@ class StreamerTaskConfig(TaskConfig):
 
 
 class SearcherTaskConfig(TaskConfig):
-    config: SearcherConfig = SearcherConfig()
+    rule: Optional[RuleConfig]
+    time_window: TimeWindow() = TimeWindow()
 
 
 class UserConfig(BaseModel):

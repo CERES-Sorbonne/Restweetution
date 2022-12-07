@@ -158,6 +158,7 @@ export const useUserStore = defineStore("users", () => {
 
   return {users, load, addUser, deleteUsers, selectedUser, hasSelectedUser,
     verifyQuery,
-    streamers, updateStreamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug
+    streamers, updateStreamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug,
+    searcherStart
   }
 });

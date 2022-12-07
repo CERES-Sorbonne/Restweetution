@@ -39,6 +39,9 @@ function triggerStartStop() {
 }
 
 function triggerDebugData() {
+    userStore.searcherStart(userStore.selectedUser).catch((err) => console.log(err.response.data))
+    return
+
     if(showApiInfo.value) {
         showApiInfo.value = false
         return

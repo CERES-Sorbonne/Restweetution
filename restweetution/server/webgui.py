@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Optional, List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -17,6 +17,11 @@ logging.root.setLevel(logging.INFO)
 
 sys_conf = config.load_system_config('../../private_config/system_config.yaml')
 restweet: Optional[SystemInstance] = None
+
+
+class Error(HTTPException):
+    def __init__(self, value: str):
+        super().__init__(status_code=400, detail=value)
 
 
 async def launch():
@@ -133,7 +138,7 @@ async def streamer_debug(user_id):
 async def streamer_add_rule(rules: List[RuleConfig], user_id):
     user = restweet.user_instances[user_id]
     await user.streamer_add_rules(rules)
-    await restweet.save_user_config(user_id)
+    await user.save_user_config()
     return await streamer_info(user_id)
 
 
@@ -141,7 +146,7 @@ async def streamer_add_rule(rules: List[RuleConfig], user_id):
 async def streamer_del_rule(ids: List[int], user_id):
     user = restweet.user_instances[user_id]
     await user.streamer_del_rules(ids)
-    await restweet.save_user_config(user_id)
+    await user.save_user_config()
     return await streamer_info(user_id)
 
 
@@ -149,7 +154,7 @@ async def streamer_del_rule(ids: List[int], user_id):
 async def searcher_set_rule(rules: List[RuleConfig], user_id):
     user = restweet.user_instances[user_id]
     await user.streamer_set_rules(rules)
-    await restweet.save_user_config(user_id)
+    await user.save_user_config()
     return await streamer_info(user_id)
 
 
@@ -159,7 +164,7 @@ async def streamer_start(user_id):
     if user.streamer_is_running():
         raise Exception('Streamer is already Running')
     user.streamer_start()
-    await restweet.save_user_config(user_id)
+    await user.save_user_config()
     return await streamer_info(user_id)
 
 
@@ -167,24 +172,27 @@ async def streamer_start(user_id):
 async def streamer_stop(user_id):
     user = restweet.user_instances[user_id]
     user.streamer_stop()
-    await restweet.save_user_config(user_id)
+    await user.save_user_config()
     return await streamer_info(user_id)
 
 
 @app.get("/searcher/info/{user_id}")
 async def searcher_info(user_id):
     user = restweet.user_instances[user_id]
-    res = user.searcher_get_config().dict()
-    res["running"] = user.searcher_is_running()
+    res = {
+        "running": user.searcher_is_running(),
+        "fields": user.searcher_get_fields(),
+        "rule": user.searcher_get_rule(),
+        "time_window": user.searcher_get_time_window()
+    }
     return res
-
 
 
 @app.post("/searcher/set/rule/{user_id}")
 async def searcher_set_rule(rules: RuleConfig, user_id):
     user = restweet.user_instances[user_id]
     await user.searcher_set_rule(rules)
-    await restweet.save_user_config(user_id)
+    await user.save_user_config()
     return await searcher_info(user_id)
 
 
@@ -192,7 +200,7 @@ async def searcher_set_rule(rules: RuleConfig, user_id):
 async def searcher_del_rule(user_id):
     user = restweet.user_instances[user_id]
     user.searcher_del_rule()
-    await restweet.save_user_config(user_id)
+    await user.save_user_config()
     return await searcher_info(user_id)
 
 
@@ -201,8 +209,11 @@ async def searcher_start(user_id):
     user = restweet.user_instances[user_id]
     if user.searcher_is_running():
         raise Exception('Searcher is already Running')
-    user.searcher_start()
-    await restweet.save_user_config(user_id)
+    try:
+        await user.searcher_start()
+    except Exception as e:
+        raise Error(e.__str__())
+    await user.save_user_config()
     return await searcher_info(user_id)
 
 
@@ -210,15 +221,16 @@ async def searcher_start(user_id):
 async def searcher_stop(user_id):
     user = restweet.user_instances[user_id]
     user.searcher_stop()
-    await restweet.save_user_config(user_id)
+    await user.save_user_config()
+
     return await searcher_info(user_id)
 
 
 @app.post("/searcher/set/time/{user_id}")
 async def searcher_set_time(user_id, time_window: TimeWindow):
     user = restweet.user_instances[user_id]
-    user.searcher_set_time_window(start=time_window.start, end=time_window.end)
-    await restweet.save_user_config(user_id)
+    user.searcher_set_time_window(time_window)
+    await user.save_user_config()
     return await searcher_info(user_id)
 
 

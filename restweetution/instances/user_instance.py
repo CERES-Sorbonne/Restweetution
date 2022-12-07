@@ -1,12 +1,14 @@
 import asyncio
-from datetime import datetime
+import logging
 from typing import List
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
 from restweetution.models.config.user_config import UserConfig, RuleConfig
-from restweetution.models.searcher import SearcherConfig
+from restweetution.models.searcher import TimeWindow
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
+
+logger = logging.getLogger('UserInterface')
 
 
 class UserInstance:
@@ -31,7 +33,14 @@ class UserInstance:
         self.user_config.streamer_task_config.rules = [r.config() for r in self._streamer.get_rules()]
 
         self.user_config.searcher_task_config.is_running = self.searcher_is_running()
-        self.user_config.searcher_task_config.config = self._searcher.get_config()
+        self.user_config.searcher_task_config.time_window = self._searcher.get_time_window()
+        self.user_config.searcher_task_config.fields = self._searcher.get_fields()
+
+        searcher_rule = self._searcher.get_rule()
+        if searcher_rule:
+            self.user_config.searcher_task_config.rule = searcher_rule.config()
+        else:
+            self.user_config.searcher_task_config.rule = None
 
         return self.user_config
 
@@ -88,21 +97,28 @@ class UserInstance:
         if self._searcher:
             raise Exception('Searcher already exist')
         self._searcher = Searcher(storage=self.storage, bearer_token=self.user_config.bearer_token)
-        self._searcher.event_update.add(self.save_searcher_config)
+        self._searcher.event_update.add(self.save_searcher_time_window)
 
     async def _load_searcher_task(self):
         task = self.user_config.searcher_task_config
-        if task.config.rule is None:
-            return
 
-        await self._searcher.set_config(task.config)
+        if task.rule:
+            await self._searcher.set_rule(task.rule)
+        if task.fields:
+            self._searcher.set_fields(task.fields)
+        if task.time_window:
+            self._searcher.set_time_window(task.time_window)
 
-        if task.is_running:
-            self.searcher_start()
+        if task.is_running and task.rule:
+            try:
+                await self.searcher_start()
+            except Exception as e:
+                logger.warning(e)
+                task.is_running = False
 
     async def searcher_set_rule(self, rule: RuleConfig):
         rule = await self._searcher.set_rule(rule)
-        await self.save_searcher_config(self._searcher.get_config())
+        await self.save_user_config()
         return rule
 
     def searcher_get_rule(self):
@@ -111,7 +127,8 @@ class UserInstance:
     def searcher_del_rule(self):
         self._searcher.remove_rule()
 
-    def searcher_start(self):
+    async def searcher_start(self):
+        await self._searcher.collect_count_test()
         self._searcher.start_collection()
 
     def searcher_stop(self):
@@ -120,13 +137,20 @@ class UserInstance:
     def searcher_is_running(self):
         return self._searcher.is_running()
 
-    def searcher_set_time_window(self, start: datetime = None, end: datetime = None):
-        self._searcher.set_time_window(start=start, end=end)
+    def searcher_set_time_window(self, time_window: TimeWindow):
+        self._searcher.set_time_window(time_window)
 
-    def searcher_get_config(self):
-        return self._searcher.get_config()
-
-    async def save_searcher_config(self, config: SearcherConfig):
-        self.user_config.searcher_task_config.config = config
+    async def save_searcher_time_window(self, time_window: TimeWindow):
+        self.user_config.searcher_task_config.time_window = time_window
         # self.write_config()
         await self.storage.save_user_configs([self.user_config])
+
+    async def save_user_config(self):
+        self.write_config()
+        await self.storage.save_user_configs([self.user_config])
+
+    def searcher_get_fields(self):
+        return self._searcher.get_fields()
+
+    def searcher_get_time_window(self):
+        return self._searcher.get_time_window()
