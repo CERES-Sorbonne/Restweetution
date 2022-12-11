@@ -1,29 +1,27 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
 import RuleTable from './RuleTable.vue'
-import {useUserStore} from '@/stores/users'
-import { useRulesStore } from '@/stores/rules';
+import {useStore} from '@/stores/store'
 import { computed } from '@vue/reactivity';
 
 const props = defineProps({
     selectedUser: {type: String, required: true}
 })
 
-const userStore = useUserStore()
-const ruleStore = useRulesStore()
+const store = useStore()
 
 const editRules = ref(false)
 const showApiInfo = ref(false)
 const loading = ref(false)
 
-const streamer = computed(() => userStore.streamers[props.selectedUser])
+const streamer = computed(() => store.streamers[props.selectedUser])
 const isLoaded = computed(() => streamer.value != undefined)
 const availableRules = computed(() => {
     let active: any = {}
     if(streamer.value) {
         streamer.value.active_rules.forEach((r) => active[r.id] = true)
     }
-    return ruleStore.orderedRules.filter((r:any) => !active[r.id])
+    return store.orderedRules.filter((r:any) => !active[r.id])
 })
 
 const apiRules: any[] = reactive([])
@@ -31,10 +29,10 @@ const apiRules: any[] = reactive([])
 
 function triggerStartStop() {
     if(streamer.value.running) {
-        userStore.streamerStop(props.selectedUser)
+        store.streamerStop(props.selectedUser)
     }
     else {
-        userStore.streamerStart(props.selectedUser)
+        store.streamerStart(props.selectedUser)
     }
 }
 
@@ -47,7 +45,7 @@ function triggerDebugData() {
     showApiInfo.value = true
     apiRules.length = 0
     apiRules.push({tag: 'loadig', query: 'loading', api_id: 'loading'})
-    userStore.getStreamerDebug(props.selectedUser).then((res) => {
+    store.getStreamerDebug(props.selectedUser).then((res) => {
         apiRules.length = 0
         res.api_rules.forEach(r => {
             apiRules.push({tag: r.tag, query: r.value, api_id: r.id})
@@ -57,21 +55,21 @@ function triggerDebugData() {
 
 function addRules(rules: any[]) {
     loading.value = true
-    userStore.streamerAddRules(userStore.selectedUser, rules).
+    store.streamerAddRules(store.selectedUser, rules).
     then(() => loading.value = false)
 }
 
 function delRules(rules: any) {
     loading.value = true
-    userStore.streamerDelRules(userStore.selectedUser, rules.map((r:any) => r.id)).
+    store.streamerDelRules(store.selectedUser, rules.map((r:any) => r.id)).
     then(() => loading.value = false)
 }
 
 onMounted(() => {
-    if(!userStore.hasSelectedUser) {
+    if(!store.hasSelectedUser) {
         return
     }
-    userStore.streamerInfo(props.selectedUser)
+    store.streamerInfo(props.selectedUser)
 })
 
 watch(props, () => showApiInfo.value = false)

@@ -40,7 +40,7 @@ class Searcher:
 
         self._collect_task: Optional[asyncio.Task] = None
 
-        self.event_update: Event = Event()
+        self.event: Event = Event()
 
     def start_collection(self):
         if self.is_running():
@@ -162,7 +162,7 @@ class Searcher:
                     oldest = min([bulk_data.tweets[id_].created_at for id_ in direct_ids])
                     self._time_window.cursor = oldest
                 self._time_window.collected_count += len(direct_ids)
-                asyncio.create_task(self.event_update(self._time_window))
+                asyncio.create_task(self.event(self._time_window))
 
             except Exception as e:
                 logger.warning(traceback.format_exc())
@@ -183,7 +183,7 @@ class Searcher:
             total_count += count.meta.total_tweet_count
 
         self._time_window.total_count = total_count
-        asyncio.create_task(self.event_update(self._time_window))
+        asyncio.create_task(self.event(self._time_window))
         logger.info(f'Found {total_count} tweets to collect')
         return total_count
 

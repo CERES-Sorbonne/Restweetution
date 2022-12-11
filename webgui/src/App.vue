@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from "vue-router";
 
-import {useRulesStore} from './stores/rules'
-import { useUserStore } from "./stores/users";
-const store = useRulesStore()
-const users_store = useUserStore()
+import { useStore } from "./stores/store";
+const store = useStore()
 
 store.loadRules()
-users_store.load()
+store.load()
 
 </script>
 

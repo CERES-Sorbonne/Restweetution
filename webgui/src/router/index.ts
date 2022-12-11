@@ -5,6 +5,7 @@ import RulesView from "@/views/RulesView.vue"
 import MenuVue from "@/components/Menu.vue"
 import StreamerView from "@/views/StreamerView.vue"
 import SearcherView from "@/views/SearcherView.vue";
+import DashboardView from "@/views/DashboardView.vue";
 
 
 const router = createRouter({
@@ -39,6 +40,16 @@ const router = createRouter({
       path: '/searcher',
       name: 'searcher',
       component: SearcherView
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: DashboardView
+    },
+    {
+      path: '/errors',
+      name: 'erorrs',
+      component: DashboardView
     }
   ],
 });

@@ -66,7 +66,7 @@ const anySelected = computed(() => {
     if(props.uniqueSelect) {
         return uniqueSelected.value != ''
     }
-    return Object.keys(selected).length > 0
+    return Object.keys(selected).filter(k => selected[k]).length > 0
 })
 
 function selectedEvent() {
@@ -95,7 +95,7 @@ watch(props, () => {
 <template>
     <div class="table-responsive">
         <h5 class="text-center">{{props.title}}</h5>
-        <button v-if="selectable" type="button" class="btn btn-primary mb-1" :disabled="!anySelected" @click="selectedEvent">{{actionName}}</button>
+        <button v-if="selectable" type="button" class="btn btn-outline-primary mb-1" :disabled="!anySelected" @click="selectedEvent">{{actionName}}</button>
         <button v-if="loading" type="button" class="btn btn-secondary mb-1" :disabled="true" @click="selectedEvent">Loading...</button>
         
         <table class="table table-striped table-sm text-nowrap table-hover">

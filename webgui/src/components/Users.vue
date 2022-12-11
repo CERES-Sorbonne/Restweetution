@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import RuleTable from './RuleTable.vue'
-import {useUserStore} from '@/stores/users'
+import {useStore} from '@/stores/store'
 import { computed } from '@vue/reactivity';
 import { stringifyQuery } from 'vue-router';
 
-const store = useUserStore()
+const store = useStore()
 
 function copyToken(token: string) {
     navigator.clipboard.writeText(token);

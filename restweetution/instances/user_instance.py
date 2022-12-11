@@ -7,6 +7,7 @@ from restweetution.collectors.searcher import Searcher
 from restweetution.models.config.user_config import UserConfig, RuleConfig
 from restweetution.models.searcher import TimeWindow
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
+from restweetution.utils import Event
 
 logger = logging.getLogger('UserInterface')
 
@@ -14,6 +15,8 @@ logger = logging.getLogger('UserInterface')
 class UserInstance:
     _streamer: Streamer = None
     _searcher: Searcher = None
+
+    event = Event()
 
     searcher_task: asyncio.Task = None
 
@@ -97,7 +100,7 @@ class UserInstance:
         if self._searcher:
             raise Exception('Searcher already exist')
         self._searcher = Searcher(storage=self.storage, bearer_token=self.user_config.bearer_token)
-        self._searcher.event_update.add(self.save_searcher_time_window)
+        self._searcher.event.add(self.save_searcher_time_window)
 
     async def _load_searcher_task(self):
         task = self.user_config.searcher_task_config
