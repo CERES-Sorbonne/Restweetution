@@ -25,11 +25,8 @@ interface Streamer {
 
 interface Searcher {
   running: boolean
-  rule: {query:string, tag:string}
-  recent: boolean
-  start_date: Date
-  cursor_date: Date
-  end_date: Date
+  rule: {query:string, tag:string, id:string}
+  time_window: any
 }
 
 type UserDict = {[name:string]: User}
@@ -79,7 +76,7 @@ export const useUserStore = defineStore("users", () => {
       return
     }
     console.log(selectedUser.value)
-    updateStreamerInfo(selectedUser.value)
+    streamerInfo(selectedUser.value)
   }
 
   watch(selectedUser, () => {
@@ -87,7 +84,7 @@ export const useUserStore = defineStore("users", () => {
     localStorage.setItem('user', selectedUser.value)
   })
 
-  async function updateStreamerInfo(user:string) {
+  async function streamerInfo(user:string) {
       const res = await collector.getStreamerInfo(user)
       streamers[user] = res
   }
@@ -131,25 +128,51 @@ export const useUserStore = defineStore("users", () => {
     return res as {valid: boolean, error: any}
   }
 
+  function toDatetimeInuptString(date: Date) {
+    let datetime = new Date()
+    datetime.setTime(date.getTime() - date.getTimezoneOffset() * 60 * 1000)
+    let dateString = datetime.toISOString().split(':').slice(0,2).join(':')
+    return dateString
+  }
+
+  function updateSearcherInfo(user_id: string, updateUserInfo: Searcher) {
+    let time_window = updateUserInfo.time_window
+    updateUserInfo.time_window.start = toDatetimeInuptString(new Date(time_window.start))
+    updateUserInfo.time_window.end = toDatetimeInuptString(new Date(time_window.end))
+
+    searchers[user_id] = updateUserInfo
+  }
+
   async function searcherInfo(user_id: string) {
       const res = await collector.searcherInfo(user_id)
-      searchers[user_id] = res
+      updateSearcherInfo(user_id, res)
   }
 
   async function searcherStart(user_id: string) {
       const res = await collector.searcherStart(user_id)
-      return res.data
+      updateSearcherInfo(user_id, res)
   }
 
   async function searcherStop(user_id: string) {
       const res = await collector.searcherStop(user_id)
-      return res.data
+      updateSearcherInfo(user_id, res)
   }
 
   async function searcherSetRule(user_id: string, rule:any) {
       const res = await collector.searcherSetRule(user_id, rule)
-      return res.data
+      updateSearcherInfo(user_id, res)
   }
+
+  async function searcherDelRule(user_id: string) {
+    const res = await collector.searcherDelRule(user_id)
+    updateSearcherInfo(user_id, res)
+}
+
+  async function searcherSetTimeWindow(user_id: string, time_window:any) {
+    const res = await collector.searcherSetTimeWindow(user_id, time_window)
+    updateSearcherInfo(user_id, res)
+  }
+
 
   let usr = localStorage.getItem('user')
   if(usr) {
@@ -158,7 +181,7 @@ export const useUserStore = defineStore("users", () => {
 
   return {users, load, addUser, deleteUsers, selectedUser, hasSelectedUser,
     verifyQuery,
-    streamers, updateStreamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug,
-    searcherStart
+    streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug,
+    searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow
   }
 });

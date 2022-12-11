@@ -90,3 +90,13 @@ export async function searcherSetRule(user_id: string, rule:any) {
     const res = await axios.post(BASE_URL + '/searcher/set/rule/' + user_id, rule)
     return res.data
 }
+
+export async function searcherDelRule(user_id: string) {
+    const res = await axios.post(BASE_URL + '/searcher/del/rule/' + user_id)
+    return res.data
+}
+
+export async function searcherSetTimeWindow(user_id: string, time_window:any) {
+    const res = await axios.post(BASE_URL + '/searcher/set/time/' + user_id, time_window)
+    return res.data
+}

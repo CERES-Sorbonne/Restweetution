@@ -107,7 +107,7 @@ class UserInstance:
         if task.fields:
             self._searcher.set_fields(task.fields)
         if task.time_window:
-            self._searcher.set_time_window(task.time_window)
+            self._searcher.set_time_window(task.time_window, reset=False)
 
         if task.is_running and task.rule:
             try:

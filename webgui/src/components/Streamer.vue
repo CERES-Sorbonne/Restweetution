@@ -39,9 +39,6 @@ function triggerStartStop() {
 }
 
 function triggerDebugData() {
-    userStore.searcherStart(userStore.selectedUser).catch((err) => console.log(err.response.data))
-    return
-
     if(showApiInfo.value) {
         showApiInfo.value = false
         return
@@ -74,7 +71,7 @@ onMounted(() => {
     if(!userStore.hasSelectedUser) {
         return
     }
-    userStore.updateStreamerInfo(props.selectedUser)
+    userStore.streamerInfo(props.selectedUser)
 })
 
 watch(props, () => showApiInfo.value = false)

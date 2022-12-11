@@ -73,10 +73,12 @@ class Searcher:
     def get_fields(self):
         return self._fields
 
-    def set_time_window(self, time_window: TimeWindow):
+    def set_time_window(self, time_window: TimeWindow, reset=True):
         if self.is_running():
             raise Exception('Cannot change time_window during collection. Please use stop_collection() before')
         self._time_window = time_window
+        if reset:
+            self._time_window.reset_cursor()
 
     def get_time_window(self):
         return self._time_window

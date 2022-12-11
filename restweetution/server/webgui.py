@@ -151,7 +151,7 @@ async def streamer_del_rule(ids: List[int], user_id):
 
 
 @app.post("/streamer/set/rule/{user_id}")
-async def searcher_set_rule(rules: List[RuleConfig], user_id):
+async def streamer_set_rule(rules: List[RuleConfig], user_id):
     user = restweet.user_instances[user_id]
     await user.streamer_set_rules(rules)
     await user.save_user_config()
