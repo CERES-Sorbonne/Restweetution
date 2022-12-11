@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, List
 
 from restweetution.instances.user_instance import UserInstance
@@ -11,11 +12,14 @@ class SystemInstance:
     system_config: SystemConfig
     storage: PostgresStorage
     user_instances: Dict[str, UserInstance] = {}
-    update_event = Event()
+    event = Event()
 
     def __init__(self, system_config: SystemConfig):
         self.system_config = system_config
         self.storage = PostgresStorage(**system_config.storage)
+
+    async def emit_event(self, update):
+        asyncio.create_task(self.event(update))
 
     async def save_user_config(self, user_id):
         user = self.user_instances[user_id]
@@ -29,6 +33,7 @@ class SystemInstance:
         user_instance = UserInstance(user_config, self.storage)
         await user_instance.start()
         self.user_instances[user_instance.get_name()] = user_instance
+        user_instance.event.add(self.emit_event)
         return user_instance
 
     async def remove_user_instances(self, names: List[str]):

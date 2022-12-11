@@ -116,7 +116,7 @@ watch(props, () => {
                     <th v-if="props.selectable"></th>
                     <th v-if="showId"><input style="max-width: 100px;" type="number" placeholder="ID" class="form-control" v-model="filter.id"></th>
                     <th v-if="showName"><input type="text" placeholder="Name" class="form-control" v-model="filter.name"></th>
-                    <th v-if="showTag"><input type="text" placeholder="Tag" class="form-control" v-model="filter.tag"></th>
+                    <th v-if="showTag"><input type="text" placeholder="Tag" class="form-control" v-model="filter.tag" style="min-width:60px"></th>
                     <th v-if="showQuery"><input type="text" placeholder="Query" class="form-control" v-model="filter.query"></th>
                 </tr>
 

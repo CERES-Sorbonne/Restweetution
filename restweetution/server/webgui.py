@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from typing import Optional, List
 
@@ -11,6 +12,7 @@ import restweetution.config_loader as config
 from restweetution.collectors.searcher import TimeWindow
 from restweetution.instances.system_instance import SystemInstance
 from restweetution.models.config.user_config import RuleConfig, UserConfig
+from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.rule import Rule
 from restweetution.server.connection_manager import ConnectionManager
 
@@ -30,15 +32,18 @@ class Error(HTTPException):
         super().__init__(status_code=400, detail=value)
 
 
-async def sendUpdates(update):
-    await manager.broadcast(update)
+async def sendUpdates(update: InstanceUpdate):
+    if update.source == 'searcher':
+        print('send update websocket')
+        update.data = await searcher_info(update.user_id)
+        await manager.broadcast(json.dumps(update.dict(), default=str))
 
 
 async def launch():
     global restweet
     restweet = SystemInstance(sys_conf)
     await restweet.load_user_configs()
-    restweet.update_event.add(sendUpdates)
+    restweet.event.add(sendUpdates)
 
 
 loop.create_task(launch())
@@ -49,7 +54,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            await asyncio.sleep(0)
+            data = await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 

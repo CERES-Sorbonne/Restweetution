@@ -1,10 +1,12 @@
 import asyncio
+import json
 import logging
 from typing import List
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
 from restweetution.models.config.user_config import UserConfig, RuleConfig
+from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.searcher import TimeWindow
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.utils import Event
@@ -56,6 +58,9 @@ class UserInstance:
     async def test_rule(self, rule: RuleConfig):
         res = await self._streamer._client.test_rule(rule)
         return res
+
+    def _emit_event(self, event):
+        print(event)
 
     def _create_streamer(self):
         if self._streamer:
@@ -143,9 +148,10 @@ class UserInstance:
     def searcher_set_time_window(self, time_window: TimeWindow):
         self._searcher.set_time_window(time_window)
 
-    async def save_searcher_time_window(self, time_window: TimeWindow):
-        self.user_config.searcher_task_config.time_window = time_window
-        # self.write_config()
+    async def save_searcher_time_window(self):
+        self.write_config()
+        update = InstanceUpdate(source='searcher', user_id=self.user_config.name)
+        asyncio.create_task(self.event(update))
         await self.storage.save_user_configs([self.user_config])
 
     async def save_user_config(self):
