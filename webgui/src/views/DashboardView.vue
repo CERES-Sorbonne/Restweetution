@@ -10,7 +10,7 @@ const store = useStore()
 <template>
     <Menu />
     <div class="row">
-        <div class="col">
+        <div class="col" v-if="store.isLoaded">
             <div class="row mt-4" v-for="user in store.users">
                 <h5 class="">{{user.name}}</h5>
                 <div class="col">

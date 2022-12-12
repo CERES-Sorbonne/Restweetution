@@ -5,7 +5,10 @@ import { onMounted, watch } from 'vue';
 import type { Notif } from '../stores/store'
 
 const props = defineProps({
-    notifications: Array<Notif>
+    notifications: {
+        type: Array<Notif>,
+        required: true
+    }
 })
 
 function typeToClass(type:String) {
@@ -18,12 +21,17 @@ function typeToClass(type:String) {
     return ''
 }
 
+const reversedNotifs = computed(() => {
+    let copy = [...props.notifications]
+    return copy.reverse()
+})
+
 </script>
 
 <template >
     <h5>Nofifications</h5>
     <ol class="list-group">
-    <li v-for="notif in props.notifications?.reverse()" class="list-group-item d-flex justify-content-between align-items-start">
+    <li v-for="notif in reversedNotifs" class="list-group-item d-flex justify-content-between align-items-start">
         <div class="ms-2 me-auto">
             <div :class="('fw-bold ' + typeToClass(notif.type))">{{notif.type.toUpperCase()}} [{{notif.user_id}}]</div>
             <span class="fw-bold">{{notif.source}}</span> {{notif.message}}

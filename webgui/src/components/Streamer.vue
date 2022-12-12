@@ -79,19 +79,19 @@ watch(props, () => showApiInfo.value = false)
 
 <template>
     <div v-if="isLoaded && props.selectedUser != 'undefined'">
-        <h2 class="text-center mb-5">Streamer</h2>
+        <h2 class="mb-5">Streamer</h2>
         <div class="row">
             <div class="col">
-                <div class="text-center">
+                <div class="">
                     <h5>Status:</h5>
                     <h3>{{streamer.running ? 'Collecting' : 'Stopped'}}</h3>
                 </div>
-                <div class="text-center">
+                <div class="">
                     <button type="button" class="btn btn-primary btn-lg" @click="triggerStartStop">{{streamer.running ? 'Stop' : 'Start'}}</button>
                     <br />
-                    <button type="button" class="btn btn-outline-primary ms-1 mt-2" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
-                    <br />
-                    <button type="button" class="btn btn-outline-secondary ms-1 mt-2" @click="triggerDebugData"><span v-if="!showApiInfo">[Debug]</span><span v-if="showApiInfo">[Debug] Hide Api Rules</span></button>
+                    <button type="button" class="btn btn-outline-primary mt-2 me-1" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
+                    <!-- <br /> -->
+                    <button type="button" class="btn btn-outline-secondary mt-2" @click="triggerDebugData"><span v-if="!showApiInfo">[Debug]</span><span v-if="showApiInfo">[Debug] Hide Api Rules</span></button>
                 </div>
             </div>
 

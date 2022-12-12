@@ -58,6 +58,10 @@ export const useStore = defineStore("store", () => {
     const streamerNotifs = computed(() => {
         return notifs.filter(n => n.source == 'streamer').filter(n => n.user_id == selectedUser.value)
     })
+    const isLoaded = computed(() => {
+        let user_ids = Object.keys(users)
+        return !user_ids.some(user_id => streamers[user_id] == undefined)
+    })
 
     function notifyError(message: string, source: string, user_id: any=undefined) {
         let err:Notif = {
@@ -108,7 +112,11 @@ export const useStore = defineStore("store", () => {
     }
 
     function registerUsers(users_res: UserDict) {
-        Object.keys(users_res).forEach(k => users[k] = users_res[k])
+        Object.keys(users_res).forEach(k => {
+            users[k] = users_res[k]
+            searcherInfo(k)
+            streamerInfo(k)
+        })
     }
 
     async function addUser(username: string, bearer_token: string) {
@@ -331,7 +339,7 @@ export const useStore = defineStore("store", () => {
 
 
     return {
-        users, load, addUser, deleteUsers, selectedUser, hasSelectedUser,
+        users, load, isLoaded, addUser, deleteUsers, selectedUser, hasSelectedUser,
         verifyQuery,
         streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug,
         searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow, connection,
