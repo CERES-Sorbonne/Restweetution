@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from typing import Optional, List
 
 from fastapi import FastAPI, HTTPException
@@ -26,6 +27,8 @@ loop = asyncio.get_event_loop()
 app = FastAPI()
 manager = ConnectionManager()
 
+last_streamer_update = time.time()
+
 
 class Error(HTTPException):
     def __init__(self, value: str):
@@ -33,12 +36,15 @@ class Error(HTTPException):
 
 
 async def sendUpdates(update: InstanceUpdate):
+    global last_streamer_update
     if update.source == 'searcher':
-        print('send update websocket')
         update.data = await searcher_info(update.user_id)
         await manager.broadcast(json.dumps(update.dict(), default=str))
     if update.source == 'streamer':
-        print('send streamer update')
+        now = time.time()
+        if int(now - last_streamer_update) < 3:
+            return
+        last_streamer_update = now
         update.data = await streamer_info(update.user_id)
         await manager.broadcast(json.dumps(update.dict(), default=str))
 
