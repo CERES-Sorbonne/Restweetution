@@ -101,11 +101,15 @@ class UserInstance:
     async def streamer_del_rules(self, ids: List[int]):
         await self._streamer.remove_rules(ids)
 
+    def streamer_get_count(self):
+        return self._streamer.get_count()
+
     def _create_searcher(self):
         if self._searcher:
             raise Exception('Searcher already exist')
         self._searcher = Searcher(storage=self.storage, bearer_token=self.user_config.bearer_token)
-        self._searcher.event.add(self.save_searcher_time_window)
+        self._searcher.event.add(self._searcher_update)
+        self._streamer.event.add(self._streamer_update)
 
     async def _load_searcher_task(self):
         task = self.user_config.searcher_task_config
@@ -148,11 +152,16 @@ class UserInstance:
     def searcher_set_time_window(self, time_window: TimeWindow):
         self._searcher.set_time_window(time_window)
 
-    async def save_searcher_time_window(self):
+    async def _searcher_update(self):
         self.write_config()
         update = InstanceUpdate(source='searcher', user_id=self.user_config.name)
         asyncio.create_task(self.event(update))
         await self.storage.save_user_configs([self.user_config])
+
+    async def _streamer_update(self):
+        self.write_config()
+        update = InstanceUpdate(source='streamer', user_id=self.user_config.name)
+        asyncio.create_task(self.event(update))
 
     async def save_user_config(self):
         self.write_config()

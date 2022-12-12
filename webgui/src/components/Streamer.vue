@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import RuleTable from './RuleTable.vue'
 import {useStore} from '@/stores/store'
 import { computed } from '@vue/reactivity';
+import Notifications from './Notifications.vue';
 
 const props = defineProps({
     selectedUser: {type: String, required: true}
@@ -65,37 +66,55 @@ function delRules(rules: any) {
     then(() => loading.value = false)
 }
 
-onMounted(() => {
-    if(!store.hasSelectedUser) {
-        return
-    }
-    store.streamerInfo(props.selectedUser)
-})
+// onMounted(() => {
+//     if(!store.hasSelectedUser) {
+//         return
+//     }
+//     store.streamerInfo(props.selectedUser)
+// })
 
 watch(props, () => showApiInfo.value = false)
 
 </script>
 
 <template>
-    <h2 class="text-center">Streamer</h2>
     <div v-if="isLoaded && props.selectedUser != 'undefined'">
-    <h6 class="text-center">Status: {{streamer.running ? 'Collecting' : 'Stopped'}}</h6>
-    <div class="text-center">
-        <button type="button" class="btn btn-primary" @click="triggerStartStop">{{streamer.running ? '- Stop -' : '- Start -'}}</button>
-        <button type="button" class="btn btn-primary ms-1" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
-        <br />
-        <button type="button" class="btn btn-secondary ms-1 mt-2" @click="triggerDebugData"><span v-if="!showApiInfo">[Debug]</span><span v-if="showApiInfo">[Debug] Hide Api Rules</span></button>
-    </div>
-    <br>
-    <br>
+        <h2 class="text-center mb-5">Streamer</h2>
+        <div class="row">
+            <div class="col">
+                <div class="text-center">
+                    <h5>Status:</h5>
+                    <h3>{{streamer.running ? 'Collecting' : 'Stopped'}}</h3>
+                </div>
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary btn-lg" @click="triggerStartStop">{{streamer.running ? 'Stop' : 'Start'}}</button>
+                    <br />
+                    <button type="button" class="btn btn-outline-primary ms-1 mt-2" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
+                    <br />
+                    <button type="button" class="btn btn-outline-secondary ms-1 mt-2" @click="triggerDebugData"><span v-if="!showApiInfo">[Debug]</span><span v-if="showApiInfo">[Debug] Hide Api Rules</span></button>
+                </div>
+            </div>
 
-    <div v-show="showApiInfo">
-        <RuleTable title="[DEBUG] Streamer Rules on Twitter API" :rules="apiRules" :fields="['api_id', 'tag', 'query']"/>
-    </div>
-    <h5 class="text-center">Active Rules</h5>
-    <RuleTable action-name="Remove" :loading="loading" :rules="streamer.active_rules" :selectable="editRules" @selected="delRules" :fields="['id', 'tag', 'query', 'api_id']"/>
-    
-    <h5 class="text-center">Available Rules</h5>
-    <RuleTable action-name="Add" :loading="loading" :selectable="editRules" :rules="availableRules" @selected="addRules" :fields="['id', 'tag', 'query', 'tweet_count']"/>
+            <div class="col">
+                <h5>Counters</h5>
+                <p>Since Startup: {{streamer.count}}</p>
+            </div>
+
+            <div class="col-7 overflow-scroll" style="max-height: 200px;">
+                <Notifications :notifications="store.streamerNotifs"/>
+            </div>
+        </div>
+
+        <br>
+        <br>
+
+        <div v-show="showApiInfo">
+            <RuleTable title="[DEBUG] Streamer Rules on Twitter API" :rules="apiRules" :fields="['api_id', 'tag', 'query']"/>
+        </div>
+        <h5 class="text-center">Active Rules</h5>
+        <RuleTable action-name="Remove" :loading="loading" :rules="streamer.active_rules" :selectable="editRules" @selected="delRules" :fields="['id', 'tag', 'query', 'api_id']"/>
+        
+        <h5 class="text-center">Available Rules</h5>
+        <RuleTable action-name="Add" :loading="loading" :selectable="editRules" :rules="availableRules" @selected="addRules" :fields="['id', 'tag', 'query', 'tweet_count']"/>
     </div>
 </template>

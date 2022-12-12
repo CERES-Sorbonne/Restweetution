@@ -37,6 +37,10 @@ async def sendUpdates(update: InstanceUpdate):
         print('send update websocket')
         update.data = await searcher_info(update.user_id)
         await manager.broadcast(json.dumps(update.dict(), default=str))
+    if update.source == 'streamer':
+        print('send streamer update')
+        update.data = await streamer_info(update.user_id)
+        await manager.broadcast(json.dumps(update.dict(), default=str))
 
 
 async def launch():
@@ -171,6 +175,7 @@ async def streamer_info(user_id):
         return {
             "running": user.streamer_is_running(),
             "active_rules": user.streamer_get_rules(),
+            "count": user.streamer_get_count()
         }
     except Exception as e:
         print(e)

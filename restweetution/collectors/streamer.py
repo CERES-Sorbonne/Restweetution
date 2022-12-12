@@ -17,6 +17,7 @@ from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
+from restweetution.utils import Event
 
 logger = logging.getLogger('Streamer')
 
@@ -50,6 +51,7 @@ class Streamer:
         set_error_handler(self._main_error_handler)
 
         self._collect_task: Optional[asyncio.Task] = None
+        self.event = Event()
 
     def set_backfill_minutes(self, backfill_minutes: int):
         # compute request parameters
@@ -182,6 +184,7 @@ class Streamer:
 
     def _log_tweets(self, tweet: TweetResponse):
         self._tweet_count += 1
+        asyncio.create_task(self.event())
         if self._verbose:
             text = tweet.data.text.split('\n')[0]
             if len(text) > 80:
@@ -189,6 +192,9 @@ class Streamer:
             logger.info(f'id: {tweet.data.id} - {text}')
         if self._tweet_count % 10 == 0:
             logger.info(f'{self._tweet_count} tweets collected')
+
+    def get_count(self):
+        return self._tweet_count
 
     async def _main_error_handler(self, error: Exception):
         trace = traceback.format_exc()
