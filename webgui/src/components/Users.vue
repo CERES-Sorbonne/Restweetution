@@ -99,7 +99,7 @@ const newUserValid = computed(() => {
         </div>
         </span>
     </div>
-    <div class="table-responsive">
+    <div class="table-responsive" v-if="store.isLoaded">
         <table class="table table-striped table-sm text-nowrap table-hover">
             <thead class="table-dark">
                 <tr>
@@ -115,8 +115,8 @@ const newUserValid = computed(() => {
                 <tr v-for="user in store.users">
                     <th v-if="edit"><input type="checkbox" v-model="selected[user.name]" @change="triggerSelect(user.name)"></th>
                     <td>{{user.name}}</td>
-                    <td class="text-center">{{user.searcher_config.is_running ? 'running' : 'paused'}}</td>
-                    <td class="text-center">{{user.searcher_config.is_running ? 'running' : 'paused'}}</td>
+                    <td class="text-center">{{store.streamers[user.name].running ? 'running' : 'paused'}}</td>
+                    <td class="text-center">{{store.searchers[user.name].running ? 'running' : 'paused'}}</td>
                     <td class="text-success btn" @click="copyToken(user.bearer_token)">copy</td>
                     <td>{{user.bearer_token}}</td>
                 </tr>
