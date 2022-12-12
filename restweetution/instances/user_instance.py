@@ -20,8 +20,6 @@ class UserInstance:
 
     event = Event()
 
-    searcher_task: asyncio.Task = None
-
     def __init__(self, user_config: UserConfig, storage: PostgresStorage):
         self.user_config = user_config
         self.storage = storage
@@ -34,18 +32,18 @@ class UserInstance:
         await self._load_searcher_task()
 
     def write_config(self):
-        self.user_config.streamer_task_config.is_running = self.streamer_is_running()
-        self.user_config.streamer_task_config.rules = [r.config() for r in self._streamer.get_rules()]
+        self.user_config.streamer_config.is_running = self.streamer_is_running()
+        self.user_config.streamer_config.rules = [r.config() for r in self._streamer.get_rules()]
 
-        self.user_config.searcher_task_config.is_running = self.searcher_is_running()
-        self.user_config.searcher_task_config.time_window = self._searcher.get_time_window()
-        self.user_config.searcher_task_config.fields = self._searcher.get_fields()
+        self.user_config.searcher_config.is_running = self.searcher_is_running()
+        self.user_config.searcher_config.time_window = self._searcher.get_time_window()
+        self.user_config.searcher_config.fields = self._searcher.get_fields()
 
         searcher_rule = self._searcher.get_rule()
         if searcher_rule:
-            self.user_config.searcher_task_config.rule = searcher_rule.config()
+            self.user_config.searcher_config.rule = searcher_rule.config()
         else:
-            self.user_config.searcher_task_config.rule = None
+            self.user_config.searcher_config.rule = None
 
         return self.user_config
 
@@ -68,7 +66,7 @@ class UserInstance:
         self._streamer = Streamer(bearer_token=self.user_config.bearer_token, storage=self.storage)
 
     async def _load_streamer_task(self):
-        task = self.user_config.streamer_task_config
+        task = self.user_config.streamer_config
         if task.rules:
             await self._streamer.set_rules(task.rules)
 
@@ -76,7 +74,7 @@ class UserInstance:
             self.streamer_start()
 
     def streamer_start(self):
-        self._streamer.start_collection(fields=self.user_config.streamer_task_config.fields)
+        self._streamer.start_collection(fields=self.user_config.streamer_config.fields)
 
     def streamer_stop(self):
         self._streamer.stop_collection()
@@ -112,7 +110,7 @@ class UserInstance:
         self._streamer.event.add(self._streamer_update)
 
     async def _load_searcher_task(self):
-        task = self.user_config.searcher_task_config
+        task = self.user_config.searcher_config
 
         if task.rule:
             await self._searcher.set_rule(task.rule)

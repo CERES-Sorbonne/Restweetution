@@ -14,7 +14,7 @@ class RuleConfig(BaseModel):
     query: str  # Query string (streamer or searcher) Can also be used to describe custom rules
 
 
-class TaskConfig(BaseModel, ABC):
+class CollectorConfig(BaseModel, ABC):
     updated_at: datetime
     is_running: bool = False
     fields: QueryFields = ALL_CONFIG
@@ -28,11 +28,11 @@ class TaskConfig(BaseModel, ABC):
         self.updated_at = datetime.now()
 
 
-class StreamerTaskConfig(TaskConfig):
+class StreamerConfig(CollectorConfig):
     rules: List[RuleConfig] = []
 
 
-class SearcherTaskConfig(TaskConfig):
+class SearcherConfig(CollectorConfig):
     rule: Optional[RuleConfig]
     time_window: TimeWindow() = TimeWindow()
 
@@ -40,13 +40,13 @@ class SearcherTaskConfig(TaskConfig):
 class UserConfig(BaseModel):
     name: str = 'no name'
     bearer_token: str
-    streamer_task_config: StreamerTaskConfig
-    searcher_task_config: SearcherTaskConfig
+    streamer_config: StreamerConfig
+    searcher_config: SearcherConfig
 
     def __init__(self, bearer_token: str, **kwargs):
-        if 'streamer_task_config' not in kwargs:
-            kwargs['streamer_task_config'] = StreamerTaskConfig()
-        if 'searcher_task_config' not in kwargs:
-            kwargs['searcher_task_config'] = SearcherTaskConfig()
+        if 'streamer_config' not in kwargs:
+            kwargs['streamer_config'] = StreamerConfig()
+        if 'searcher_config' not in kwargs:
+            kwargs['searcher_config'] = SearcherConfig()
 
         super().__init__(bearer_token=bearer_token, **kwargs)
