@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 from typing import List
 
@@ -28,8 +27,8 @@ class UserInstance:
         self._create_searcher()
 
     async def start(self):
-        await self._load_streamer_task()
-        await self._load_searcher_task()
+        await self._load_streamer()
+        await self._load_searcher()
 
     def write_config(self):
         self.user_config.streamer_config.is_running = self.streamer_is_running()
@@ -57,20 +56,17 @@ class UserInstance:
         res = await self._streamer._client.test_rule(rule)
         return res
 
-    def _emit_event(self, event):
-        print(event)
-
     def _create_streamer(self):
         if self._streamer:
             raise Exception('Streamer already exist')
         self._streamer = Streamer(bearer_token=self.user_config.bearer_token, storage=self.storage)
 
-    async def _load_streamer_task(self):
-        task = self.user_config.streamer_config
-        if task.rules:
-            await self._streamer.set_rules(task.rules)
+    async def _load_streamer(self):
+        config = self.user_config.streamer_config
+        if config.rules:
+            await self._streamer.set_rules(config.rules)
 
-        if self._streamer.get_rules() and task.is_running:
+        if self._streamer.get_rules() and config.is_running:
             self.streamer_start()
 
     def streamer_start(self):
@@ -109,22 +105,22 @@ class UserInstance:
         self._searcher.event.add(self._searcher_update)
         self._streamer.event.add(self._streamer_update)
 
-    async def _load_searcher_task(self):
-        task = self.user_config.searcher_config
+    async def _load_searcher(self):
+        config = self.user_config.searcher_config
 
-        if task.rule:
-            await self._searcher.set_rule(task.rule)
-        if task.fields:
-            self._searcher.set_fields(task.fields)
-        if task.time_window:
-            self._searcher.set_time_window(task.time_window, reset=False)
+        if config.rule:
+            await self._searcher.set_rule(config.rule)
+        if config.fields:
+            self._searcher.set_fields(config.fields)
+        if config.time_window:
+            self._searcher.set_time_window(config.time_window, reset=False)
 
-        if task.is_running and task.rule:
+        if config.is_running and config.rule:
             try:
                 await self.searcher_start()
             except Exception as e:
                 logger.warning(e)
-                task.is_running = False
+                config.is_running = False
 
     async def searcher_set_rule(self, rule: RuleConfig):
         rule = await self._searcher.set_rule(rule)
