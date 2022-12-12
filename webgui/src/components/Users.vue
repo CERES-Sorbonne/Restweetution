@@ -115,8 +115,8 @@ const newUserValid = computed(() => {
                 <tr v-for="user in store.users">
                     <th v-if="edit"><input type="checkbox" v-model="selected[user.name]" @change="triggerSelect(user.name)"></th>
                     <td>{{user.name}}</td>
-                    <td class="text-center">{{user.searcher_task_config.is_running ? 'running' : 'paused'}}</td>
-                    <td class="text-center">{{user.searcher_task_config.is_running ? 'running' : 'paused'}}</td>
+                    <td class="text-center">{{user.searcher_config.is_running ? 'running' : 'paused'}}</td>
+                    <td class="text-center">{{user.searcher_config.is_running ? 'running' : 'paused'}}</td>
                     <td class="text-success btn" @click="copyToken(user.bearer_token)">copy</td>
                     <td>{{user.bearer_token}}</td>
                 </tr>

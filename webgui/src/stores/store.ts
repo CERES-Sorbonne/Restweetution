@@ -1,7 +1,6 @@
 import { ref, reactive, computed, watch } from "vue";
 import { defineStore } from "pinia";
 import * as collector from "../api/collector"
-import Catch from 'catch-decorator'
 import { toDatetimeInputString } from "@/utils";
 
 interface Task {
@@ -15,8 +14,8 @@ interface User {
     name: string
     bearer_token: string
     fields: any
-    streamer_task_config: Task
-    searcher_task_config: Task
+    streamer_config: Task
+    searcher_config: Task
 }
 
 interface Streamer {
