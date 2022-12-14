@@ -40,13 +40,13 @@ class SearcherConfig(CollectorConfig):
 class UserConfig(BaseModel):
     name: str = 'no name'
     bearer_token: str
-    streamer_config: StreamerConfig
-    searcher_config: SearcherConfig
+    streamer_state: StreamerConfig
+    searcher_state: SearcherConfig
 
     def __init__(self, bearer_token: str, **kwargs):
-        if 'streamer_config' not in kwargs:
-            kwargs['streamer_config'] = StreamerConfig()
-        if 'searcher_config' not in kwargs:
-            kwargs['searcher_config'] = SearcherConfig()
+        if 'streamer_state' not in kwargs:
+            kwargs['streamer_state'] = StreamerConfig()
+        if 'searcher_state' not in kwargs:
+            kwargs['searcher_state'] = SearcherConfig()
 
         super().__init__(bearer_token=bearer_token, **kwargs)

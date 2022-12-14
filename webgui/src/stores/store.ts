@@ -14,8 +14,8 @@ interface User {
     name: string
     bearer_token: string
     fields: any
-    streamer_config: Task
-    searcher_config: Task
+    streamer_state: Task
+    searcher_state: Task
 }
 
 interface Streamer {

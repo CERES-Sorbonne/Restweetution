@@ -1,4 +1,5 @@
 import json
+import traceback
 from typing import Optional, Any
 
 from pydantic import BaseModel
@@ -12,6 +13,8 @@ class ErrorModel(BaseModel):
         # if RESTweetutionError as init
         error = kwargs.get('error')
         if error:
+            trace = traceback.format_exc()
+            kwargs['traceback'] = trace
             if isinstance(error, ResponseParseError) or isinstance(error, StorageError) or \
                     isinstance(error, TwitterAPIError):
                 data = error.__dict__.copy()
@@ -23,4 +26,4 @@ class ErrorModel(BaseModel):
     error_name: str
     traceback: str
     data: Optional[Any]
-    id: Optional[str]
+    id: Optional[int]

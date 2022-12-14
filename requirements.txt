@@ -19,3 +19,4 @@ asyncpg
 fastapi
 numpy
 starlette
+sshtunnel

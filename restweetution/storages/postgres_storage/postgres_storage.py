@@ -20,6 +20,7 @@ from restweetution.storages.storage import Storage
 from . import models
 from .helpers import get_helper, save_helper, get_statement, request_history_update
 from .models import TweetPublicMetricsHistory
+from ..postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 from ...models.config.user_config import UserConfig
 

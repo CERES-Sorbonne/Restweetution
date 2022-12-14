@@ -95,7 +95,7 @@ class Withheld(BaseModel):
 class Tweet(BaseModel):
     id: str
     text: Optional[str]
-    attachments: Optional[Attachments] = Attachments()
+    attachments: Optional[Attachments]
     author_id: Optional[str]
     context_annotations: Optional[List[ContextAnnotation]]
     conversation_id: Optional[str]

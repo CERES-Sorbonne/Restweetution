@@ -9,7 +9,7 @@ from restweetution.collectors.response_parser import parse_includes
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.stream_query_params import ALL_CONFIG
+from restweetution.models.config.stream_query_params import ALL_CONFIG, BASIC_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import StreamerRule
@@ -234,7 +234,7 @@ class Streamer:
         collected_at = datetime.datetime.now()
         for rule in rules:
             rule.add_direct_tweets(tweet_ids=[tweet.id], collected_at=collected_at)
-            if includes.tweets:
+            if includes and includes.tweets:
                 tweet_ids = [t.id for t in includes.tweets]
                 rule.add_includes_tweets(tweet_ids=tweet_ids, collected_at=collected_at)
 
