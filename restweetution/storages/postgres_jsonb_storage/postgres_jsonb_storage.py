@@ -1,11 +1,9 @@
-import datetime
-import json
 import logging
 from itertools import chain
 from typing import List
 
 from pydantic import BaseModel
-from sqlalchemy import update, bindparam, Table
+from sqlalchemy import update, bindparam, Table, delete, join, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import select
@@ -21,7 +19,7 @@ from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, me
     USER, POLL, PLACE, COLLECTED_TWEET
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.system_storage import SystemStorage
-from restweetution.utils import clean_dict, safe_dict, safe_json
+from restweetution.utils import clean_dict, safe_dict
 
 STORAGE_TYPE = 'postgres'
 logger = logging.getLogger('PostgresJSONBStorage')
@@ -29,12 +27,12 @@ logger = logging.getLogger('PostgresJSONBStorage')
 
 class PostgresJSONBStorage(SystemStorage):
 
-    def __init__(self, db_url: str, name: str = None):
+    def __init__(self, url: str, name: str = None):
         if not name:
             name = STORAGE_TYPE
         super().__init__(name)
 
-        self._engine = create_async_engine(db_url, echo=False)
+        self._engine = create_async_engine(url, echo=False)
 
     async def reset_database(self):
         async with self._engine.begin() as conn:
@@ -81,6 +79,11 @@ class PostgresJSONBStorage(SystemStorage):
             values = [safe_dict(user.dict()) for user in restweet_users]
             await conn.execute(stmt, values)
 
+    async def rm_restweet_users(self, user_ids: List[str]):
+        async with self._engine.begin() as conn:
+            stmt = delete(RESTWEET_USER).where(RESTWEET_USER.c.name.in_(user_ids))
+            await conn.execute(stmt)
+
     async def update_restweet_user(self, restweet_users: List[UserConfig]):
         async with self._engine.begin() as conn:
             stmt = update(RESTWEET_USER).where(RESTWEET_USER.c.name == bindparam('name_key'))
@@ -107,6 +110,15 @@ class PostgresJSONBStorage(SystemStorage):
             res = await conn.execute(stmt)
             res = row_to_dict(res)
             res = [CustomData(**r) for r in res]
+            return res
+
+    async def get_rules_tweet_count(self):
+        async with self._engine.begin() as conn:
+
+            stmt = select(RULE, func.count(COLLECTED_TWEET.c.tweet_id).label('tweet_count')).select_from(join(COLLECTED_TWEET, RULE))
+            stmt = stmt.group_by(RULE.c.id)
+            res = await conn.execute(stmt)
+            res = row_to_dict(res)
             return res
 
     async def del_custom_datas(self, key: str):

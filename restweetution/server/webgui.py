@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import time
+import traceback
 from typing import Optional, List
 
 from fastapi import FastAPI, HTTPException
@@ -127,7 +128,6 @@ async def get_rules():
             "rules": await restweet.get_all_rule_info()
         }
     except Exception as e:
-        print(e)
         raise HTTPException(400, e.__str__())
 
 

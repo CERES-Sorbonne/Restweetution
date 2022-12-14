@@ -15,6 +15,7 @@ from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import StreamerRule
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.tweet import TweetResponse
+from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
 from restweetution.utils import Event
@@ -23,7 +24,7 @@ logger = logging.getLogger('Streamer')
 
 
 class Streamer:
-    def __init__(self, bearer_token, storage: PostgresStorage, verbose: bool = False):
+    def __init__(self, bearer_token, storage: PostgresJSONBStorage, verbose: bool = False):
         """
         The Streamer is the class used to connect to the Twitter Stream API and fetch live tweets
         """

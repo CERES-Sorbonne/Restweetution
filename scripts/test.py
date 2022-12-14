@@ -29,6 +29,7 @@ async def main():
     main_conf = config_loader.get_config_from_file(os.getenv('CONFIG'))
     storage = main_conf.storage
     postgres = PostgresJSONBStorage("postgresql+asyncpg://localhost/postgres")
+    await postgres.get_rules_tweet_count()
     # await postgres.build_tables()
 
     # old = time.time()

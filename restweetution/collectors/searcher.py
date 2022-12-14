@@ -18,6 +18,7 @@ from restweetution.models.rule import Rule
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse, \
     TimeWindow
 from restweetution.models.twitter import Tweet, Includes, User
+from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.utils import Event
 
@@ -27,7 +28,7 @@ logger = logging.getLogger('Searcher')
 
 
 class Searcher:
-    def __init__(self, storage: PostgresStorage, bearer_token):
+    def __init__(self, storage: PostgresJSONBStorage, bearer_token):
         super().__init__()
 
         self.storage = storage

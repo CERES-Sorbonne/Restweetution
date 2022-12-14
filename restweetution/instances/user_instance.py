@@ -7,6 +7,7 @@ from restweetution.collectors.searcher import Searcher
 from restweetution.models.config.user_config import UserConfig, RuleConfig
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.searcher import TimeWindow
+from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.utils import Event
 
@@ -19,7 +20,7 @@ class UserInstance:
 
     event = Event()
 
-    def __init__(self, user_config: UserConfig, storage: PostgresStorage):
+    def __init__(self, user_config: UserConfig, storage: PostgresJSONBStorage):
         self.user_config = user_config
         self.storage = storage
 
@@ -150,7 +151,7 @@ class UserInstance:
         self.write_config()
         update = InstanceUpdate(source='searcher', user_id=self.user_config.name)
         asyncio.create_task(self.event(update))
-        await self.storage.save_user_configs([self.user_config])
+        await self.storage.update_restweet_user([self.user_config])
 
     async def _streamer_update(self):
         self.write_config()
@@ -159,7 +160,7 @@ class UserInstance:
 
     async def save_user_config(self):
         self.write_config()
-        await self.storage.save_user_configs([self.user_config])
+        await self.storage.update_restweet_user([self.user_config])
 
     def searcher_get_fields(self):
         return self._searcher.get_fields()

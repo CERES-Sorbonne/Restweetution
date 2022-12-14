@@ -4,19 +4,19 @@ from typing import Dict, List
 from restweetution.instances.user_instance import UserInstance
 from restweetution.models.config.system_config import SystemConfig
 from restweetution.models.config.user_config import UserConfig
-from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
+from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.utils import Event
 
 
 class SystemInstance:
     system_config: SystemConfig
-    storage: PostgresStorage
+    storage: PostgresJSONBStorage
     user_instances: Dict[str, UserInstance] = {}
     event = Event()
 
     def __init__(self, system_config: SystemConfig):
         self.system_config = system_config
-        self.storage = PostgresStorage(**system_config.storage)
+        self.storage = PostgresJSONBStorage(**system_config.storage)
 
     async def emit_event(self, update):
         asyncio.create_task(self.event(update))
@@ -24,7 +24,7 @@ class SystemInstance:
     async def save_user_config(self, user_id):
         user = self.user_instances[user_id]
         config = user.write_config()
-        await self.storage.save_user_configs([config])
+        await self.storage.save_restweet_users([config])
 
     async def add_user_instance(self, user_config: UserConfig):
         if user_config.bearer_token in self.user_instances:
@@ -43,10 +43,10 @@ class SystemInstance:
 
         for name in names:
             self.user_instances.pop(name)
-        await self.storage.del_user_configs(names)
+        await self.storage.rm_restweet_users(names)
 
     async def load_user_configs(self):
-        user_configs = await self.storage.get_user_configs()
+        user_configs = await self.storage.get_restweet_users()
         for config in user_configs:
             await self.add_user_instance(config)
 
@@ -57,15 +57,15 @@ class SystemInstance:
         return await self.storage.get_rules(fields=['id', 'tag', 'query', 'created_at'])
 
     async def get_all_rule_info(self):
-        rules = await self.get_all_rules()
-        count = await self.storage.get_rules_tweet_count()
-
-        res = []
-        for rule in rules:
-            info = rule.dict()
-            if rule.id in count:
-                info['tweet_count'] = count[rule.id]
-            else:
-                info['tweet_count'] = 0
-            res.append(info)
+        # rules = await self.get_all_rules()
+        res = await self.storage.get_rules_tweet_count()
+        #
+        # res = []
+        # for rule in rules:
+        #     info = rule.dict()
+        #     if rule.id in count:
+        #         info['tweet_count'] = count[rule.id]
+        #     else:
+        #         info['tweet_count'] = 0
+        #     res.append(info)
         return res
