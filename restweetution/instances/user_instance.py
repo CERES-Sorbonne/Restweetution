@@ -4,7 +4,9 @@ from typing import List
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
-from restweetution.models.config.user_config import UserConfig, RuleConfig
+from restweetution.media_downloader import MediaDownloader
+from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.user_config import UserConfig, RuleConfig, CollectorConfig, CollectTasks
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.searcher import TimeWindow
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
@@ -20,9 +22,11 @@ class UserInstance:
 
     event = Event()
 
-    def __init__(self, user_config: UserConfig, storage: PostgresJSONBStorage):
+    def __init__(self, user_config: UserConfig, storage: PostgresJSONBStorage,
+                 media_downloader: MediaDownloader = None):
         self.user_config = user_config
         self.storage = storage
+        self._media_downloader = media_downloader
 
         self._create_streamer()
         self._create_searcher()
@@ -61,6 +65,8 @@ class UserInstance:
         if self._streamer:
             raise Exception('Streamer already exist')
         self._streamer = Streamer(bearer_token=self.user_config.bearer_token, storage=self.storage)
+        self._streamer.event_update.add(self._streamer_update)
+        self._streamer.event_collect.add(self._on_collect(self.user_config.streamer_state))
 
     async def _load_streamer(self):
         config = self.user_config.streamer_state
@@ -69,6 +75,30 @@ class UserInstance:
 
         if self._streamer.get_rules() and config.is_running:
             self.streamer_start()
+
+    def _on_collect(self, collect_config: CollectorConfig):
+        async def on_collect_event(bulk_data: BulkData):
+            collect_tasks = collect_config.collect_tasks
+            if collect_tasks.download_media:
+                if not self._media_downloader:
+                    logger.warning('No MediaDownloader set, tried to download media')
+                else:
+                    # logger.info(f'collected medias: {len(bulk_data.get_medias())}')
+                    self._media_downloader.download_medias(bulk_data.get_medias())
+
+        return on_collect_event
+
+    def streamer_set_collect_tasks(self, tasks: CollectTasks):
+        self.user_config.streamer_state.collect_tasks = tasks
+
+    def streamer_get_collect_tasks(self):
+        return self.user_config.streamer_state.collect_tasks
+
+    def searcher_set_collect_tasks(self, tasks: CollectTasks):
+        self.user_config.searcher_state.collect_tasks = tasks
+
+    def searcher_get_collect_tasks(self):
+        return self.user_config.searcher_state.collect_tasks
 
     def streamer_start(self):
         self._streamer.start_collection(fields=self.user_config.streamer_state.fields)
@@ -103,8 +133,8 @@ class UserInstance:
         if self._searcher:
             raise Exception('Searcher already exist')
         self._searcher = Searcher(storage=self.storage, bearer_token=self.user_config.bearer_token)
-        self._searcher.event.add(self._searcher_update)
-        self._streamer.event.add(self._streamer_update)
+        self._searcher.event_update.add(self._searcher_update)
+        self._searcher.event_collect.add(self._on_collect(self.user_config.searcher_state))
 
     async def _load_searcher(self):
         config = self.user_config.searcher_state

@@ -2,15 +2,17 @@ import asyncio
 import hashlib
 import io
 import logging
-from typing import Dict, List
+import traceback
+from asyncio import Task
+from typing import Dict, List, Optional
 
 import aiohttp
 from pydantic import BaseModel
 
-from restweetution.models.event_data import EventData
+from restweetution.models.config.downloaded_media import DownloadedMedia
 from restweetution.models.twitter.media import Media
 from restweetution.storages.object_storage.filestorage_helper import FileStorageHelper
-from restweetution.storages.storage import Storage
+from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 
 
 class MediaCache(BaseModel):
@@ -20,7 +22,7 @@ class MediaCache(BaseModel):
 
 class MediaDownloader:
 
-    def __init__(self, root: str, storage: Storage, active=True):
+    def __init__(self, root: str, storage: PostgresJSONBStorage, active=True):
         """
         Utility class to queue the images download
         """
@@ -32,12 +34,11 @@ class MediaDownloader:
         self._storage = storage
 
         self._active = False
-        self.set_active(active)
 
         self._file_helper = FileStorageHelper(root)
         self._download_queue = asyncio.Queue()
         self._photo_download_queue = asyncio.Queue()
-        self._process_queue_task = None
+        self._process_queue_task: Optional[Task] = None
         # read only
         self.actual_download = Media(media_key='None')
 
@@ -46,26 +47,16 @@ class MediaDownloader:
     def get_root_dir(self):
         return self._file_helper.root
 
-    async def save_medias(self, medias: List[Media]):
+    def is_running(self):
+        return self._process_queue_task and not self._process_queue_task.done()
+
+    def download_medias(self, medias: List[Media]):
         """
         Default function to save medias with the download manager
-        :param medias: List of Media to save
+        :param medias: List of Media to download
         """
-        await self._storage.save_medias(medias)
-        if not self._active:
-            for m in medias:
-                self._add_download_task(m)
-
-    def set_active(self, value: bool):
-        """
-        Set automatic download of Medias that are added to the storage
-        :param value: True or False
-        """
-        self._active = value
-        if self._active:
-            self._storage.save_event.add(self._medias_save_event_handler)
-        elif self._medias_save_event_handler in self._storage.save_event:
-            self._storage.save_event.remove(self._medias_save_event_handler)
+        for m in medias:
+            self._add_download_task(m)
 
     def get_active(self):
         return self._active
@@ -94,110 +85,87 @@ class MediaDownloader:
 
     # Internal
 
-    async def _medias_save_event_handler(self, event_data: EventData):
-        medias = [m for m in event_data.data.get_medias() if m.media_key in event_data.added.medias]
-        for m in medias:
-            self._add_download_task(m)
-
     def _add_download_task(self, media: Media):
         """
         Add Media to the download queue
         """
         self._download_queue.put_nowait(media)
-        if not self._process_queue_task:
+        if not self.is_running():
             self._process_queue_task = asyncio.create_task(self._process_queue())
 
     async def _process_queue(self):
         """
         Loop to empty the queue
         """
-        await self._load_cache_from_storage()
         while True:
-            media = await self._download_queue.get()
-            await self._safe_download(media)
-            self.actual_download = Media(media_key='None')
+            try:
+                media = await self._download_queue.get()
 
-    async def _write_media(self, media: Media):
+                d_media = await self._find_same_media(media)
+                if d_media:
+                    await self._save_duplicate(media, d_media)
+                else:
+                    await self._download_by_type(media)
+
+            except Exception as e:
+                self._logger.error(traceback.print_exc(limit=3))
+                self._logger.error('Error inside _process_queue function : ' + e.__str__())
+
+    async def _save_duplicate(self, media: Media, d_media: DownloadedMedia):
+        to_save = DownloadedMedia(**media.dict(), sha1=d_media.sha1, format=d_media.format)
+        await self._storage.save_downloaded_medias([to_save])
+
+    async def _write_media(self, media: DownloadedMedia):
         """
         Write media to file storage
         :param media: Media
         """
         filename = media.sha1 + '.' + media.format
-        await self._file_helper.put(key=filename, buffer=media.raw_data)
+        await self._file_helper.put(key=filename, buffer=media.bytes_)
         self._logger.info(f' Downloaded image | sha1: {media.sha1}')
 
-    async def _update_media_from_cache(self, media: Media):
-        """
-        Updates media value with the cached values
-        """
-        if media.media_key in self._media_key_cache:
-            return True
-        if media.url in self._url_cache:
-            cache = self._url_cache[media.url]
-            media.sha1 = cache.sha1
-            media.format = cache.format
-            self._cache_media(media)
-            await self._storage.save_medias([media])
-            return True
-        return False
-
-    def _cache_media(self, media):
-        """
-        Cache media
-        """
-        cache = MediaCache(sha1=media.sha1, format=media.format)
-        self._media_key_cache[media.media_key] = cache
-        self._url_cache[media.url] = cache
-
-    async def _load_cache_from_storage(self):
-        """
-        Load Media cache from storage
-        """
-        medias = await self._storage.get_medias()
-        for m in medias:
-            if m.sha1 and m.url:
-                self._cache_media(m)
-
-    async def _safe_download(self, media: Media):
+    async def _find_same_media(self, media: Media):
         """
         Checks if the url was already downloaded before starting the download
-        If the media_key or url is already present in cache we use it to complete the data without download
+        If the media_key or url is already present in DB we return it
         """
-        self.actual_download = media
-        if await self._update_media_from_cache(media):
-            return
-        await self._download_by_type(media)
+        # find downloaded media with same media key or same url
+        d_media = await self._storage.get_downloaded_medias(
+            media_keys=[media.media_key],
+            urls=[media.url],
+            is_and=False
+        )
+        if d_media:
+            return d_media[0]
+        return None
 
     async def _download_by_type(self, media):
         """
         Download the media and compute its signature
         """
+        if media.type == 'photo' and media.url:
+            return await self._download_photo(media)
+
+    async def _download_photo(self, media: Media):
         async with aiohttp.ClientSession() as session:
-            if media.type == 'photo' and media.url:
-                media_format = media.url.split('.')[-1]
-                try:
-                    res = await session.get(media.url)
+            media_format = media.url.split('.')[-1]
+            try:
+                res = await session.get(media.url)
 
-                    bytes_image: bytes = await res.content.read()
-                    buffer = io.BytesIO(bytes_image)
-                    media.sha1 = self._compute_signature(bytes_image)
-                    media.format = media_format
+                bytes_image: bytes = await res.content.read()
+                buffer = io.BytesIO(bytes_image)
+                sha1 = self._compute_signature(bytes_image)
+                format_ = media_format
 
-                    updated = Media(media_key=media.media_key,
-                                    sha1=media.sha1,
-                                    format=media_format,
-                                    raw_data=buffer)
+                downloaded = DownloadedMedia(**media.dict(), sha1=sha1, format=format_, bytes_=buffer)
 
-                    await self._write_media(updated)
-                    self._cache_media(media)
-                    await self._storage.save_medias([updated])
-                except aiohttp.ClientResponseError as e:
-                    self._logger.warning(f"There was an error downloading image {media.url}: " + str(e))
-                    # TODO: add an error handler here ?
-                    return
-            else:
-                # TODO: use the video downloader
-                pass
+                await self._write_media(downloaded)
+                await self._storage.save_downloaded_medias([downloaded])
+                return downloaded
+            except aiohttp.ClientResponseError as e:
+                self._logger.warning(f"There was an error downloading image {media.url}: " + str(e))
+                # TODO: add an error handler here ?
+                return
 
     @staticmethod
     def _compute_signature(buffer: bytes):

@@ -16,8 +16,8 @@ class Image(BaseModel):
 
 class Url(Entity):
     url: Optional[str]
-    expanded_url: str
-    display_url: str
+    expanded_url: Optional[str]
+    display_url: Optional[str]
     status: Optional[str]
     title: Optional[str]
     description: Optional[str]

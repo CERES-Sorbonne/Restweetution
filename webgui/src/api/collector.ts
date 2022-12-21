@@ -1,3 +1,4 @@
+import type { CollectTasks } from '@/stores/store';
 import axios from 'axios';
 
 const BASE_URL = '/collector'
@@ -56,6 +57,11 @@ export async function streamerDelRules(user:string, ruleIds:number[]) {
     return res.data
 }
 
+export async function streamerSetCollectTasks(user:string, tasks: CollectTasks) {
+    const res = await axios.post(BASE_URL + '/streamer/set/collect_tasks/' + user, tasks)
+    return res.data
+}
+
 export async function getStreamerDebug(user:string) {
     const res = await axios.get(BASE_URL + '/streamer/debug/' + user)
     return res.data
@@ -98,5 +104,10 @@ export async function searcherDelRule(user_id: string) {
 
 export async function searcherSetTimeWindow(user_id: string, time_window:any) {
     const res = await axios.post(BASE_URL + '/searcher/set/time/' + user_id, time_window)
+    return res.data
+}
+
+export async function searcherSetCollectTasks(user:string, tasks: CollectTasks) {
+    const res = await axios.post(BASE_URL + '/searcher/set/collect_tasks/' + user, tasks)
     return res.data
 }

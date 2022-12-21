@@ -2,6 +2,7 @@ import asyncio
 from typing import Dict, List
 
 from restweetution.instances.user_instance import UserInstance
+from restweetution.media_downloader import MediaDownloader
 from restweetution.models.config.system_config import SystemConfig
 from restweetution.models.config.user_config import UserConfig
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
@@ -17,6 +18,7 @@ class SystemInstance:
     def __init__(self, system_config: SystemConfig):
         self.system_config = system_config
         self.storage = PostgresJSONBStorage(**system_config.storage)
+        self.media_downloader = MediaDownloader(system_config.media_dir_path, self.storage)
 
     async def emit_event(self, update):
         asyncio.create_task(self.event(update))
@@ -30,7 +32,7 @@ class SystemInstance:
         if user_config.bearer_token in self.user_instances:
             raise Exception('UserInstance with same bearer_token is already used ', user_config.bearer_token)
 
-        user_instance = UserInstance(user_config, self.storage)
+        user_instance = UserInstance(user_config, self.storage, self.media_downloader)
         await user_instance.start()
         self.user_instances[user_instance.get_name()] = user_instance
         user_instance.event.add(self.emit_event)

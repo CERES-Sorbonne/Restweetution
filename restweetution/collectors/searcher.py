@@ -41,8 +41,9 @@ class Searcher:
 
         self._collect_task: Optional[asyncio.Task] = None
 
-        self.event: Event = Event()
+        self.event_update: Event = Event()
         self.event_stop = Event()
+        self.event_collect = Event()
 
         self._running = False
 
@@ -162,20 +163,20 @@ class Searcher:
                 bulk_data.add_rules([rule_copy])
 
                 logger.info(f'Received: {len(bulk_data.get_tweets())} tweets')
-                await self.storage.save_bulk(bulk_data)
+                await self.storage.save_bulk(bulk_data, callback=self.event_collect)
 
                 if 'created_at' in self._fields.tweet_fields:
                     oldest = min([bulk_data.tweets[id_].created_at for id_ in direct_ids])
                     self._time_window.cursor = oldest
                 self._time_window.collected_count += len(direct_ids)
-                asyncio.create_task(self.event())
+                asyncio.create_task(self.event_update())
 
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 logger.warning(e)
 
         self._running = False
-        asyncio.create_task(self.event())
+        asyncio.create_task(self.event_update())
 
     async def get_collect_count(self):
         if not self._rule:
@@ -192,7 +193,7 @@ class Searcher:
             total_count += count.meta.total_tweet_count
 
         self._time_window.total_count = total_count
-        asyncio.create_task(self.event())
+        asyncio.create_task(self.event_update())
         logger.info(f'Found {total_count} tweets to collect')
         return total_count
 

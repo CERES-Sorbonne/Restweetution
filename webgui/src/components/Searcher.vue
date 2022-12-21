@@ -5,6 +5,7 @@ import {useStore} from '@/stores/store'
 import { computed } from '@vue/reactivity';
 import TimeWindow from './TimeWindow.vue';
 import Notifications from './Notifications.vue';
+import CollectTasks from './CollectTasks.vue';
 
 const props = defineProps({
     selectedUser: {type: String, required: true}
@@ -73,13 +74,15 @@ function setTimeWindow(window: any) {
 <template>
     <div v-if="isLoaded">
 
-    <h2 class="text-center pb-4" >Searcher</h2>
+    <h2 class="text-center pb-4" >Searcher: 
+        <span class="text-success" v-if="searcher.running">Collecting</span>
+        <span class="text-warning" v-else>Stopped</span></h2>
     <div class="row">
-        <div class="col">
+        <div class="col-2">
             <div v-if="isLoaded && props.selectedUser != 'undefined'">
-                <h6 class="text-center">Status:</h6>
-                <h2 class="text-center pb-1">{{searcher.running ? 'Collecting' : 'Stopped'}}</h2>
-                <div class="text-center mb-3">
+                <!-- <h6 class="text-center">Status:</h6>
+                <h2 class="text-center pb-1">{{searcher.running ? 'Collecting' : 'Stopped'}}</h2> -->
+                <div class="text-center mb-3 mt-4">
                     <button :disabled="(editRules || loading)" type="button" class="btn btn-primary btn-lg" @click="triggerStartStop">{{searcher.running ? 'Stop' : 'Start'}}</button>
                 </div>
                 <div class="text-center">
@@ -90,7 +93,10 @@ function setTimeWindow(window: any) {
         <div class="col-3">
             <TimeWindow :time_window="searcher.time_window" :edit="editRules" @submit="setTimeWindow"/>
         </div>
-        <div class="col-7 overflow-scroll" style="max-height: 200px;">
+        <div class="col-3">
+            <CollectTasks :collect-tasks="searcher.collect_tasks" @submit="(tasks) => store.searcherSetCollectTasks(props.selectedUser, tasks)"/>
+        </div>
+        <div class="col-4 overflow-scroll" style="max-height: 200px;">
             <Notifications :notifications="store.searcherNotifs"/>
         </div>
     </div>

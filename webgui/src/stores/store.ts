@@ -9,6 +9,12 @@ interface Task {
     is_running: boolean
 }
 
+export interface CollectTasks {
+    download_media: boolean
+    elastic_dashboard: boolean
+    elastic_dashboard_name: String
+}
+
 
 interface User {
     name: string
@@ -21,13 +27,15 @@ interface User {
 interface Streamer {
     running: boolean
     active_rules: any[]
-    count: number
+    count: number,
+    collect_tasks: CollectTasks
 }
 
 interface Searcher {
     running: boolean
     rule: { query: string, tag: string, id: string }
     time_window: any
+    collect_tasks: CollectTasks
 }
 
 export interface Notif {
@@ -216,6 +224,16 @@ export const useStore = defineStore("store", () => {
             throw err
         }
     }
+
+    async function streamerSetCollectTasks(user_id: string, tasks: CollectTasks) {
+        try {
+            const res = await collector.streamerSetCollectTasks(user_id, tasks)
+            streamers[user_id] = res
+        } catch (err: any) {
+            notifyError(err.response.data.detail, 'streamer')
+            throw err
+        }
+    }
     
     async function verifyQuery(query: any) {
         try {
@@ -311,6 +329,16 @@ export const useStore = defineStore("store", () => {
         }
     }
 
+    async function searcherSetCollectTasks(user_id: string, tasks: CollectTasks) {
+        try {
+            const res = await collector.searcherSetCollectTasks(user_id, tasks)
+            updateSearcherInfo(user_id, res)
+        } catch (err: any) {
+            notifyError(err.response.data.detail, 'searcher')
+            throw err
+        }
+    }
+
     function updateFromSocket(event: any) {
         let message = event.data
         let update = JSON.parse(message)
@@ -340,8 +368,8 @@ export const useStore = defineStore("store", () => {
     return {
         users, load, isLoaded, addUser, deleteUsers, selectedUser, hasSelectedUser,
         verifyQuery,
-        streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug,
-        searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow, connection,
+        streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug, streamerSetCollectTasks,
+        searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow, connection, searcherSetCollectTasks,
         rules, loadRules, orderedRules, addRules,
         notifs, searcherNotifs, streamerNotifs
     }

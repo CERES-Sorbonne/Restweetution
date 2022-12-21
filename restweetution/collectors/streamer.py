@@ -9,14 +9,13 @@ from restweetution.collectors.response_parser import parse_includes
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.stream_query_params import ALL_CONFIG, BASIC_CONFIG
+from restweetution.models.config.stream_query_params import ALL_CONFIG
 from restweetution.models.config.tweet_config import QueryFields
 from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import StreamerRule
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
-from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.twitter_client import TwitterClient
 from restweetution.utils import Event
 
@@ -52,7 +51,8 @@ class Streamer:
         set_error_handler(self._main_error_handler)
 
         self._collect_task: Optional[asyncio.Task] = None
-        self.event = Event()
+        self.event_update = Event()
+        self.event_collect = Event()
 
     def set_backfill_minutes(self, backfill_minutes: int):
         # compute request parameters
@@ -185,7 +185,7 @@ class Streamer:
 
     def _log_tweets(self, tweet: TweetResponse):
         self._tweet_count += 1
-        asyncio.create_task(self.event())
+        asyncio.create_task(self.event_update())
         if self._verbose:
             text = tweet.data.text.split('\n')[0]
             if len(text) > 80:
@@ -312,7 +312,7 @@ class Streamer:
         # send data to storage_manager
         try:
             bulk_data.timestamp = datetime.datetime.now()
-            asyncio.create_task(self._storage.save_bulk(bulk_data))
+            asyncio.create_task(self._storage.save_bulk(bulk_data, callback=self.event_collect))
         except Exception as e:
             raise StorageError('Unexpected StorageManager bulk_save function error') from e
 

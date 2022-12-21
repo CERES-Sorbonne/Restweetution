@@ -1,6 +1,7 @@
+import asyncio
 import logging
 from itertools import chain
-from typing import List
+from typing import List, TypeVar, Callable
 
 from pydantic import BaseModel
 from sqlalchemy import update, bindparam, Table, delete, join, func
@@ -9,14 +10,16 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import select
 
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.downloaded_media import DownloadedMedia
 from restweetution.models.config.user_config import UserConfig
 from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter import Tweet
-from restweetution.storages.postgres_jsonb_storage.helpers import row_to_dict, update_dict
+from restweetution.models.twitter import Tweet, Media
+from restweetution.storages.postgres_jsonb_storage.helpers import res_to_dicts, update_dict, where_builder, \
+    select_builder
 from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
-    USER, POLL, PLACE, COLLECTED_TWEET
+    USER, POLL, PLACE, COLLECTED_TWEET, DOWNLOADED_MEDIA
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.system_storage import SystemStorage
 from restweetution.utils import clean_dict, safe_dict
@@ -43,7 +46,9 @@ class PostgresJSONBStorage(SystemStorage):
         async with self._engine.begin() as conn:
             await conn.run_sync(meta_data.create_all)
 
-    async def request_rules(self, rules: List[Rule], override=False) -> List[Rule]:
+    TRule = TypeVar('TRule', bound=Rule)
+
+    async def request_rules(self, rules: List[TRule], override=False) -> List[TRule]:
 
         async with self._engine.begin() as conn:
             stmt = insert(RULE)
@@ -58,7 +63,7 @@ class PostgresJSONBStorage(SystemStorage):
 
             stmt = select(RULE).where(RULE.c.query.in_([r.query for r in rules]))
             res = await conn.execute(stmt)
-            res = row_to_dict(res)
+            res = res_to_dicts(res)
             res = [Rule(**r) for r in res]
             query_to_rule = {r.query: r for r in res}
 
@@ -100,7 +105,7 @@ class PostgresJSONBStorage(SystemStorage):
         async with self._engine.begin() as conn:
             stmt = select(RESTWEET_USER)
             res = await conn.execute(stmt)
-            res = row_to_dict(res)
+            res = res_to_dicts(res)
             res = [UserConfig(**r) for r in res]
             return res
 
@@ -108,17 +113,17 @@ class PostgresJSONBStorage(SystemStorage):
         async with self._engine.begin() as conn:
             stmt = select(DATA).where(DATA.c.key == key)
             res = await conn.execute(stmt)
-            res = row_to_dict(res)
+            res = res_to_dicts(res)
             res = [CustomData(**r) for r in res]
             return res
 
     async def get_rules_tweet_count(self):
         async with self._engine.begin() as conn:
-
-            stmt = select(RULE, func.count(COLLECTED_TWEET.c.tweet_id).label('tweet_count')).select_from(join(COLLECTED_TWEET, RULE))
+            stmt = select(RULE, func.count(COLLECTED_TWEET.c.tweet_id).label('tweet_count')).select_from(
+                join(COLLECTED_TWEET, RULE))
             stmt = stmt.group_by(RULE.c.id)
             res = await conn.execute(stmt)
-            res = row_to_dict(res)
+            res = res_to_dicts(res)
             return res
 
     async def del_custom_datas(self, key: str):
@@ -132,7 +137,27 @@ class PostgresJSONBStorage(SystemStorage):
 
             await conn.execute(stmt, values)
 
-    async def save_bulk(self, data: BulkData):
+    async def save_downloaded_medias(self, downloaded_medias: List[DownloadedMedia]):
+        async with self._engine.begin() as conn:
+            stmt = insert(DOWNLOADED_MEDIA)
+            stmt = stmt.on_conflict_do_update(index_elements=['media_key'], set_=dict(stmt.excluded))
+            values = [d.dict() for d in downloaded_medias]
+
+            await conn.execute(stmt, values)
+
+    async def get_downloaded_medias(self, media_keys: List[str] = None, urls: List[str] = None, is_and=True):
+        async with self._engine.begin() as conn:
+            stmt = select(MEDIA, DOWNLOADED_MEDIA.c.sha1, DOWNLOADED_MEDIA.c.format)
+            stmt = stmt.select_from(join(MEDIA, DOWNLOADED_MEDIA))
+
+            stmt = where_builder(stmt, is_and, (MEDIA.c.url, urls), (MEDIA.c.media_key, media_keys))
+
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [DownloadedMedia(**r) for r in res]
+            return res
+
+    async def save_bulk(self, data: BulkData, callback: Callable = None):
         async with self._engine.begin() as conn:
             if data.tweets:
                 await self._upsert_table(conn, TWEET, data.get_tweets())
@@ -151,8 +176,8 @@ class PostgresJSONBStorage(SystemStorage):
                 if collected:
                     await self._upsert_table(conn, COLLECTED_TWEET, collected)
 
-
-
+            if callback:
+                asyncio.create_task(callback(data))
 
     @staticmethod
     async def _upsert_table(conn, table: Table, rows: List[BaseModel]):
@@ -166,13 +191,16 @@ class PostgresJSONBStorage(SystemStorage):
 
     async def get_tweets(self, fields: List[str] = None, **kwargs) -> List[Tweet]:
         async with self._engine.begin() as conn:
-            if not fields:
-                stmt = select(TWEET)
-            else:
-                if 'id' not in fields:
-                    fields.append('id')
-                stmt = select(*[getattr(TWEET.c, f) for f in fields])
+            stmt = select_builder(TWEET, ['id'], fields)
             res = await conn.execute(stmt)
-            res = row_to_dict(res)
+            res = res_to_dicts(res)
             res = [Tweet(**r) for r in res]
+            return res
+
+    async def get_medias(self, fields: List[str] = None, **kwargs) -> List[Media]:
+        async with self._engine.begin() as conn:
+            stmt = select_builder(MEDIA, ['media_key'], fields)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [Media(**m) for m in res]
             return res

@@ -1,7 +1,6 @@
-import io
+from typing import Optional, Literal, List, Any
 
 from pydantic import BaseModel
-from typing import Optional, Literal, List, Any
 
 MediaType = Literal["video", "animated_gif", "photo"]
 
@@ -50,13 +49,3 @@ class Media(BaseModel):
     width: Optional[int]
     alt_text: Optional[str]
     variants: Optional[List[Any]]
-
-    sha1: Optional[str]
-    format: Optional[str]
-    raw_data: Optional[io.BytesIO]
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    def is_downloaded(self):
-        return self.sha1 is not None

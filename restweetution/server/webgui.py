@@ -13,7 +13,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 import restweetution.config_loader as config
 from restweetution.collectors.searcher import TimeWindow
 from restweetution.instances.system_instance import SystemInstance
-from restweetution.models.config.user_config import RuleConfig, UserConfig
+from restweetution.models.config.user_config import RuleConfig, UserConfig, CollectTasks
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.rule import Rule
 from restweetution.server.connection_manager import ConnectionManager
@@ -181,7 +181,8 @@ async def streamer_info(user_id):
         return {
             "running": user.streamer_is_running(),
             "active_rules": user.streamer_get_rules(),
-            "count": user.streamer_get_count()
+            "count": user.streamer_get_count(),
+            "collect_tasks": user.streamer_get_collect_tasks()
         }
     except Exception as e:
         print(e)
@@ -236,6 +237,18 @@ async def streamer_set_rule(rules: List[RuleConfig], user_id):
         raise HTTPException(400, e.__str__())
 
 
+@app.post("/streamer/set/collect_tasks/{user_id}")
+async def streamer_set_collect_task(tasks: CollectTasks, user_id):
+    try:
+        user = restweet.user_instances[user_id]
+        user.streamer_set_collect_tasks(tasks)
+        await user.save_user_config()
+        return await streamer_info(user_id)
+    except Exception as e:
+        print(traceback.format_exc())
+        raise HTTPException(400, e.__str__())
+
+
 @app.post("/streamer/start/{user_id}")
 async def streamer_start(user_id):
     try:
@@ -270,7 +283,8 @@ async def searcher_info(user_id):
             "running": user.searcher_is_running(),
             "fields": user.searcher_get_fields(),
             "rule": user.searcher_get_rule(),
-            "time_window": user.searcher_get_time_window()
+            "time_window": user.searcher_get_time_window(),
+            "collect_tasks": user.searcher_get_collect_tasks()
         }
         return res
     except Exception as e:
@@ -295,6 +309,18 @@ async def searcher_del_rule(user_id):
     try:
         user = restweet.user_instances[user_id]
         user.searcher_del_rule()
+        await user.save_user_config()
+        return await searcher_info(user_id)
+    except Exception as e:
+        print(e)
+        raise HTTPException(400, e.__str__())
+
+
+@app.post("/searcher/set/collect_tasks/{user_id}")
+async def searcher_set_collect_tasks(tasks: CollectTasks, user_id):
+    try:
+        user = restweet.user_instances[user_id]
+        user.searcher_set_collect_tasks(tasks)
         await user.save_user_config()
         return await searcher_info(user_id)
     except Exception as e:

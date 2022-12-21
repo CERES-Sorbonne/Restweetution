@@ -14,6 +14,7 @@ from sshtunnel import SSHTunnelForwarder, create_logger
 from restweetution import config_loader
 from restweetution.errors import ResponseParseError
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.downloaded_media import DownloadedMedia
 from restweetution.models.config.user_config import UserConfig
 from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
@@ -24,13 +25,31 @@ from restweetution.storages.postgres_jsonb_storage.models import meta_data, TWEE
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.utils import clean_dict
 
+class Test:
+    def __init__(self, txt):
+        self.txt = txt
+
+    def go(self):
+        print(self.txt)
+
+
+
 
 async def main():
     main_conf = config_loader.get_config_from_file(os.getenv('CONFIG'))
     storage = main_conf.storage
     postgres = PostgresJSONBStorage("postgresql+asyncpg://localhost/postgres")
-    await postgres.get_rules_tweet_count()
     # await postgres.build_tables()
+    # await postgres.build_tables()
+
+    # res = await postgres.get_medias()
+    # print(res)
+    # dmedias = [DownloadedMedia(sha1='lala', format='jpg', **m.dict()) for m in res[0:4]]
+    # await postgres.save_downloaded_medias(dmedias)
+    # res = await postgres.get_downloaded_medias(media_keys=['3_1602863148742381568', '7_1596909772770795523'], urls=['https://pbs.twimg.com/media/Fj6DFNbaMAE0Uvf.jpg'], is_and=False)
+    # for r in res:
+    #     print(r)
+
 
     # old = time.time()
     # tweets = await postgres.get_tweets(fields=['entities'])
@@ -40,26 +59,26 @@ async def main():
     # t = TWEET.primary_key
     # print([a.name for a in t])
 
-    tweets = await storage.get_tweets(ids=[
-        "1599536031090483200",
-        "1599536030381527040",
-        "1599536029836668928",
-        "1599536028263780352",
-        "1599536028087222272",
-        "1600257492902023168",
-        "1599536026888077312",
-        "1599536026774491136",
-        "1599536026757627904",
-        "1599536024928997376",
-        "1599536024173936640",
-        "1599536022991253504",
-        "1599536021959368705",
-        "1599536021422895105"])
-    print('got tweets: ', str(len(tweets)))
-
-    old = time.time()
-    await postgres.save_tweets(tweets)
-    print(f'save tweets took: {time.time() - old} seconds')
+    # tweets = await storage.get_tweets(ids=[
+    #     "1599536031090483200",
+    #     "1599536030381527040",
+    #     "1599536029836668928",
+    #     "1599536028263780352",
+    #     "1599536028087222272",
+    #     "1600257492902023168",
+    #     "1599536026888077312",
+    #     "1599536026774491136",
+    #     "1599536026757627904",
+    #     "1599536024928997376",
+    #     "1599536024173936640",
+    #     "1599536022991253504",
+    #     "1599536021959368705",
+    #     "1599536021422895105"])
+    # print('got tweets: ', str(len(tweets)))
+    #
+    # old = time.time()
+    # await postgres.save_tweets(tweets)
+    # print(f'save tweets took: {time.time() - old} seconds')
 
     # # tweets = tweets[0:200]
     # old = time.time()
