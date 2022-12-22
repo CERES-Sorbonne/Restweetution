@@ -6,7 +6,7 @@ import MenuVue from "@/components/Menu.vue"
 import StreamerView from "@/views/StreamerView.vue"
 import SearcherView from "@/views/SearcherView.vue";
 import DashboardView from "@/views/DashboardView.vue";
-import MediaDownloader from "@/views/MediaDownloader.vue";
+import MediaDownloaderView from "@/views/MediaDownloaderView.vue";
 import ErrorView from '@/views/ErrorView.vue'
 
 
@@ -56,7 +56,7 @@ const router = createRouter({
     {
       path: '/media',
       name: 'media',
-      component: MediaDownloader
+      component: MediaDownloaderView
     }
   ],
 });
