@@ -120,7 +120,7 @@ class PostgresJSONBStorage(SystemStorage):
     async def get_rules_tweet_count(self):
         async with self._engine.begin() as conn:
             stmt = select(RULE, func.count(COLLECTED_TWEET.c.tweet_id).label('tweet_count')).select_from(
-                join(COLLECTED_TWEET, RULE))
+                join(RULE, COLLECTED_TWEET, isouter=True))
             stmt = stmt.group_by(RULE.c.id)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
