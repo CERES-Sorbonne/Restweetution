@@ -361,7 +361,7 @@ export const useStore = defineStore("store", () => {
         selectedUser.value = usr
     }
 
-    const connection = new WebSocket("ws://localhost:8000/ws")
+    const connection = new WebSocket("ws://" + location.host + "/ws");
     connection.onmessage = updateFromSocket
 
 
