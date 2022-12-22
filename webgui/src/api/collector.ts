@@ -1,7 +1,7 @@
 import type { CollectTasks } from '@/stores/store';
 import axios from 'axios';
 
-const BASE_URL = '/collector'
+const BASE_URL = '/api'
 let user_id = ''
 
 export function getUsers() {
