@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 import time
 import traceback
 from typing import Optional, List
@@ -10,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-import restweetution.config_loader as config
+from restweetution import config_loader
 from restweetution.collectors.searcher import TimeWindow
 from restweetution.instances.system_instance import SystemInstance
 from restweetution.models.config.user_config import RuleConfig, UserConfig, CollectTasks
@@ -21,7 +22,8 @@ from restweetution.server.connection_manager import ConnectionManager
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
-sys_conf = config.load_system_config('../../private_config/system_config.yaml')
+sys_conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
+
 restweet: Optional[SystemInstance] = None
 loop = asyncio.get_event_loop()
 
@@ -135,7 +137,7 @@ async def get_rules():
 async def add_rules(rules: List[RuleConfig]):
     try:
         rules = [Rule(**r.dict()) for r in rules]
-        await restweet.storage.request_rules(rules)
+        await restweet.storage_instance.storage.request_rules(rules)
         return await get_rules()
     except Exception as e:
         print(e)
