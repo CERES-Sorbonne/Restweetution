@@ -4,7 +4,7 @@ import io
 import logging
 import traceback
 from asyncio import Task
-from typing import Dict, List, Optional, Callable
+from typing import List, Optional, Callable
 
 import aiohttp
 from pydantic import BaseModel
@@ -33,19 +33,11 @@ class MediaDownloader:
         Utility class to queue the images download
         """
         self._logger = logging.getLogger("MediaDownloader")
-
-        self._url_cache = {}
-        self._media_key_cache: Dict[str, MediaCache] = {}
-
         self._storage = storage
-
-        self._active = False
 
         self._file_helper = FileStorageHelper(root)
         self._download_queue = asyncio.Queue()
         self._process_queue_task: Optional[Task] = None
-        # read only
-        self.actual_download = Media(media_key='None')
 
         self.event_downloaded = Event()
 
@@ -61,13 +53,11 @@ class MediaDownloader:
         """
         Default function to save medias with the download manager
         :param medias: List of Media to download
+        :param callback: Optional Callback to be called on download complete
         """
         for m in medias:
             d_task = DownloadTask(media=m, callback=callback)
             self._add_download_task(d_task)
-
-    def get_active(self):
-        return self._active
 
     def get_root(self):
         return self._file_helper.root
@@ -75,19 +65,8 @@ class MediaDownloader:
     def get_queue_size(self):
         return self._download_queue.qsize()
 
-    def is_downloading(self):
-        # if self._process_queue_task and self._process_queue_task.done():
-        #     self._process_queue_task = None
-        #
-        return self._process_queue_task is not None
-
-    def is_active(self):
-        return self._active
-
     def get_status(self):
         return {
-            'media_key': self.actual_download.media_key,
-            'downloading': self.is_downloading(),
             'queue_size': self.get_queue_size()
         }
 

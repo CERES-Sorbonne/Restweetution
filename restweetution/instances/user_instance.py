@@ -83,8 +83,9 @@ class UserInstance:
                 if not media_downloader:
                     logger.warning('No MediaDownloader set, tried to download media')
                 else:
-                    # logger.info(f'collected medias: {len(bulk_data.get_medias())}')
-                    media_downloader.download_medias(bulk_data.get_medias(), self._on_download_media(collect_config, bulk_data))
+                    medias = bulk_data.get_medias()
+                    callback = self._on_download_media(collect_config, bulk_data)
+                    media_downloader.download_medias(medias=medias, callback=callback)
             if collect_tasks.elastic_dashboard and collect_tasks.elastic_dashboard_name:
                 if not elastic_dashboard:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
