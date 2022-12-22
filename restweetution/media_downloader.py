@@ -4,7 +4,7 @@ import io
 import logging
 import traceback
 from asyncio import Task
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 
 import aiohttp
 from pydantic import BaseModel
@@ -13,6 +13,7 @@ from restweetution.models.config.downloaded_media import DownloadedMedia
 from restweetution.models.twitter.media import Media
 from restweetution.storages.object_storage.filestorage_helper import FileStorageHelper
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
+from restweetution.utils import Event
 
 
 class MediaCache(BaseModel):
@@ -20,9 +21,14 @@ class MediaCache(BaseModel):
     format: str
 
 
+class DownloadTask(BaseModel):
+    media: Media
+    callback: Optional[Callable]
+
+
 class MediaDownloader:
 
-    def __init__(self, root: str, storage: PostgresJSONBStorage, active=True):
+    def __init__(self, root: str, storage: PostgresJSONBStorage):
         """
         Utility class to queue the images download
         """
@@ -37,10 +43,11 @@ class MediaDownloader:
 
         self._file_helper = FileStorageHelper(root)
         self._download_queue = asyncio.Queue()
-        self._photo_download_queue = asyncio.Queue()
         self._process_queue_task: Optional[Task] = None
         # read only
         self.actual_download = Media(media_key='None')
+
+        self.event_downloaded = Event()
 
     # Public functions
 
@@ -50,13 +57,14 @@ class MediaDownloader:
     def is_running(self):
         return self._process_queue_task and not self._process_queue_task.done()
 
-    def download_medias(self, medias: List[Media]):
+    def download_medias(self, medias: List[Media], callback: Callable = None):
         """
         Default function to save medias with the download manager
         :param medias: List of Media to download
         """
         for m in medias:
-            self._add_download_task(m)
+            d_task = DownloadTask(media=m, callback=callback)
+            self._add_download_task(d_task)
 
     def get_active(self):
         return self._active
@@ -85,11 +93,11 @@ class MediaDownloader:
 
     # Internal
 
-    def _add_download_task(self, media: Media):
+    def _add_download_task(self, d_task: DownloadTask):
         """
         Add Media to the download queue
         """
-        self._download_queue.put_nowait(media)
+        self._download_queue.put_nowait(d_task)
         if not self.is_running():
             self._process_queue_task = asyncio.create_task(self._process_queue())
 
@@ -99,13 +107,17 @@ class MediaDownloader:
         """
         while True:
             try:
-                media = await self._download_queue.get()
+                d_task: DownloadTask = await self._download_queue.get()
+                media = d_task.media
 
                 d_media = await self._find_same_media(media)
                 if d_media:
                     await self._save_duplicate(media, d_media)
+                    asyncio.create_task(d_task.callback(d_media))
                 else:
-                    await self._download_by_type(media)
+                    res = await self._download_by_type(media)
+                    if res and d_task.callback:
+                        asyncio.create_task(d_task.callback(res))
 
             except Exception as e:
                 self._logger.error(traceback.print_exc(limit=3))

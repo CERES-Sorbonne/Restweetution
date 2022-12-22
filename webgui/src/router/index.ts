@@ -6,6 +6,8 @@ import MenuVue from "@/components/Menu.vue"
 import StreamerView from "@/views/StreamerView.vue"
 import SearcherView from "@/views/SearcherView.vue";
 import DashboardView from "@/views/DashboardView.vue";
+import MediaDownloader from "@/views/MediaDownloader.vue";
+import ErrorView from '@/views/ErrorView.vue'
 
 
 const router = createRouter({
@@ -49,7 +51,12 @@ const router = createRouter({
     {
       path: '/errors',
       name: 'erorrs',
-      component: DashboardView
+      component: ErrorView
+    },
+    {
+      path: '/media',
+      name: 'media',
+      component: MediaDownloader
     }
   ],
 });

@@ -4,13 +4,12 @@ from typing import List
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
-from restweetution.media_downloader import MediaDownloader
+from restweetution.instances.storage_instance import StorageInstance
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.config.downloaded_media import DownloadedMedia
 from restweetution.models.config.user_config import UserConfig, RuleConfig, CollectorConfig, CollectTasks
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.searcher import TimeWindow
-from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
-from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.utils import Event
 
 logger = logging.getLogger('UserInterface')
@@ -22,11 +21,9 @@ class UserInstance:
 
     event = Event()
 
-    def __init__(self, user_config: UserConfig, storage: PostgresJSONBStorage,
-                 media_downloader: MediaDownloader = None):
+    def __init__(self, user_config: UserConfig, storage_instance: StorageInstance):
         self.user_config = user_config
-        self.storage = storage
-        self._media_downloader = media_downloader
+        self.storage_instance = storage_instance
 
         self._create_streamer()
         self._create_searcher()
@@ -64,7 +61,7 @@ class UserInstance:
     def _create_streamer(self):
         if self._streamer:
             raise Exception('Streamer already exist')
-        self._streamer = Streamer(bearer_token=self.user_config.bearer_token, storage=self.storage)
+        self._streamer = Streamer(bearer_token=self.user_config.bearer_token, storage=self.storage_instance.storage)
         self._streamer.event_update.add(self._streamer_update)
         self._streamer.event_collect.add(self._on_collect(self.user_config.streamer_state))
 
@@ -79,14 +76,33 @@ class UserInstance:
     def _on_collect(self, collect_config: CollectorConfig):
         async def on_collect_event(bulk_data: BulkData):
             collect_tasks = collect_config.collect_tasks
+            media_downloader = self.storage_instance.media_downloader
+            elastic_dashboard = self.storage_instance.elastic_dashboard
+
             if collect_tasks.download_media:
-                if not self._media_downloader:
+                if not media_downloader:
                     logger.warning('No MediaDownloader set, tried to download media')
                 else:
                     # logger.info(f'collected medias: {len(bulk_data.get_medias())}')
-                    self._media_downloader.download_medias(bulk_data.get_medias())
+                    media_downloader.download_medias(bulk_data.get_medias(), self._on_download_media(collect_config, bulk_data))
+            if collect_tasks.elastic_dashboard and collect_tasks.elastic_dashboard_name:
+                if not elastic_dashboard:
+                    logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
+                else:
+                    elastic_dashboard.compute_and_save(bulk_data, collect_tasks.elastic_dashboard_name)
 
         return on_collect_event
+
+    def _on_download_media(self, collect_config: CollectorConfig, bulk_data: BulkData):
+        async def on_download_event(d_media: DownloadedMedia):
+            collect_tasks = collect_config.collect_tasks
+            elastic_dashboard = self.storage_instance.elastic_dashboard
+
+            if collect_tasks.elastic_dashboard and collect_tasks.elastic_dashboard_name:
+                if not elastic_dashboard:
+                    logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
+                elastic_dashboard.update_sha1_and_save(bulk_data, [d_media], collect_tasks.elastic_dashboard_name)
+        return on_download_event
 
     def streamer_set_collect_tasks(self, tasks: CollectTasks):
         self.user_config.streamer_state.collect_tasks = tasks
@@ -132,7 +148,7 @@ class UserInstance:
     def _create_searcher(self):
         if self._searcher:
             raise Exception('Searcher already exist')
-        self._searcher = Searcher(storage=self.storage, bearer_token=self.user_config.bearer_token)
+        self._searcher = Searcher(storage=self.storage_instance.storage, bearer_token=self.user_config.bearer_token)
         self._searcher.event_update.add(self._searcher_update)
         self._searcher.event_collect.add(self._on_collect(self.user_config.searcher_state))
 
@@ -181,7 +197,7 @@ class UserInstance:
         self.write_config()
         update = InstanceUpdate(source='searcher', user_id=self.user_config.name)
         asyncio.create_task(self.event(update))
-        await self.storage.update_restweet_user([self.user_config])
+        await self.storage_instance.storage.update_restweet_user([self.user_config])
 
     async def _streamer_update(self):
         self.write_config()
@@ -190,7 +206,7 @@ class UserInstance:
 
     async def save_user_config(self):
         self.write_config()
-        await self.storage.update_restweet_user([self.user_config])
+        await self.storage_instance.storage.update_restweet_user([self.user_config])
 
     def searcher_get_fields(self):
         return self._searcher.get_fields()

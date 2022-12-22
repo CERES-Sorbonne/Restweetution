@@ -25,22 +25,19 @@ from restweetution.storages.postgres_jsonb_storage.models import meta_data, TWEE
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.utils import clean_dict
 
-class Test:
-    def __init__(self, txt):
-        self.txt = txt
-
-    def go(self):
-        print(self.txt)
-
-
-
 
 async def main():
-    main_conf = config_loader.get_config_from_file(os.getenv('CONFIG'))
-    storage = main_conf.storage
+    # main_conf = config_loader.get_config_from_file(os.getenv('CONFIG'))
+    # storage = main_conf.storage
     postgres = PostgresJSONBStorage("postgresql+asyncpg://localhost/postgres")
     # await postgres.build_tables()
     # await postgres.build_tables()
+
+    old = time.time()
+    res = await postgres.get_tweets_with_media_keys(media_keys=['3_1605330589456166912', '3_1605330606350540803'])
+    print(time.time() - old)
+    print(len(res))
+    # print(res.referenced_tweets)
 
     # res = await postgres.get_medias()
     # print(res)

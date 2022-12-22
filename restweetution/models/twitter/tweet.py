@@ -114,6 +114,14 @@ class Tweet(BaseModel):
     source: Optional[str]
     withheld: Optional[Withheld]
 
+    def retweet_id(self):
+        if not self.referenced_tweets:
+            return False
+        retweet_id = next((ref.id for ref in self.referenced_tweets if ref.type == 'retweeted'), None)
+        if not retweet_id:
+            return False
+        return retweet_id
+
 
 class Includes(BaseModel):
     media: List[Media] = []

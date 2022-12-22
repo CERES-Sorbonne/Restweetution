@@ -5,7 +5,7 @@ from typing import List, TypeVar, Callable
 
 from pydantic import BaseModel
 from sqlalchemy import update, bindparam, Table, delete, join, func
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.dialects.postgresql import insert, array
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import select
 
@@ -189,9 +189,19 @@ class PostgresJSONBStorage(SystemStorage):
         values = [r.dict() for r in rows]
         await conn.execute(stmt, values)
 
-    async def get_tweets(self, fields: List[str] = None, **kwargs) -> List[Tweet]:
+    async def get_tweets(self, fields: List[str] = None, ids: List[str] = None) -> List[Tweet]:
         async with self._engine.begin() as conn:
             stmt = select_builder(TWEET, ['id'], fields)
+            stmt = where_builder(stmt, True, (TWEET.c.id, ids))
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [Tweet(**r) for r in res]
+            return res
+
+    async def get_tweets_with_media_keys(self, media_keys: List[str], fields: List[str] = None):
+        async with self._engine.begin() as conn:
+            stmt = select_builder(TWEET, ['id'], fields)
+            stmt = stmt.where(TWEET.c.attachments['media_keys'].has_any(array(tuple(media_keys))))
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             res = [Tweet(**r) for r in res]

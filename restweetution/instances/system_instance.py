@@ -1,24 +1,22 @@
 import asyncio
 from typing import Dict, List
 
+from restweetution.instances.storage_instance import StorageInstance
 from restweetution.instances.user_instance import UserInstance
-from restweetution.media_downloader import MediaDownloader
 from restweetution.models.config.system_config import SystemConfig
 from restweetution.models.config.user_config import UserConfig
-from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.utils import Event
 
 
 class SystemInstance:
     system_config: SystemConfig
-    storage: PostgresJSONBStorage
+    storage_instance: StorageInstance
     user_instances: Dict[str, UserInstance] = {}
     event = Event()
 
     def __init__(self, system_config: SystemConfig):
         self.system_config = system_config
-        self.storage = PostgresJSONBStorage(**system_config.storage)
-        self.media_downloader = MediaDownloader(system_config.media_dir_path, self.storage)
+        self.storage_instance = StorageInstance(system_config)
 
     async def emit_event(self, update):
         asyncio.create_task(self.event(update))
@@ -26,13 +24,13 @@ class SystemInstance:
     async def save_user_config(self, user_id):
         user = self.user_instances[user_id]
         config = user.write_config()
-        await self.storage.save_restweet_users([config])
+        await self.storage_instance.storage.save_restweet_users([config])
 
     async def add_user_instance(self, user_config: UserConfig):
         if user_config.bearer_token in self.user_instances:
             raise Exception('UserInstance with same bearer_token is already used ', user_config.bearer_token)
 
-        user_instance = UserInstance(user_config, self.storage, self.media_downloader)
+        user_instance = UserInstance(user_config, self.storage_instance)
         await user_instance.start()
         self.user_instances[user_instance.get_name()] = user_instance
         user_instance.event.add(self.emit_event)
@@ -45,10 +43,10 @@ class SystemInstance:
 
         for name in names:
             self.user_instances.pop(name)
-        await self.storage.rm_restweet_users(names)
+        await self.storage_instance.storage.rm_restweet_users(names)
 
     async def load_user_configs(self):
-        user_configs = await self.storage.get_restweet_users()
+        user_configs = await self.storage_instance.storage.get_restweet_users()
         for config in user_configs:
             await self.add_user_instance(config)
 
@@ -56,11 +54,11 @@ class SystemInstance:
         return list(self.user_instances.values())
 
     async def get_all_rules(self):
-        return await self.storage.get_rules(fields=['id', 'tag', 'query', 'created_at'])
+        return await self.storage_instance.storage.get_rules(fields=['id', 'tag', 'query', 'created_at'])
 
     async def get_all_rule_info(self):
         # rules = await self.get_all_rules()
-        res = await self.storage.get_rules_tweet_count()
+        res = await self.storage_instance.storage.get_rules_tweet_count()
         #
         # res = []
         # for rule in rules:
