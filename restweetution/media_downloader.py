@@ -138,7 +138,8 @@ class MediaDownloader:
             return await self._download_photo(media)
 
     async def _download_photo(self, media: Media):
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
+        async with aiohttp.ClientSession(connector=connector) as session:
             media_format = media.url.split('.')[-1]
             try:
                 res = await session.get(media.url)
