@@ -1,7 +1,7 @@
 import type { CollectTasks } from '@/stores/store';
 import axios from 'axios';
 
-export const BASE_URL = import.meta.env.BASE_URL + 'api'
+export const BASE_URL = '/collector_api'
 let user_id = ''
 
 console.log(BASE_URL)

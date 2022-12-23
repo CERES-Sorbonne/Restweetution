@@ -13,12 +13,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
+      '/collector_api': {
            target: 'http://localhost:8000',
            changeOrigin: true,
            secure: false,      
            ws: true,
-           rewrite: (path) => path.replace(/^(.+\/api)/, '')
+           rewrite: (path) => path.replace(/^\/collector_api/, '')
        }
     }
   }
