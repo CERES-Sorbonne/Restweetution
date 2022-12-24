@@ -171,13 +171,35 @@ class PostgresJSONBStorage(SystemStorage):
                 await self._upsert_table(conn, PLACE, data.get_places())
 
             if data.rules:
-                rules = data.get_rules()
-                collected = list(chain(*[r.collected_tweets.values() for r in rules]))
-                if collected:
-                    await self._upsert_table(conn, COLLECTED_TWEET, collected)
+                await self._save_collected_refs(conn, data.get_rules())
 
             if callback:
                 asyncio.create_task(callback(data))
+
+    @staticmethod
+    async def _save_collected_refs(conn, rules: List[Rule]):
+        direct_hits = []
+        includes = []
+        for r in rules:
+            coll = r.collected_tweets_list()
+            for c in coll:
+                if c.direct_hit:
+                    direct_hits.append(c)
+                else:
+                    includes.append(c)
+        if direct_hits:
+            stmt = insert(COLLECTED_TWEET)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[k.name for k in COLLECTED_TWEET.primary_key],
+                set_=dict(direct_hit=stmt.excluded.direct_hit)
+            )
+            values = [r.dict() for r in direct_hits]
+            await conn.execute(stmt, values)
+        if includes:
+            stmt = insert(COLLECTED_TWEET)
+            stmt = stmt.on_conflict_do_nothing(index_elements=[k.name for k in COLLECTED_TWEET.primary_key])
+            values = [r.dict() for r in includes]
+            await conn.execute(stmt, values)
 
     @staticmethod
     async def _upsert_table(conn, table: Table, rows: List[BaseModel]):
@@ -213,4 +235,12 @@ class PostgresJSONBStorage(SystemStorage):
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             res = [Media(**m) for m in res]
+            return res
+
+    async def get_rules(self, fields: List[str] = None) -> List[Rule]:
+        async with self._engine.begin() as conn:
+            stmt = select_builder(RULE, ['id'], fields)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [Rule(**r) for r in res]
             return res

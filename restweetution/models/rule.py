@@ -39,8 +39,8 @@ class Rule(BaseModel):
     def config(self):
         return {"query": self.query, "tag": self.tag}
 
-    def collected_tweets_list(self):
-        return self.collected_tweets.values()
+    def collected_tweets_list(self) -> List[CollectedTweet]:
+        return list(self.collected_tweets.values())
 
     def add_collected_tweets(self, tweet_ids, collected_at, direct_hit=False):
         for tweet_id in tweet_ids:
