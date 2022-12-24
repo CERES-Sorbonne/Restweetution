@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import select
 
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.downloaded_media import DownloadedMedia
+from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.config.user_config import UserConfig
 from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData

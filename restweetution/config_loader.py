@@ -6,9 +6,9 @@ from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
 from restweetution.media_downloader import MediaDownloader
 from restweetution.models.config.config import Config
-from restweetution.models.config.stream_query_params import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
+from restweetution.models.config.query_fields_preset import ALL_CONFIG, MEDIUM_CONFIG, BASIC_CONFIG
 from restweetution.models.config.system_config import SystemConfig
-from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.query_fields import QueryFields
 from restweetution.models.config.user_config import UserConfig
 from restweetution.models.rule import StreamerRule, Rule
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage

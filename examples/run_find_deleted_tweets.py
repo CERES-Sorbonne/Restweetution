@@ -3,7 +3,7 @@ import logging
 import os
 
 import restweetution.config_loader as config
-from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.query_fields import QueryFields
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)

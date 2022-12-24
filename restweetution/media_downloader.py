@@ -9,7 +9,7 @@ from typing import List, Optional, Callable
 import aiohttp
 from pydantic import BaseModel
 
-from restweetution.models.config.downloaded_media import DownloadedMedia
+from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.twitter.media import Media
 from restweetution.storages.object_storage.filestorage_helper import FileStorageHelper
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage

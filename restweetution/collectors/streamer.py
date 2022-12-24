@@ -9,8 +9,8 @@ from restweetution.collectors.response_parser import parse_includes
 from restweetution.errors import ResponseParseError, TwitterAPIError, StorageError, set_error_handler, handle_error, \
     UnreadableResponseError, RESTweetutionError
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.stream_query_params import ALL_CONFIG
-from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.query_fields_preset import ALL_CONFIG
+from restweetution.models.config.query_fields import QueryFields
 from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import StreamerRule
 from restweetution.models.storage.error import ErrorModel

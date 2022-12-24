@@ -4,8 +4,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from restweetution.models.config.stream_query_params import ALL_CONFIG
-from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.query_fields_preset import ALL_CONFIG
+from restweetution.models.config.query_fields import QueryFields
 from restweetution.models.searcher import TimeWindow
 
 

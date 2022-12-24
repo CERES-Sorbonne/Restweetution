@@ -1,29 +1,7 @@
 import asyncio
-import datetime
-import os
 import time
-from random import random
 
-import asyncpg
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.future import select
-from sshtunnel import SSHTunnelForwarder, create_logger
-
-from restweetution import config_loader
-from restweetution.errors import ResponseParseError
-from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.downloaded_media import DownloadedMedia
-from restweetution.models.config.user_config import UserConfig
-from restweetution.models.rule import Rule
-from restweetution.models.storage.custom_data import CustomData
-from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter import Tweet
-from restweetution.storages.postgres_jsonb_storage.helpers import find_fields
-from restweetution.storages.postgres_jsonb_storage.models import meta_data, TWEET, COLLECTED_TWEET
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
-from restweetution.utils import clean_dict
 
 
 async def main():

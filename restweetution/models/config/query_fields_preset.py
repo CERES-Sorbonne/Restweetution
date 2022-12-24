@@ -1,4 +1,4 @@
-from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.query_fields import QueryFields
 
 BASIC_CONFIG: QueryFields = QueryFields(**{
     "tweet_fields": ["attachments", "author_id", "conversation_id", "created_at", "public_metrics"]

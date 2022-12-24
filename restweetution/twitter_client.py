@@ -5,7 +5,7 @@ from typing import Callable, List
 import aiohttp
 from aiohttp import ClientTimeout
 
-from restweetution.models.config.tweet_config import QueryFields
+from restweetution.models.config.query_fields import QueryFields
 from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import StreamRuleResponse, StreamAPIRule
 

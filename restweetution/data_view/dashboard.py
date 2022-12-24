@@ -3,7 +3,7 @@ from collections import defaultdict
 from typing import List, Dict
 
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.downloaded_media import DownloadedMedia
+from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.storages.exporter.exporter import Exporter
 

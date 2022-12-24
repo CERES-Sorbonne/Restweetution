@@ -6,7 +6,7 @@ from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
 from restweetution.instances.storage_instance import StorageInstance
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.downloaded_media import DownloadedMedia
+from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.config.user_config import UserConfig, RuleConfig, CollectorConfig, CollectTasks
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.searcher import TimeWindow
