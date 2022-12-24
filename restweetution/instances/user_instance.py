@@ -67,11 +67,20 @@ class UserInstance:
 
     async def _load_streamer(self):
         config = self.user_config.streamer_state
-        if config.rules:
-            await self._streamer.set_rules(config.rules)
+        equal = await self._streamer.verify_config_equal_api_rules(config.rules)
+        await self._streamer.sync_rules_from_api()
 
-        if self._streamer.get_rules() and config.is_running:
+        if self._streamer.get_rules() and config.is_running and equal:
             self.streamer_start()
+
+    async def streamer_sync(self):
+        await self._streamer.sync_rules_from_api()
+
+    async def streamer_verify(self):
+        return await self._streamer.verify_api_sync()
+
+    def streamer_has_conflict(self):
+        return self._streamer.has_conflict()
 
     def _on_collect(self, collect_config: CollectorConfig):
         async def on_collect_event(bulk_data: BulkData):

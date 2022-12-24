@@ -30,7 +30,7 @@ class Streamer:
         # Member declaration before super constructor
         self._params = None
         self._fetch_minutes = False
-        self._preset_stream_rules = None  # used to preset rules in non-async context (config)
+        self._conflict = False
 
         # super(Streamer, self).__init__(client, storage_manager, verbose=verbose)
 
@@ -53,6 +53,53 @@ class Streamer:
         self._collect_task: Optional[asyncio.Task] = None
         self.event_update = Event()
         self.event_collect = Event()
+
+    async def verify_api_sync(self):
+        api_rules = await self.get_api_rules()
+        active_rules = self.get_rules()
+
+        api_ids = [r.id for r in api_rules]
+        active_api_ids = [r.api_id for r in active_rules]
+
+        if set(api_ids) == set(active_api_ids):
+            self._conflict = False
+            return True, api_rules
+        self._set_conflict()
+        return False, api_rules
+
+    async def verify_config_equal_api_rules(self, rules: List[RuleConfig], set_conflict=False):
+        api_rules = await self.get_api_rules()
+
+        api_q = [r.value for r in api_rules]
+        rule_q = [r.query for r in rules]
+
+        if set(api_q) == set(rule_q):
+            return True
+
+        if set_conflict:
+            self._set_conflict()
+        return False
+
+    async def sync_rules_from_api(self):
+        self._clear_rule_cache()
+        api_rules = await self.get_api_rules()
+
+        if api_rules:
+            rules = [StreamerRule(query=r.value, tag=r.tag, api_id=r.id) for r in api_rules]
+            rules = await self._storage.request_rules(rules)
+
+            self._cache_rules(rules)
+            self._update_active_rules(rules)
+
+        self._conflict = False
+
+    def _set_conflict(self):
+        self._conflict = True
+        if self.is_running():
+            self.stop_collection()
+
+    def has_conflict(self):
+        return self._conflict
 
     def set_backfill_minutes(self, backfill_minutes: int):
         # compute request parameters
@@ -86,7 +133,6 @@ class Streamer:
         """
 
         self._clear_rule_cache()
-        self._active_rules = {}
 
         await self.add_rules(rules)
 
@@ -95,13 +141,16 @@ class Streamer:
         if api_ids_to_del:
             await self._client.remove_rules(api_ids_to_del)
 
+        self._conflict = False
         return self.get_rules()
 
     def _clear_rule_cache(self):
         self._api_id_to_rule = {}
+        self._active_rules = {}
 
     async def add_rules(self, rules: List[RuleConfig]) -> List[StreamerRule]:
-
+        if not rules:
+            return []
         rules = [StreamerRule(tag=r.tag, query=r.query) for r in rules]
         api_rules = await self.get_api_rules()
 
@@ -345,6 +394,8 @@ class Streamer:
             asyncio.create_task(self._handle_line_response(line))
 
     def start_collection(self, rules: List[StreamerRule] = None, fields: QueryFields = None):
+        if self._conflict:
+            raise Exception('Streamer is not in sync with server API. Please resolve conflict before collection')
         if self.is_running():
             raise Exception('Streamer Collect Task already Running')
         self._collect_task = asyncio.create_task(self.collect(rules=rules, fields=fields))

@@ -24,11 +24,19 @@ interface User {
     searcher_state: Task
 }
 
+interface APIRule {
+    id: string
+    value: string
+    tag: string
+}
+
 interface Streamer {
     running: boolean
     active_rules: any[]
-    count: number,
+    count: number
     collect_tasks: CollectTasks
+    conflict: boolean
+    api_rules: APIRule[]
 }
 
 interface Searcher {
@@ -215,10 +223,21 @@ export const useStore = defineStore("store", () => {
         }
     }
     
-    async function getStreamerDebug(user_id: string) {
+    async function streamerVerify(user_id: string) {
         try {
-            const res = await api.getStreamerDebug(user_id)
-            return res as { api_rules: any[] }
+            const res = await api.streamerVerify(user_id)
+            streamers[user_id] = res
+            return streamers[user_id]
+        } catch(err: any) {
+            notifyError(err.response.data.detail, 'streamer')
+            throw err
+        }
+    }
+
+    async function streamerSync(user_id: string) {
+        try {
+            const res = await api.streamerSync(user_id)
+            streamers[user_id] = res
         } catch(err: any) {
             notifyError(err.response.data.detail, 'streamer')
             throw err
@@ -373,7 +392,7 @@ export const useStore = defineStore("store", () => {
     return {
         users, load, isLoaded, addUser, deleteUsers, selectedUser, hasSelectedUser,
         verifyQuery,
-        streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, getStreamerDebug, streamerSetCollectTasks,
+        streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, streamerVerify, streamerSync, streamerSetCollectTasks,
         searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow, connection, searcherSetCollectTasks,
         rules, loadRules, orderedRules, addRules,
         notifs, searcherNotifs, streamerNotifs

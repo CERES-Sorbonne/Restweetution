@@ -184,7 +184,8 @@ async def streamer_info(user_id):
             "running": user.streamer_is_running(),
             "active_rules": user.streamer_get_rules(),
             "count": user.streamer_get_count(),
-            "collect_tasks": user.streamer_get_collect_tasks()
+            "collect_tasks": user.streamer_get_collect_tasks(),
+            "conflict": user.streamer_has_conflict()
         }
     except Exception as e:
         print(e)
@@ -227,13 +228,37 @@ async def streamer_del_rule(ids: List[int], user_id):
         raise HTTPException(400, e.__str__())
 
 
-@app.post("/streamer/set/rule/{user_id}")
+@app.post("/streamer/set/rules/{user_id}")
 async def streamer_set_rule(rules: List[RuleConfig], user_id):
     try:
         user = restweet.user_instances[user_id]
         await user.streamer_set_rules(rules)
         await user.save_user_config()
         return await streamer_info(user_id)
+    except Exception as e:
+        print(e)
+        raise HTTPException(400, e.__str__())
+
+
+@app.post("/streamer/sync/{user_id}")
+async def streamer_sync(user_id: str):
+    try:
+        user = restweet.user_instances[user_id]
+        await user.streamer_sync()
+        return await streamer_info(user_id)
+    except Exception as e:
+        print(e)
+        raise HTTPException(400, e.__str__())
+
+
+@app.post("/streamer/verify/{user_id}")
+async def streamer_verify(user_id: str):
+    try:
+        user = restweet.user_instances[user_id]
+        is_sync, api_rules = await user.streamer_verify()
+        info = await streamer_info(user_id)
+        info['api_rules'] = api_rules
+        return info
     except Exception as e:
         print(e)
         raise HTTPException(400, e.__str__())

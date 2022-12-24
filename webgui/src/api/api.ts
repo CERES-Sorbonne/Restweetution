@@ -64,10 +64,17 @@ export async function streamerSetCollectTasks(user:string, tasks: CollectTasks) 
     return res.data
 }
 
-export async function getStreamerDebug(user:string) {
-    const res = await axios.get(BASE_URL + '/streamer/debug/' + user)
+export async function streamerVerify(user:string) {
+    const res = await axios.post(BASE_URL + '/streamer/verify/' + user)
+    console.log(res.data)
     return res.data
 }
+
+export async function streamerSync(user:string) {
+    const res = await axios.post(BASE_URL + '/streamer/sync/' + user)
+    return res.data
+}
+
 
 export async function verifyQuery(user: string, query:any) {
     const res = await axios.post(BASE_URL + '/rules/test/' + user, query)
