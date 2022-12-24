@@ -10,7 +10,7 @@ from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import StreamRuleResponse, StreamAPIRule
 
 
-class TwitterClient:
+class StreamerClient:
     def __init__(self, token: str, base_url: str = "https://api.twitter.com", error_handler: Callable = None):
         super().__init__()
         self.base_url = base_url
@@ -20,6 +20,10 @@ class TwitterClient:
         self._client = None
 
     def _get_client(self):
+        """
+        Get an aiohttp Client Session that will close correctly
+        @return:
+        """
         connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
         self._client = aiohttp.ClientSession(headers=self._headers,
                                              timeout=ClientTimeout(),
@@ -30,13 +34,18 @@ class TwitterClient:
     def set_error_handler(self, error_handler: Callable):
         self._error_handler = error_handler
 
-    async def connect_tweet_stream(self, params: QueryFields):
+    async def connect_tweet_stream(self, fields: QueryFields):
+        """
+        Connect to Twitter Tweet Stream with the given query fields
+        @param fields: query fields
+        @return: None
+        """
         self._logger.info('Connect to stream')
         wait_time = 0
         while True:
             try:
                 async with self._get_client() as session:
-                    async with session.get("/2/tweets/search/stream", params=params.twitter_format(join='.')) as resp:
+                    async with session.get("/2/tweets/search/stream", params=fields.twitter_format(join='.')) as resp:
                         async for line in resp.content:
                             # print(resp.headers)
                             yield line
@@ -51,9 +60,10 @@ class TwitterClient:
 
     async def remove_rules(self, ids: List[str]):
         """
-                Remove rules by ids
-                :param ids: a list of ids of rules to remove
-                """
+        Remove rules by id
+        @param ids: list of ids
+        @return: ids of deleted rules
+        """
 
         uri = "/2/tweets/search/stream/rules"
         # session = self._get_client()
@@ -74,8 +84,8 @@ class TwitterClient:
         """
         Return the list of rules defined to collect tweets during a stream
         from the Twitter API
-        :param ids: an optional list of ids to fetch only specific rules
-        :return: the list of rules
+        :@param ids: an optional list of ids to fetch only specific rules
+        :@return: the list of rules
         """
 
         uri = "/2/tweets/search/stream/rules"
@@ -94,6 +104,11 @@ class TwitterClient:
                 return rules
 
     async def add_rules(self, rules: List[StreamAPIRule]):
+        """
+        Add Rules to Twitter Tweet Stream
+        @param rules: list of rule descriptions
+        @return: List of added rules
+        """
         uri = "/2/tweets/search/stream/rules"
         rules_data = [{'tag': r.tag, 'value': r.value} for r in rules]
         async with self._get_client() as session:
@@ -109,6 +124,11 @@ class TwitterClient:
                 return [StreamAPIRule(**r) for r in valid_rules]
 
     async def test_rule(self, rule: RuleConfig):
+        """
+        Test if a rule is valid
+        @param rule: a rule
+        @return: a test result
+        """
         uri = "/2/tweets/search/stream/rules"
         rule_data = [{'tag': rule.tag, 'value': rule.query}]
         async with self._get_client() as session:

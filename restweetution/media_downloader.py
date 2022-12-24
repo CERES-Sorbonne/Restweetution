@@ -43,9 +43,6 @@ class MediaDownloader:
 
     # Public functions
 
-    def get_root_dir(self):
-        return self._file_helper.root
-
     def is_running(self):
         return self._process_queue_task and not self._process_queue_task.done()
 
@@ -103,6 +100,12 @@ class MediaDownloader:
                 self._logger.error('Error inside _process_queue function : ' + e.__str__())
 
     async def _save_duplicate(self, media: Media, d_media: DownloadedMedia):
+        """
+        Save a media with same url as an already downloaded Media
+        @param media: media
+        @param d_media: already downloaded media
+        @return:
+        """
         to_save = DownloadedMedia(**media.dict(), sha1=d_media.sha1, format=d_media.format)
         await self._storage.save_downloaded_medias([to_save])
 
@@ -132,12 +135,17 @@ class MediaDownloader:
 
     async def _download_by_type(self, media):
         """
-        Download the media and compute its signature
+        Download the media according to type
         """
         if media.type == 'photo' and media.url:
             return await self._download_photo(media)
 
     async def _download_photo(self, media: Media):
+        """
+        Download photo
+        @param media: a media with type photo
+        @return: the downloaded media
+        """
         connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
         async with aiohttp.ClientSession(connector=connector) as session:
             media_format = media.url.split('.')[-1]
@@ -161,4 +169,9 @@ class MediaDownloader:
 
     @staticmethod
     def _compute_signature(buffer: bytes):
+        """
+        Compute sha1 of file
+        @param buffer: byte buffer
+        @return: sha1
+        """
         return hashlib.sha1(buffer).hexdigest()

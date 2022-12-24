@@ -8,15 +8,14 @@ import restweetution.config_loader as config
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
-main_conf = config.get_config_from_file(os.getenv('CONFIG'))
+conf = config.load_system_config(os.getenv('SYSTEM_CONFIG'))
 
 
 async def launch():
+    storage = conf.build_storage()
     last = time()
-    res = await main_conf.storage.get_tweet_ids()
-    print(res)
-    print(time() - last)
-
+    res = await storage.get_tweets()
+    print(f'Retrieved {len(res)} tweets in {time() - last} seconds')
 
 try:
     asyncio.run(launch())

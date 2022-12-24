@@ -67,7 +67,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
@@ -76,12 +76,6 @@ async def websocket_endpoint(websocket: WebSocket):
 async def path_root():
     return FileResponse('static/home.html')
 
-
-# @app.get("/streamer/history")
-# async def streamer():
-#     return {
-#         "rule_history": restweet.get_all_rules()
-#     }
 
 @app.get('/users/info')
 async def all_users():
@@ -154,27 +148,6 @@ async def test_rule(user_id, rule: RuleConfig):
         print(e)
         raise HTTPException(400, e.__str__())
 
-
-# @app.get("/rules/streamer")
-# async def get_streamer_rules():
-#     return {
-#         "rules": await restweet.get_all_rule_info(type_='streamer')
-#     }
-#
-#
-# @app.get("/rules/searcher")
-# async def get_searcher_rules():
-#     return {
-#         "rules": await restweet.get_all_rule_info(type_='searcher')
-#     }
-
-
-# @app.post("/downloader/start_stop")
-# async def downloader_start_stop():
-#     restweet.set_media_downloader_active(not restweet.is_media_downloader_active())
-#     return RedirectResponse('/', status_code=HTTP_302_FOUND)
-#
-#
 
 @app.get("/streamer/info/{user_id}")
 async def streamer_info(user_id):
@@ -394,8 +367,3 @@ async def searcher_set_time(user_id, time_window: TimeWindow):
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# try:
-#     loop.run_forever()
-# except KeyboardInterrupt as e:
-#     pass

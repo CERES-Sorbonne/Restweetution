@@ -16,7 +16,7 @@ from restweetution.models.rule import StreamerRule
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
-from restweetution.twitter_client import TwitterClient
+from restweetution.collectors.clients.streamer_client import StreamerClient
 from restweetution.utils import Event
 
 logger = logging.getLogger('Streamer')
@@ -41,7 +41,7 @@ class Streamer:
         self._active_rules: Dict[int, StreamerRule] = {}
 
         # self._client2 = AsyncStreamingClient(bearer_token=bearer_token)
-        self._client = TwitterClient(token=bearer_token)
+        self._client = StreamerClient(token=bearer_token)
 
         self._storage = storage
 
@@ -390,7 +390,7 @@ class Streamer:
         logger.info(f"Collecting with following rules: ")
         logger.info('\n'.join([f'{r.query}, tag: {r.tag} id: {r.id}' for r in self.get_rules()]))
 
-        async for line in self._client.connect_tweet_stream(params=fields):
+        async for line in self._client.connect_tweet_stream(fields=fields):
             asyncio.create_task(self._handle_line_response(line))
 
     def start_collection(self, rules: List[StreamerRule] = None, fields: QueryFields = None):

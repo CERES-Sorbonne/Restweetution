@@ -1,13 +1,15 @@
 import json
-from typing import Protocol
-
-from restweetution.models.twitter import Media
+from typing import Dict
 
 
 class Event(set):
     """
+    Event utility class
+    Can be used as set to add callbacks
+    ex: event.add(callback)
+    Use like a function et execute
+    ex: event(*args, **kwargs)
     """
-
     async def __call__(self, *args, **kwargs):
         for f in self:
             await f(*args, **kwargs)
@@ -23,11 +25,12 @@ def get_full_class_name(obj):
     return module + '.' + obj.__class__.__name__
 
 
-class DownloadCallback(Protocol):
-    async def __call__(self, media: Media, sha1: str, bytes_image: bytes, media_format: str) -> None: ...
-
-
 def clean_dict(data):
+    """
+    Removes Keys from dictionary if corresponding value is considered null
+    @param data: Dictionary to be cleaned
+    @return: Clean dictionary
+    """
     keys = list(data.keys())
     for k in keys:
         if not data[k]:
@@ -35,9 +38,19 @@ def clean_dict(data):
     return data
 
 
-def safe_json(data):
+def safe_json(data: Dict):
+    """
+    safely convert a Dictionary to json data
+    @param data: Dictionary
+    @return: JSON string
+    """
     return json.dumps(data, default=str)
 
 
 def safe_dict(data):
+    """
+    Makes a dictionary safe for serialization
+    @param data: Dictionary
+    @return: Dictionary
+    """
     return json.loads(safe_json(data))
