@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from itertools import chain
-from typing import List, TypeVar, Callable
+from typing import List, TypeVar, Callable, Dict
 
 from pydantic import BaseModel
 from sqlalchemy import update, bindparam, Table, delete, join, func
@@ -212,12 +212,16 @@ class PostgresJSONBStorage(SystemStorage):
         await conn.execute(stmt, values)
 
     async def get_tweets(self, fields: List[str] = None, ids: List[str] = None) -> List[Tweet]:
+        res = await self.get_tweets_raw()
+        res = [Tweet(**r) for r in res]
+        return res
+
+    async def get_tweets_raw(self, fields: List[str] = None, ids: List[str] = None) -> List[Dict]:
         async with self._engine.begin() as conn:
             stmt = select_builder(TWEET, ['id'], fields)
             stmt = where_builder(stmt, True, (TWEET.c.id, ids))
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
-            res = [Tweet(**r) for r in res]
             return res
 
     async def get_tweets_with_media_keys(self, media_keys: List[str], fields: List[str] = None):

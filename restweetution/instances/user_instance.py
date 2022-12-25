@@ -111,7 +111,7 @@ class UserInstance:
             if collect_tasks.elastic_dashboard and collect_tasks.elastic_dashboard_name:
                 if not elastic_dashboard:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
-                elastic_dashboard.update_sha1_and_save(bulk_data, [d_media], collect_tasks.elastic_dashboard_name)
+                elastic_dashboard.compute_with_sha1_and_save(bulk_data, [d_media], collect_tasks.elastic_dashboard_name)
         return on_download_event
 
     def streamer_set_collect_tasks(self, tasks: CollectTasks):

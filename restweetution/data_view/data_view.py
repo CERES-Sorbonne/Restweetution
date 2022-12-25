@@ -1,5 +1,7 @@
 from abc import ABC
+from typing import List
 
+from restweetution.models.bulk_data import BulkData
 from restweetution.storages.exporter.exporter import Exporter
 from restweetution.storages.storage import Storage
 
@@ -14,13 +16,10 @@ class DataUnit(dict):
 
 
 class DataView(ABC):
-    def __init__(self, name: str, in_storage: Storage, out_storage: Exporter):
-        self._view_name = name
-        self.input = in_storage
-        self.output = out_storage
+    def __init__(self, exporter: Exporter):
+        self.exporter = exporter
 
-    async def load(self, **kwargs):
-        pass
+    @staticmethod
+    def compute(bulk_data: BulkData, key: str, only_ids: List[str] = None):
+        raise NotImplemented('compute not implemented')
 
-    async def save(self, **kwargs):
-        pass

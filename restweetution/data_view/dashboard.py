@@ -74,11 +74,11 @@ class Dashboard:
             res.append(custom_data)
         return res
 
-    def compute_and_save(self, bulk_data: BulkData, key: str):
-        res = self.compute(bulk_data, key)
+    def compute_and_save(self, bulk_data: BulkData, key: str, only_ids: List[str] = None):
+        res = self.compute(bulk_data, key, only_ids)
         asyncio.create_task(self.exporter.save_custom_datas(res))
 
-    def update_sha1_and_save(self, bulk_data: BulkData, d_medias: List[DownloadedMedia], key: str):
+    def compute_with_sha1_and_save(self, bulk_data: BulkData, d_medias: List[DownloadedMedia], key: str):
         media_key_to_d_media: Dict[str, DownloadedMedia] = {d.media_key: d for d in d_medias}
         media_key_to_tweet_id = defaultdict(set)
         tweet_id_to_media_key = defaultdict(set)

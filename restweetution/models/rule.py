@@ -14,7 +14,7 @@ class StreamAPIRule(BaseModel):
 
 
 class CollectedTweet(BaseModel):
-    collected_at: datetime
+    collected_at: datetime = datetime.now()
     direct_hit: bool = False
     tweet_id: str
     rule_id: int

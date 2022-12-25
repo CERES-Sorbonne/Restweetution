@@ -1,10 +1,11 @@
+import asyncio
 from typing import List
 
 from restweetution.data_view.data_view import DataView
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.twitter import Tweet
-from restweetution.storages.extractor import Extractor
+from restweetution.storages.exporter.exporter import Exporter
 
 ID = 'id'
 TEXT = 'text'
@@ -80,45 +81,40 @@ tweet_fields = [
 
 
 class RowView(DataView):
-    def __init__(self, in_storage, out_storage, fields=None):
-        if not fields:
-            fields = tweet_fields.copy()
-        for f in fields:
-            if f not in tweet_fields:
-                raise ValueError(f'{f} is not a supported field\nValid fields: {tweet_fields}')
-        self.fields = fields
-        super().__init__(name='row_view', in_storage=in_storage, out_storage=out_storage)
-
-    async def load(self, ids: List[str] = None):
-        extractor = Extractor(self.input)
-        bulk_data, tweets = await extractor.get_tweets(expand=['tweet', 'user', 'media', 'place', 'poll'], ids=ids)
-
-        fields = self.fields
-
-        rows = []
-        for tweet in tweets:
-            rows.append(self.tweet_to_row(tweet, bulk_data, fields))
-            print(rows[-1].data)
-
-        return rows
-
-    async def save_rows(self, rows: List[CustomData]):
-        await self.output.save_custom_datas(rows)
+    def __init__(self, exporter: Exporter):
+        super().__init__(exporter=exporter)
 
     @staticmethod
-    def tweet_to_row(tweet: Tweet, bulk_data: BulkData, fields: List[str]):
-        row = CustomData(key='tweet', id=tweet.id)
+    def compute(bulk_data: BulkData, key: str, fields: List[str] = None, only_ids: List[str] = None):
+        if not fields:
+            fields = tweet_fields.copy()
+
+        datas = []
+        tweets = [bulk_data.tweets[i] for i in only_ids] if only_ids else bulk_data.get_tweets()
+
+        for t in tweets:
+            datas.append(RowView._tweet_to_row(t, bulk_data, fields=fields, key=key))
+
+        return datas
+
+    def compute_and_save(self, bulk_data: BulkData, key: str, fields: List[str] = None, only_ids: List[str] = None):
+        res = self.compute(bulk_data, key, fields=fields, only_ids=only_ids)
+        asyncio.create_task(self.exporter.save_custom_datas(res))
+
+    @staticmethod
+    def _tweet_to_row(tweet: Tweet, bulk_data: BulkData, fields: List[str], key: str):
+        row = CustomData(key=key, id=tweet.id)
         data = row.data
 
         for k in fields:
             data[k] = None
 
-        def safe_set(key, value):
-            if key in fields:
-                data[key] = value
+        def safe_set(field, value):
+            if field in fields:
+                data[field] = value
 
         def any_field(field_list):
-            return any(key in fields for key in field_list)
+            return any(f in fields for f in field_list)
 
         safe_set(ID, tweet.id)
         safe_set(TEXT, tweet.text)
