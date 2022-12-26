@@ -19,9 +19,6 @@ class CollectedTweet(BaseModel):
     tweet_id: str
     rule_id: int
 
-    def rule_tweet_id(self):
-        return str(self.rule_id) + self.tweet_id
-
 
 class Rule(BaseModel):
     id: Optional[int]  # database given
@@ -49,11 +46,11 @@ class Rule(BaseModel):
                 collected_at=collected_at,
                 direct_hit=direct_hit,
                 rule_id=self.id)
-            if collected.rule_tweet_id() in self.collected_tweets:
+            if collected.tweet_id in self.collected_tweets:
                 if direct_hit:
-                    self.collected_tweets[collected.rule_tweet_id()].direct_hit = True
+                    self.collected_tweets[collected.tweet_id].direct_hit = True
             else:
-                self.collected_tweets[collected.rule_tweet_id()] = collected
+                self.collected_tweets[collected.tweet_id] = collected
 
     def add_direct_tweets(self, tweet_ids, collected_at):
         self.add_collected_tweets(tweet_ids, collected_at, direct_hit=True)

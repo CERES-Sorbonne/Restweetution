@@ -11,6 +11,7 @@ ID = 'id'
 TEXT = 'text'
 MEDIA_KEYS = 'media_keys'
 MEDIA_SHA1S = 'media_sha1s'
+MEDIA_FORMAT = 'media_format'
 MEDIA_TYPES = 'media_types'
 POLL_IDS = 'poll_ids'
 AUTHOR_ID = 'author_id'
@@ -36,17 +37,21 @@ LIKE_COUNT = 'like_count'
 QUOTE_COUNT = 'quote_count'
 REFERENCED_TWEETS_TYPES = 'referenced_tweets_types'
 REFERENCED_TWEETS_IDS = 'referenced_tweets_ids'
+REFERENCED_TWEETS_AUTHOR_IDS = 'referenced_tweets_authors'
+REFERENCED_TWEETS_AUTHOR_USERNAMES = 'referenced_tweets_authors_usernames'
 REPLY_SETTINGS = 'reply_settings'
 SOURCE = 'source'
 WITHHELD_COPYRIGHT = 'withheld_copyright'
 WITHHELD_COUNTRY_CODES = 'withheld_country_codes'
 WITHHELD_SCOPE = 'withheld_scope'
+RULE_TAGS = 'rule_tags'
 
 tweet_fields = [
     ID,
     TEXT,
     MEDIA_KEYS,
     MEDIA_SHA1S,
+    MEDIA_FORMAT,
     MEDIA_TYPES,
     POLL_IDS,
     AUTHOR_ID,
@@ -72,11 +77,14 @@ tweet_fields = [
     QUOTE_COUNT,
     REFERENCED_TWEETS_TYPES,
     REFERENCED_TWEETS_IDS,
+    REFERENCED_TWEETS_AUTHOR_IDS,
+    REFERENCED_TWEETS_AUTHOR_USERNAMES,
     REPLY_SETTINGS,
     SOURCE,
     WITHHELD_COPYRIGHT,
     WITHHELD_COUNTRY_CODES,
-    WITHHELD_SCOPE
+    WITHHELD_SCOPE,
+    RULE_TAGS
 ]
 
 
@@ -113,30 +121,41 @@ class RowView(DataView):
             if field in fields:
                 data[field] = value
 
-        def any_field(field_list):
+        def any_field(*field_list):
             return any(f in fields for f in field_list)
 
         safe_set(ID, tweet.id)
         safe_set(TEXT, tweet.text)
 
-        if any_field([MEDIA_KEYS, MEDIA_SHA1S, MEDIA_TYPES]):
+        if RULE_TAGS in fields:
+            tags = set()
+            for r in bulk_data.get_rules():
+                if tweet.id in r.collected_tweets:
+                    tags.update(r.tag.split(','))
+            data[RULE_TAGS] = list(tags)
+
+        if any_field(MEDIA_KEYS, MEDIA_SHA1S, MEDIA_TYPES):
             if tweet.attachments and tweet.attachments.media_keys:
                 keys = tweet.attachments.media_keys
                 safe_set(MEDIA_KEYS, keys)
 
                 medias = [bulk_data.medias[k] for k in keys if k in bulk_data.medias]
-                sha1_list = [m.sha1 for m in medias if m.sha1]
                 type_list = [m.type for m in medias if m.type]
 
-                safe_set(MEDIA_SHA1S, sha1_list)
+                d_medias = [bulk_data.downloaded_medias[k] for k in keys if k in bulk_data.downloaded_medias]
+                sha1_list = [m.sha1 for m in d_medias]
+                format_list = [m.format for m in d_medias]
+
                 safe_set(MEDIA_TYPES, type_list)
+                safe_set(MEDIA_SHA1S, sha1_list)
+                safe_set(MEDIA_FORMAT, format_list)
         if tweet.attachments and tweet.attachments.poll_ids:
             safe_set(POLL_IDS, tweet.attachments.poll_ids)
 
         safe_set(AUTHOR_ID, tweet.author_id)
         if tweet.author_id and tweet.author_id in bulk_data.users:
             safe_set(AUTHOR_USERNAME, bulk_data.users[tweet.author_id].username)
-        if any_field([CONTEXT_DOMAINS, CONTEXT_ENTITIES]):
+        if any_field(CONTEXT_DOMAINS, CONTEXT_ENTITIES):
             if tweet.context_annotations:
                 domains = [c.domain.name for c in tweet.context_annotations]
                 entities = [c.entity.name for c in tweet.context_annotations]
@@ -186,6 +205,15 @@ class RowView(DataView):
             tweet_ids = [t.id for t in tweet.referenced_tweets]
             safe_set(REFERENCED_TWEETS_TYPES, tweet_types)
             safe_set(REFERENCED_TWEETS_IDS, tweet_ids)
+
+            if any_field(REFERENCED_TWEETS_AUTHOR_IDS, REFERENCED_TWEETS_AUTHOR_USERNAMES):
+                tweets = [bulk_data.tweets[i] for i in tweet_ids if i in bulk_data.tweets]
+                author_ids = [t.author_id for t in tweets if t.author_id]
+                authors = [bulk_data.users[i] for i in author_ids if i in bulk_data.users]
+                author_usernames = [a.username for a in authors if a.username]
+
+                safe_set(REFERENCED_TWEETS_AUTHOR_IDS, author_ids)
+                safe_set(REFERENCED_TWEETS_AUTHOR_USERNAMES, author_usernames)
 
         safe_set(REPLY_SETTINGS, tweet.reply_settings)
         safe_set(SOURCE, tweet.source)

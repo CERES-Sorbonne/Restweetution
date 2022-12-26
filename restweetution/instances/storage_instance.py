@@ -1,4 +1,4 @@
-from restweetution.data_view.dashboard import Dashboard
+from restweetution.data_view.row_view import RowView
 from restweetution.media_downloader import MediaDownloader
 from restweetution.models.config.system_config import SystemConfig
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
@@ -12,4 +12,4 @@ class StorageInstance:
             self.media_downloader = MediaDownloader(root=config.media_dir_path, storage=self.storage)
         if config.elastic:
             self.elastic = ElasticStorage('elastic', **config.elastic.dict())
-            self.elastic_dashboard = Dashboard(self.elastic)
+            self.elastic_dashboard = RowView(self.elastic)

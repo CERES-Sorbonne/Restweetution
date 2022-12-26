@@ -40,3 +40,7 @@ def where_builder(stmt, is_and=True, *args):
 
     connect = and_ if is_and else or_
     return stmt.where(connect(*filters))
+
+
+def primary_keys(table):
+    return [k.name for k in table.primary_key]

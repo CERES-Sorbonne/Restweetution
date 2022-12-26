@@ -124,11 +124,8 @@ class MediaDownloader:
         If the media_key or url is already present in DB we return it
         """
         # find downloaded media with same media key or same url
-        d_media = await self._storage.get_downloaded_medias(
-            media_keys=[media.media_key],
-            urls=[media.url],
-            is_and=False
-        )
+        d_media = await self._storage.get_downloaded_medias(media_keys=[media.media_key], urls=[media.url],
+                                                            is_and=False)
         if d_media:
             return d_media[0]
         return None
@@ -156,8 +153,9 @@ class MediaDownloader:
                 buffer = io.BytesIO(bytes_image)
                 sha1 = self._compute_signature(bytes_image)
                 format_ = media_format
+                media_key = media.media_key
 
-                downloaded = DownloadedMedia(**media.dict(), sha1=sha1, format=format_, bytes_=buffer)
+                downloaded = DownloadedMedia(media_key=media_key, media=media, sha1=sha1, format=format_, bytes_=buffer)
 
                 await self._write_media(downloaded)
                 await self._storage.save_downloaded_medias([downloaded])

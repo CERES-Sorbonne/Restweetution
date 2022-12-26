@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List
+from typing import List, Dict
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
@@ -93,7 +93,8 @@ class UserInstance:
                     logger.warning('No MediaDownloader set, tried to download media')
                 else:
                     medias = bulk_data.get_medias()
-                    callback = self._on_download_media(collect_config, bulk_data)
+                    media_to_tweet = bulk_data.compute_media_to_tweets()
+                    callback = self._on_download_media(collect_config, bulk_data, media_to_tweet)
                     media_downloader.download_medias(medias=medias, callback=callback)
             if collect_tasks.elastic_dashboard and collect_tasks.elastic_dashboard_name:
                 if not elastic_dashboard:
@@ -103,7 +104,7 @@ class UserInstance:
 
         return on_collect_event
 
-    def _on_download_media(self, collect_config: CollectorConfig, bulk_data: BulkData):
+    def _on_download_media(self, collect_config: CollectorConfig, bulk_data: BulkData, media_to_tweet: Dict[str, str]):
         async def on_download_event(d_media: DownloadedMedia):
             collect_tasks = collect_config.collect_tasks
             elastic_dashboard = self.storage_instance.elastic_dashboard
@@ -111,7 +112,9 @@ class UserInstance:
             if collect_tasks.elastic_dashboard and collect_tasks.elastic_dashboard_name:
                 if not elastic_dashboard:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
-                elastic_dashboard.compute_with_sha1_and_save(bulk_data, [d_media], collect_tasks.elastic_dashboard_name)
+                bulk_data.add_downloaded_medias([d_media])
+                only_ids = media_to_tweet[d_media.media_key]
+                elastic_dashboard.compute_and_save(bulk_data, collect_tasks.elastic_dashboard_name, only_ids=only_ids)
         return on_download_event
 
     def streamer_set_collect_tasks(self, tasks: CollectTasks):

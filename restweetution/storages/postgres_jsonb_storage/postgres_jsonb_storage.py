@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from itertools import chain
 from typing import List, TypeVar, Callable, Dict
 
 from pydantic import BaseModel
@@ -10,14 +9,14 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import select
 
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.config.user_config import UserConfig
 from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
+from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Tweet, Media
 from restweetution.storages.postgres_jsonb_storage.helpers import res_to_dicts, update_dict, where_builder, \
-    select_builder
+    select_builder, primary_keys
 from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
     USER, POLL, PLACE, COLLECTED_TWEET, DOWNLOADED_MEDIA
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
@@ -145,16 +144,26 @@ class PostgresJSONBStorage(SystemStorage):
 
             await conn.execute(stmt, values)
 
-    async def get_downloaded_medias(self, media_keys: List[str] = None, urls: List[str] = None, is_and=True):
-        async with self._engine.begin() as conn:
-            stmt = select(MEDIA, DOWNLOADED_MEDIA.c.sha1, DOWNLOADED_MEDIA.c.format)
-            stmt = stmt.select_from(join(MEDIA, DOWNLOADED_MEDIA))
+    async def get_downloaded_medias(self,
+                                    media_keys: List[str] = None,
+                                    urls: List[str] = None,
+                                    is_and=True,
+                                    full=False):
 
-            stmt = where_builder(stmt, is_and, (MEDIA.c.url, urls), (MEDIA.c.media_key, media_keys))
+        async with self._engine.begin() as conn:
+            selected = [MEDIA, DOWNLOADED_MEDIA] if full else [DOWNLOADED_MEDIA]
+            stmt = select(*selected)
+            if full or urls:
+                stmt = stmt.select_from(join(MEDIA, DOWNLOADED_MEDIA))
+
+            stmt = where_builder(stmt, is_and, (MEDIA.c.url, urls), (DOWNLOADED_MEDIA.c.media_key, media_keys))
 
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
-            res = [DownloadedMedia(**r) for r in res]
+            if full:
+                res = [DownloadedMedia(**r, media=Media(**r)) for r in res]
+            else:
+                res = [DownloadedMedia(**r) for r in res]
             return res
 
     async def save_bulk(self, data: BulkData, callback: Callable = None):
@@ -190,14 +199,14 @@ class PostgresJSONBStorage(SystemStorage):
         if direct_hits:
             stmt = insert(COLLECTED_TWEET)
             stmt = stmt.on_conflict_do_update(
-                index_elements=[k.name for k in COLLECTED_TWEET.primary_key],
+                index_elements=primary_keys(COLLECTED_TWEET),
                 set_=dict(direct_hit=stmt.excluded.direct_hit)
             )
             values = [r.dict() for r in direct_hits]
             await conn.execute(stmt, values)
         if includes:
             stmt = insert(COLLECTED_TWEET)
-            stmt = stmt.on_conflict_do_nothing(index_elements=[k.name for k in COLLECTED_TWEET.primary_key])
+            stmt = stmt.on_conflict_do_nothing(index_elements=primary_keys(COLLECTED_TWEET))
             values = [r.dict() for r in includes]
             await conn.execute(stmt, values)
 
@@ -205,7 +214,7 @@ class PostgresJSONBStorage(SystemStorage):
     async def _upsert_table(conn, table: Table, rows: List[BaseModel]):
         stmt = insert(table)
         stmt = stmt.on_conflict_do_update(
-            index_elements=[k.name for k in table.primary_key],
+            index_elements=primary_keys(table),
             set_=update_dict(stmt, rows)
         )
         values = [r.dict() for r in rows]

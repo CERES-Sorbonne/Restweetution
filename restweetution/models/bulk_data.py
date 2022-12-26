@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import List, Dict
 
@@ -5,6 +6,7 @@ from pydantic import BaseModel
 
 from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
+from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.twitter import Media
 from restweetution.models.twitter import Poll
 from restweetution.models.twitter.place import Place
@@ -18,6 +20,7 @@ class BulkData(BaseModel):
     tweets: Dict[str, Tweet] = {}
     places: Dict[str, Place] = {}
     medias: Dict[str, Media] = {}
+    downloaded_medias: Dict[str, DownloadedMedia] = {}
     polls: Dict[str, Poll] = {}
     custom_datas: Dict[str, CustomData] = {}
     timestamp: datetime = None
@@ -41,6 +44,9 @@ class BulkData(BaseModel):
             else:
                 for c in other.rules[k].collected_tweets:
                     self.rules[k].collected_tweets[c] = other.rules[k].collected_tweets[c]
+        for k in other.downloaded_medias:
+            self.downloaded_medias[k] = other.downloaded_medias[k]
+
         return self
 
     def copy(self, **kwargs):
@@ -52,6 +58,7 @@ class BulkData(BaseModel):
         other.polls = self.polls.copy()
         other.places = self.places.copy()
         other.custom_datas = self.custom_datas.copy()
+        other.downloaded_medias = self.downloaded_medias.copy()
 
         return other
 
@@ -62,7 +69,8 @@ class BulkData(BaseModel):
             places=None,
             polls=None,
             rules=None,
-            datas=None):
+            datas=None,
+            downloaded_medias=None):
         if datas is None:
             datas = []
         if rules is None:
@@ -77,6 +85,8 @@ class BulkData(BaseModel):
             users = []
         if tweets is None:
             tweets = []
+        if downloaded_medias is None:
+            downloaded_medias = []
         self.add_tweets(tweets)
         self.add_users(users)
         self.add_places(places)
@@ -84,6 +94,7 @@ class BulkData(BaseModel):
         self.add_polls(polls)
         self.add_rules(rules)
         self.add_datas(datas)
+        self.add_downloaded_medias(downloaded_medias)
 
     def add_rules(self, rules: List[Rule]):
         for rule in rules:
@@ -111,6 +122,9 @@ class BulkData(BaseModel):
     def add_datas(self, datas: List[CustomData]):
         self.set_from_list(self.custom_datas, datas, id_lambda=lambda d: d.unique_id())
 
+    def add_downloaded_medias(self, downloaded_medias: List[DownloadedMedia]):
+        self.set_from_list(self.downloaded_medias, downloaded_medias, id_lambda=lambda m: m.media_key)
+
     def get_tweets(self):
         return list(self.tweets.values())
 
@@ -128,6 +142,17 @@ class BulkData(BaseModel):
 
     def get_places(self):
         return list(self.places.values())
+
+    def get_downloaded_medias(self):
+        return list(self.downloaded_medias.values())
+
+    def compute_media_to_tweets(self):
+        res = defaultdict(set)
+        for tweet in self.get_tweets():
+            if tweet.attachments:
+                for k in tweet.attachments.media_keys:
+                    res[k].add(tweet.id)
+        return res
 
     @staticmethod
     def set_from_list(target: dict, array: list, id_lambda=lambda x: x.id):
