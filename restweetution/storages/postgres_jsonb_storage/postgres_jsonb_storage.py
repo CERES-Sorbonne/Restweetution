@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 from typing import List, TypeVar, Callable, Dict
 
@@ -10,13 +11,13 @@ from sqlalchemy.future import select
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.user_config import UserConfig
-from restweetution.models.rule import Rule
+from restweetution.models.rule import Rule, CollectedTweet
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.twitter import Tweet, Media
-from restweetution.storages.postgres_jsonb_storage.helpers import res_to_dicts, update_dict, where_builder, \
-    select_builder, primary_keys
+from restweetution.models.twitter import Tweet, Media, User, Poll, Place
+from restweetution.storages.postgres_jsonb_storage.helpers import res_to_dicts, update_dict, where_in_builder, \
+    select_builder, primary_keys, offset_limit, date_from_to
 from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
     USER, POLL, PLACE, COLLECTED_TWEET, DOWNLOADED_MEDIA
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
@@ -156,7 +157,7 @@ class PostgresJSONBStorage(SystemStorage):
             if full or urls:
                 stmt = stmt.select_from(join(MEDIA, DOWNLOADED_MEDIA))
 
-            stmt = where_builder(stmt, is_and, (MEDIA.c.url, urls), (DOWNLOADED_MEDIA.c.media_key, media_keys))
+            stmt = where_in_builder(stmt, is_and, (MEDIA.c.url, urls), (DOWNLOADED_MEDIA.c.media_key, media_keys))
 
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
@@ -220,15 +221,72 @@ class PostgresJSONBStorage(SystemStorage):
         values = [r.dict() for r in rows]
         await conn.execute(stmt, values)
 
-    async def get_tweets(self, fields: List[str] = None, ids: List[str] = None) -> List[Tweet]:
-        res = await self.get_tweets_raw()
+    async def get_tweets(self,
+                         fields: List[str] = None,
+                         ids: List[str] = None,
+                         date_from: datetime.datetime = None,
+                         date_to: datetime.datetime = None,
+                         offset: int = None,
+                         limit: int = None,
+                         rule_ids: List[int] = None) -> List[Tweet]:
+        res = await self.get_tweets_raw(fields=fields,
+                                        ids=ids,
+                                        date_from=date_from,
+                                        date_to=date_to,
+                                        offset=offset,
+                                        limit=limit,
+                                        rule_ids=rule_ids)
         res = [Tweet(**r) for r in res]
         return res
 
-    async def get_tweets_raw(self, fields: List[str] = None, ids: List[str] = None) -> List[Dict]:
+    async def get_tweets_raw(self,
+                             fields: List[str] = None,
+                             ids: List[str] = None,
+                             date_from: datetime.datetime = None,
+                             date_to: datetime.datetime = None,
+                             offset: int = None,
+                             limit: int = None,
+                             rule_ids: List[int] = None) -> List[Dict]:
         async with self._engine.begin() as conn:
             stmt = select_builder(TWEET, ['id'], fields)
-            stmt = where_builder(stmt, True, (TWEET.c.id, ids))
+
+            if rule_ids:
+                stmt = stmt.select_from(join(TWEET, COLLECTED_TWEET))
+                stmt = stmt.where(COLLECTED_TWEET.c.rule_id.in_(rule_ids))
+
+            stmt = where_in_builder(stmt, True, (TWEET.c.id, ids))
+            stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
+            stmt = offset_limit(stmt, offset, limit)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            return res
+
+    async def get_tweets_count(self,
+                               date_from: datetime.datetime = None,
+                               date_to: datetime.datetime = None,
+                               rule_ids: List[int] = None) -> List[Dict]:
+        async with self._engine.begin() as conn:
+            stmt = select(func.count().label('count'))
+            if rule_ids:
+                stmt = stmt.select_from(join(TWEET, COLLECTED_TWEET))
+                stmt = stmt.where(COLLECTED_TWEET.c.rule_id.in_(rule_ids))
+            else:
+                stmt = stmt.select_from(TWEET)
+            stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = res[0]['count']
+            return res
+
+    async def get_users(self, fields: List[str] = None, ids: List[str] = None) -> List[User]:
+        res = await self.get_users_raw(fields=fields, ids=ids)
+        res = [User(**r) for r in res]
+        return res
+
+    async def get_users_raw(self, fields: List[str] = None, ids: List[str] = None) -> List[Dict]:
+        async with self._engine.begin() as conn:
+            stmt = select_builder(USER, ['id'], fields)
+            stmt = where_in_builder(stmt, True, (USER.c.id, ids))
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             return res
@@ -242,18 +300,64 @@ class PostgresJSONBStorage(SystemStorage):
             res = [Tweet(**r) for r in res]
             return res
 
-    async def get_medias(self, fields: List[str] = None, **kwargs) -> List[Media]:
+    async def get_medias(self, fields: List[str] = None, media_keys: List[str] = None) -> List[Media]:
         async with self._engine.begin() as conn:
             stmt = select_builder(MEDIA, ['media_key'], fields)
+            stmt = where_in_builder(stmt, True, (MEDIA.c.media_key, media_keys))
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             res = [Media(**m) for m in res]
             return res
 
-    async def get_rules(self, fields: List[str] = None) -> List[Rule]:
+    async def get_rules(self,
+                        fields: List[str] = None,
+                        ids: List[int] = None,
+                        is_and=True) -> List[Rule]:
         async with self._engine.begin() as conn:
             stmt = select_builder(RULE, ['id'], fields)
+            stmt = where_in_builder(stmt, is_and, (RULE.c.id, ids))
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             res = [Rule(**r) for r in res]
+            return res
+
+    async def get_rule_with_collected_tweets(self,
+                                             tweet_ids: List[str] = None,
+                                             ids: List[int] = None,
+                                             is_and=True) -> List[Rule]:
+        async with self._engine.begin() as conn:
+            stmt = select(COLLECTED_TWEET)
+            stmt = where_in_builder(stmt,
+                                    is_and,
+                                    (COLLECTED_TWEET.c.rule_id, ids),
+                                    (COLLECTED_TWEET.c.tweet_id, tweet_ids))
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            collected = [CollectedTweet(**r) for r in res]
+
+            rule_ids = {c.rule_id for c in collected}
+            rules = await self.get_rules(ids=list(rule_ids))
+            rule_dict: Dict[int, Rule] = {r.id: r for r in rules}
+
+            for c in collected:
+                rule_dict[c.rule_id].collected_tweets[c.tweet_id] = c
+
+            return rules
+
+    async def get_polls(self, fields: List[str] = None, ids: List[str] = None) -> List[Poll]:
+        async with self._engine.begin() as conn:
+            stmt = select_builder(POLL, ['id'], fields)
+            stmt = where_in_builder(stmt, True, (POLL.c.id, ids))
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [Poll(**p) for p in res]
+            return res
+
+    async def get_places(self, fields: List[str] = None, ids: List[str] = None) -> List[Place]:
+        async with self._engine.begin() as conn:
+            stmt = select_builder(PLACE, ['id'], fields)
+            stmt = where_in_builder(stmt, True, (PLACE.c.id, ids))
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [Place(**p) for p in res]
             return res

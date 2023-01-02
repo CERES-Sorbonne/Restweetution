@@ -1,8 +1,9 @@
-from typing import List, Tuple
+from typing import List
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.event_data import BulkIds
 from restweetution.models.twitter import Tweet
+from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 
 
 def get_ids_from_tweet(tweet: Tweet):
@@ -27,32 +28,40 @@ def get_ids_from_tweet(tweet: Tweet):
 
 
 class Extractor:
-    def __init__(self, storage):
+    def __init__(self, storage: PostgresJSONBStorage):
         self.storage = storage
 
-    async def get_tweets(self, expand: List[str] = None, fields=None, **kwargs) -> Tuple[BulkData, List[Tweet]]:
-        bulk_data = BulkData()
-        tweets = await self.storage.get_tweets(**kwargs)
-        bulk_data.add_tweets(tweets)
+    async def expand_tweets(self, tweets: List[Tweet]):
+        data = BulkData()
+        data.add_tweets(tweets)
 
-        if expand:
-            ids = sum([get_ids_from_tweet(t) for t in tweets], BulkIds())
+        ids = sum((get_ids_from_tweet(t) for t in tweets), BulkIds())
 
-            if 'tweet' in expand:
-                tw = await self.storage.get_tweets(fields=fields, ids=ids.tweets)
-                bulk_data.add_tweets(tw)
-            if 'user' in expand:
-                us = await self.storage.get_users(fields=fields, ids=ids.users)
-                bulk_data.add_users(us)
-            if 'poll' in expand:
-                us = await self.storage.get_polls(fields=fields, ids=ids.polls)
-                bulk_data.add_polls(us)
-            if 'place' in expand:
-                us = await self.storage.get_places(fields=fields, ids=ids.places)
-                bulk_data.add_places(us)
-            if 'media' in expand:
-                us = await self.storage.get_medias(fields=fields, ids=ids.medias)
-                bulk_data.add_medias(us)
-        return bulk_data, tweets
+        res_tweets = await self.storage.get_tweets(ids=list(ids.tweets))
+        data.add_tweets(res_tweets)
+
+        res_users = await self.storage.get_users(ids=list(ids.users))
+        data.add_users(res_users)
+
+        res_polls = await self.storage.get_polls(ids=list(ids.polls))
+        data.add_polls(res_polls)
+
+        res_places = await self.storage.get_places(ids=list(ids.places))
+        data.add_places(res_places)
+
+        res_medias = await self.storage.get_medias(media_keys=list(ids.medias))
+        data.add_medias(res_medias)
+
+        res_downloaded = await self.storage.get_downloaded_medias(media_keys=[r.media_key for r in res_medias])
+        for r in res_downloaded:
+            r.media = data.medias[r.media_key]
+
+        data.add_downloaded_medias(res_downloaded)
+
+        res_rule = await self.storage.get_rule_with_collected_tweets(tweet_ids=[t.id for t in data.get_tweets()])
+        data.add_rules(res_rule)
+
+        return data
+
 
 
