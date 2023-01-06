@@ -29,7 +29,7 @@ async def main():
         bulk = await extractor.expand_tweets(res)
         print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
         inter = time.time()
-        await view_exporter.export(bulk_data=bulk, key='elastic', only_ids=[r.id for r in res])
+        await view_exporter.export(bulk_data=bulk, key='grand_remplacement', only_ids=[r.id for r in res])
         print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
 
         run = len(res) > 0
