@@ -13,7 +13,7 @@ async def main():
     conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
     postgres = conf.build_storage()
 
-    date_from = datetime.datetime(2021, 8, 31, 22, 0, tzinfo=datetime.timezone.utc)
+    date_from = datetime.datetime(2021, 10, 10, 22, 0, tzinfo=datetime.timezone.utc)
     date_to = datetime.datetime(2022, 6, 1, 22, 0, tzinfo=datetime.timezone.utc)
     extractor = Extractor(postgres)
     view_exporter = ViewExporter(view=RowView(), exporter=conf.build_elastic())
