@@ -13,8 +13,15 @@ async def main():
     date_to = datetime.datetime(2022, 6, 1, 22, 0, tzinfo=datetime.timezone.utc)
     # res = await postgres.get_tweets_count(rule_ids=[294])
     # res = await postgres.get_tweets_count(date_from=date_from, date_to=date_to)
-    res = await postgres.get_tweets(rule_ids=['78'], date_from=date_from, date_to=date_to)
-    print(len(res))
+    run = True
+    offset = 0
+    limit = 1000
+    while run:
+        res = await postgres.get_tweets(rule_ids=[78], date_from=date_from, date_to=date_to, offset=offset, limit=limit)
+        print(len(res))
+
+        run = len(res) > 0
+        offset += limit
     # print(res)
 
 loop = asyncio.get_event_loop()
