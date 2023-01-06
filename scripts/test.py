@@ -22,7 +22,7 @@ async def main():
         res = await postgres.get_tweets(rule_ids=[78], date_from=date_from, date_to=date_to, offset=offset, limit=limit)
         print(f'GET: { len(res)} tweets: {time.time() - old} seconds')
         inter = time.time()
-        res = await extractor.expand_tweets(res)
+        bulk = await extractor.expand_tweets(res)
         print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
 
         run = len(res) > 0

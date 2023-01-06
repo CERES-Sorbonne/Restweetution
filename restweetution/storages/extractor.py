@@ -57,7 +57,6 @@ class Extractor:
 
         old = time.time()
         await asyncio.gather(*tasks)
-        print(time.time() - old, ' gather time')
 
         if data.medias:
             res_downloaded = await self.storage.get_downloaded_medias(media_keys=list(ids.medias))
