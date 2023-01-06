@@ -1,8 +1,10 @@
 import asyncio
 import datetime
 import os
+import time
 
 from restweetution import config_loader
+from restweetution.storages.extractor import Extractor
 
 
 async def main():
@@ -11,14 +13,17 @@ async def main():
 
     date_from = datetime.datetime(2021, 8, 31, 22, 0, tzinfo=datetime.timezone.utc)
     date_to = datetime.datetime(2022, 6, 1, 22, 0, tzinfo=datetime.timezone.utc)
-    # res = await postgres.get_tweets_count(rule_ids=[294])
-    # res = await postgres.get_tweets_count(date_from=date_from, date_to=date_to)
+    extractor = Extractor(postgres)
     run = True
     offset = 0
     limit = 1000
     while run:
+        old = time.time()
         res = await postgres.get_tweets(rule_ids=[78], date_from=date_from, date_to=date_to, offset=offset, limit=limit)
-        print(len(res))
+        print(f'GET: { len(res)} tweets: {time.time() - old} seconds')
+        inter = time.time()
+        res = await extractor.expand_tweets(res)
+        print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
 
         run = len(res) > 0
         offset += limit
