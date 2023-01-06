@@ -100,7 +100,7 @@ class UserInstance:
                 if not elastic_dashboard:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
                 else:
-                    elastic_dashboard.compute_and_save(bulk_data, collect_tasks.elastic_dashboard_name)
+                    elastic_dashboard.export(bulk_data, collect_tasks.elastic_dashboard_name)
 
         return on_collect_event
 
@@ -114,7 +114,7 @@ class UserInstance:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
                 bulk_data.add_downloaded_medias([d_media])
                 only_ids = media_to_tweet[d_media.media_key]
-                elastic_dashboard.compute_and_save(bulk_data, collect_tasks.elastic_dashboard_name, only_ids=only_ids)
+                elastic_dashboard.export(bulk_data, collect_tasks.elastic_dashboard_name, only_ids=only_ids)
         return on_download_event
 
     def streamer_set_collect_tasks(self, tasks: CollectTasks):

@@ -1,9 +1,7 @@
-import asyncio
 from typing import List
 
 from restweetution.data_view.data_view import DataView
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.twitter import Tweet
 from restweetution.storages.exporter.exporter import Exporter
 
@@ -46,54 +44,62 @@ WITHHELD_COUNTRY_CODES = 'withheld_country_codes'
 WITHHELD_SCOPE = 'withheld_scope'
 RULE_TAGS = 'rule_tags'
 
-tweet_fields = [
-    ID,
-    TEXT,
-    MEDIA_KEYS,
-    MEDIA_SHA1S,
-    MEDIA_FORMAT,
-    MEDIA_TYPES,
-    POLL_IDS,
-    AUTHOR_ID,
-    AUTHOR_USERNAME,
-    CONTEXT_DOMAINS,
-    CONTEXT_ENTITIES,
-    CONVERSATION_ID,
-    CREATED_AT,
-    ANNOTATIONS,
-    CASHTAGS,
-    HASHTAGS,
-    MENTIONS,
-    URLS,
-    COORDINATES,
-    PLACE_ID,
-    IN_REPLY_TO_USER_ID,
-    IN_REPLY_TO_USERNAME,
-    LANG,
-    POSSIBLY_SENSITIVE,
-    RETWEET_COUNT,
-    REPLY_COUNT,
-    LIKE_COUNT,
-    QUOTE_COUNT,
-    REFERENCED_TWEETS_TYPES,
-    REFERENCED_TWEETS_IDS,
-    REFERENCED_TWEETS_AUTHOR_IDS,
-    REFERENCED_TWEETS_AUTHOR_USERNAMES,
-    REPLY_SETTINGS,
-    SOURCE,
-    WITHHELD_COPYRIGHT,
-    WITHHELD_COUNTRY_CODES,
-    WITHHELD_SCOPE,
-    RULE_TAGS
-]
+required_tweet_fields = {
+    ID: 'id',
+    TEXT: 'text',
+    MEDIA_KEYS: 'attachment',
+    MEDIA_SHA1S: 'attachment',
+    MEDIA_FORMAT: 'attachment',
+    MEDIA_TYPES: 'attachment',
+    POLL_IDS: 'attachment',
+    AUTHOR_ID: 'author_id',
+    AUTHOR_USERNAME: 'author_id',
+    CONTEXT_DOMAINS: 'context_annotations',
+    CONTEXT_ENTITIES: 'context_annotations',
+    CONVERSATION_ID: 'conversation_id',
+    CREATED_AT: 'created_at',
+    ANNOTATIONS: 'entities',
+    CASHTAGS: 'entities',
+    HASHTAGS: 'entities',
+    MENTIONS: 'entities',
+    URLS: 'entities',
+    COORDINATES: 'geo',
+    PLACE_ID: 'geo',
+    IN_REPLY_TO_USER_ID: 'in_reply_to_user_id',
+    IN_REPLY_TO_USERNAME: 'in_reply_to_user_id',
+    LANG: 'lang',
+    POSSIBLY_SENSITIVE: 'possibly_sensitive',
+    RETWEET_COUNT: 'public_metrics',
+    REPLY_COUNT: 'public_metrics',
+    LIKE_COUNT: 'public_metrics',
+    QUOTE_COUNT: 'public_metrics',
+    REFERENCED_TWEETS_TYPES: 'referenced_tweets',
+    REFERENCED_TWEETS_IDS: 'referenced_tweets',
+    REFERENCED_TWEETS_AUTHOR_IDS: 'referenced_tweets',
+    REFERENCED_TWEETS_AUTHOR_USERNAMES: 'referenced_tweets',
+    REPLY_SETTINGS: 'reply_settings',
+    SOURCE: 'source',
+    WITHHELD_COPYRIGHT: 'withheld',
+    WITHHELD_COUNTRY_CODES: 'withheld',
+    WITHHELD_SCOPE: 'withheld',
+    RULE_TAGS: 'id'
+}
+
+tweet_fields = list(required_tweet_fields.keys())
 
 
 class RowView(DataView):
-    def __init__(self, exporter: Exporter):
-        super().__init__(exporter=exporter)
+    @staticmethod
+    def id_field() -> str:
+        return 'id'
 
     @staticmethod
-    def compute(bulk_data: BulkData, key: str, fields: List[str] = None, only_ids: List[str] = None):
+    def get_required_fields(fields: List[str]):
+        res = {required_tweet_fields[f] for f in fields}
+        return list(res)
+
+    @staticmethod
+    def compute(bulk_data: BulkData, only_ids: List[str] = None, fields: List[str] = None):
         if not fields:
             fields = tweet_fields.copy()
 
@@ -101,18 +107,13 @@ class RowView(DataView):
         tweets = [bulk_data.tweets[i] for i in only_ids] if only_ids else bulk_data.get_tweets()
 
         for t in tweets:
-            datas.append(RowView._tweet_to_row(t, bulk_data, fields=fields, key=key))
+            datas.append(RowView._tweet_to_row(t, bulk_data, fields=fields))
 
         return datas
 
-    def compute_and_save(self, bulk_data: BulkData, key: str, fields: List[str] = None, only_ids: List[str] = None):
-        res = self.compute(bulk_data, key, fields=fields, only_ids=only_ids)
-        asyncio.create_task(self.exporter.save_custom_datas(res))
-
     @staticmethod
-    def _tweet_to_row(tweet: Tweet, bulk_data: BulkData, fields: List[str], key: str):
-        row = CustomData(key=key, id=tweet.id)
-        data = row.data
+    def _tweet_to_row(tweet: Tweet, bulk_data: BulkData, fields: List[str]):
+        data = {}
 
         for k in fields:
             data[k] = None
@@ -223,4 +224,4 @@ class RowView(DataView):
             safe_set(WITHHELD_SCOPE, tweet.withheld.scope)
             safe_set(WITHHELD_COUNTRY_CODES, tweet.withheld.country_codes)
 
-        return row
+        return data

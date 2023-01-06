@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List
+from typing import List, Dict
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.storages.exporter.exporter import Exporter
@@ -16,10 +16,12 @@ class DataUnit(dict):
 
 
 class DataView(ABC):
-    def __init__(self, exporter: Exporter):
-        self.exporter = exporter
+    @staticmethod
+    def compute(bulk_data: BulkData, only_ids: List[str] = None, **kwargs) -> List[Dict]:
+        raise NotImplementedError('compute not implemented')
 
     @staticmethod
-    def compute(bulk_data: BulkData, key: str, only_ids: List[str] = None):
-        raise NotImplemented('compute not implemented')
+    def id_field() -> str:
+        raise NotImplementedError('Please declare a field to be used as id')
+        # example: return 'id'
 

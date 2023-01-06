@@ -8,6 +8,7 @@ import SearcherView from "@/views/SearcherView.vue";
 import DashboardView from "@/views/DashboardView.vue";
 import MediaDownloaderView from "@/views/MediaDownloaderView.vue";
 import ErrorView from '@/views/ErrorView.vue'
+import StorageView from "@/views/StorageView.vue";
 
 
 const router = createRouter({
@@ -57,6 +58,11 @@ const router = createRouter({
       path: '/media',
       name: 'media',
       component: MediaDownloaderView
+    },
+    {
+      path: '/storage',
+      name: 'storage',
+      component: StorageView
     }
   ],
 });

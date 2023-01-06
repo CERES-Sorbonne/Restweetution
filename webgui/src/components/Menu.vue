@@ -18,6 +18,7 @@ const store = useStore()
                 <router-link class="nav-item nav-link" to="/rules">Rules</router-link>
                 <router-link class="nav-item nav-link" to="/errors">Errors</router-link>
                 <router-link class="nav-item nav-link" to="/media">Media Downloader</router-link>
+                <router-link class="nav-item nav-link" to="/storage">Storage</router-link>
             </div>
             <div class="navbar-nav ms-auto">
                 <router-link to="/streamer" v-if="store.hasSelectedUser" class="nav-item nav-link pe-5">Streamer</router-link>

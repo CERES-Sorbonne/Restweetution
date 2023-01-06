@@ -228,14 +228,16 @@ class PostgresJSONBStorage(SystemStorage):
                          date_to: datetime.datetime = None,
                          offset: int = None,
                          limit: int = None,
-                         rule_ids: List[int] = None) -> List[Tweet]:
+                         rule_ids: List[int] = None,
+                         desc: bool = False) -> List[Tweet]:
         res = await self.get_tweets_raw(fields=fields,
                                         ids=ids,
                                         date_from=date_from,
                                         date_to=date_to,
                                         offset=offset,
                                         limit=limit,
-                                        rule_ids=rule_ids)
+                                        rule_ids=rule_ids,
+                                        desc=desc)
         res = [Tweet(**r) for r in res]
         return res
 
@@ -246,7 +248,8 @@ class PostgresJSONBStorage(SystemStorage):
                              date_to: datetime.datetime = None,
                              offset: int = None,
                              limit: int = None,
-                             rule_ids: List[int] = None) -> List[Dict]:
+                             rule_ids: List[int] = None,
+                             desc: bool = False) -> List[Dict]:
         async with self._engine.begin() as conn:
             stmt = select_builder(TWEET, ['id'], fields)
 
@@ -257,6 +260,10 @@ class PostgresJSONBStorage(SystemStorage):
             stmt = where_in_builder(stmt, True, (TWEET.c.id, ids))
             stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
             stmt = offset_limit(stmt, offset, limit)
+            if desc:
+                stmt = stmt.order_by(TWEET.c.created_at.desc())
+            else:
+                stmt = stmt.order_by(TWEET.c.created_at.asc())
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             return res

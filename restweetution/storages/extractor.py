@@ -1,3 +1,5 @@
+import asyncio
+import time
 from typing import List
 
 from restweetution.models.bulk_data import BulkData
@@ -37,31 +39,32 @@ class Extractor:
 
         ids = sum((get_ids_from_tweet(t) for t in tweets), BulkIds())
 
-        res_tweets = await self.storage.get_tweets(ids=list(ids.tweets))
-        data.add_tweets(res_tweets)
+        async def get_and_save(get_func, save_func):
+            res = await get_func
+            save_func(res)
 
-        res_users = await self.storage.get_users(ids=list(ids.users))
-        data.add_users(res_users)
+        tasks = []
+        if ids.tweets:
+            tasks.append(get_and_save(self.storage.get_tweets(ids=list(ids.tweets)), data.add_tweets))
+        if ids.users:
+            tasks.append(get_and_save(self.storage.get_users(ids=list(ids.users)), data.add_users))
+        if ids.polls:
+            tasks.append(get_and_save(self.storage.get_polls(ids=list(ids.polls)), data.add_polls))
+        if ids.places:
+            tasks.append(get_and_save(self.storage.get_places(ids=list(ids.places)), data.add_places))
+        if ids.medias:
+            tasks.append(get_and_save(self.storage.get_medias(media_keys=list(ids.medias)), data.add_medias))
 
-        res_polls = await self.storage.get_polls(ids=list(ids.polls))
-        data.add_polls(res_polls)
+        old = time.time()
+        await asyncio.gather(*tasks)
+        print(time.time() - old, ' gather time')
 
-        res_places = await self.storage.get_places(ids=list(ids.places))
-        data.add_places(res_places)
-
-        res_medias = await self.storage.get_medias(media_keys=list(ids.medias))
-        data.add_medias(res_medias)
-
-        res_downloaded = await self.storage.get_downloaded_medias(media_keys=[r.media_key for r in res_medias])
-        for r in res_downloaded:
-            r.media = data.medias[r.media_key]
-
-        data.add_downloaded_medias(res_downloaded)
+        if data.medias:
+            res_downloaded = await self.storage.get_downloaded_medias(media_keys=list(ids.medias))
+            for r in res_downloaded:
+                r.media = data.medias[r.media_key]
+            data.add_downloaded_medias(res_downloaded)
 
         res_rule = await self.storage.get_rule_with_collected_tweets(tweet_ids=[t.id for t in data.get_tweets()])
         data.add_rules(res_rule)
-
         return data
-
-
-
