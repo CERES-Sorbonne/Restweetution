@@ -4,6 +4,8 @@ import os
 import time
 
 from restweetution import config_loader
+from restweetution.data_view.row_view import RowView
+from restweetution.data_view.view_exporter import ViewExporter
 from restweetution.storages.extractor import Extractor
 
 
@@ -14,6 +16,8 @@ async def main():
     date_from = datetime.datetime(2021, 8, 31, 22, 0, tzinfo=datetime.timezone.utc)
     date_to = datetime.datetime(2022, 6, 1, 22, 0, tzinfo=datetime.timezone.utc)
     extractor = Extractor(postgres)
+    view_exporter = ViewExporter(view=RowView(), exporter=conf.build_elastic())
+
     run = True
     offset = 0
     limit = 1000
@@ -24,6 +28,9 @@ async def main():
         inter = time.time()
         bulk = await extractor.expand_tweets(res)
         print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
+        inter = time.time()
+        await view_exporter.export(bulk_data=bulk, key='elastic', only_ids=[r.id for r in res])
+        print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
 
         run = len(res) > 0
         offset += limit
