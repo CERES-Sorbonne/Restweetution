@@ -185,6 +185,7 @@ class Searcher:
         recent = self._time_window.recent
         query = self._rule.query
         params = self.get_count_time_params()
+        print(params)
         count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
 
         total_count = 0
