@@ -82,6 +82,7 @@ class Extractor:
         tweets = [c.tweet for c in collected]
         # find ids of objects (tweets, media, polls, etc..) referenced by the tweets
         ref_ids = sum((get_ids_from_tweet(t) for t in tweets), BulkIds())
+        print(f'Extract: tweets: {len(ref_ids.tweets)}, users: {len(ref_ids.users)}, medias: {len(ref_ids.medias)} ...')
 
         # utility function to be awaited later with asyncio.gather
         # the function awaits the get request to the database and uses a given function to save the result
@@ -103,9 +104,7 @@ class Extractor:
         if ref_ids.medias:
             tasks.append(get_and_save(self.storage.get_medias(media_keys=list(ref_ids.medias)), data.add_medias))
 
-        old = time.time()
         await asyncio.gather(*tasks)
-        print(f'gather: {time.time() - old}')
 
         if data.medias:
             res_downloaded = await self.storage.get_downloaded_medias(media_keys=list(ref_ids.medias))
