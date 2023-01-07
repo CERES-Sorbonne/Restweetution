@@ -118,7 +118,7 @@ class Searcher:
         start = self._time_window.start
         if start:
             params['start_time'] = start
-        elif end:
+        if end:
             params['end_time'] = end
         return params
 
