@@ -13,9 +13,9 @@ async def main():
     conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
     postgres = conf.build_storage()
 
-    date_from = datetime.datetime(2021, 10, 10, 22, 0, tzinfo=datetime.timezone.utc)
-    date_to = datetime.datetime(2023, 6, 1, 22, 0, tzinfo=datetime.timezone.utc)
-    rule_ids = [2]
+    date_from = datetime.datetime(2021, 10, 27, 22, 0, tzinfo=datetime.timezone.utc)
+    date_to = datetime.datetime(2022, 6, 1, 0, 0, tzinfo=datetime.timezone.utc)
+    rule_ids = [78]
     extractor = Extractor(postgres)
 
     view_exporter = ViewExporter(view=RowView(), exporter=conf.build_elastic())
