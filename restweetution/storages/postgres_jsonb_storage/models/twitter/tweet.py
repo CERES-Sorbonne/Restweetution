@@ -10,7 +10,7 @@ TWEET = Table(
     Column("id", String, primary_key=True),
     Column('text', String),
     Column('author_id', String),
-    Column('created_at', TIMESTAMP(timezone=True)),
+    Column('created_at', TIMESTAMP(timezone=True), index=True),
     Column('conversation_id', String),
     Column("in_reply_to_user_id", String),
     Column("lang", String),
