@@ -3,6 +3,8 @@ from typing import List, Optional, Dict
 
 from pydantic import BaseModel
 
+from restweetution.models.twitter import Tweet
+
 
 class StreamAPIRule(BaseModel):
     id: str = 'unregistered'
@@ -18,6 +20,7 @@ class CollectedTweet(BaseModel):
     direct_hit: bool = False
     tweet_id: str
     rule_id: int
+    tweet: Optional[Tweet]
 
 
 class Rule(BaseModel):

@@ -4,6 +4,7 @@ from typing import List
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.event_data import BulkIds
+from restweetution.models.rule import CollectedTweet
 from restweetution.models.twitter import Tweet
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 
@@ -57,6 +58,7 @@ class Extractor:
 
         old = time.time()
         await asyncio.gather(*tasks)
+        print(f'gather: {time.time() - old}')
 
         if data.medias:
             res_downloaded = await self.storage.get_downloaded_medias(media_keys=list(ids.medias))
@@ -66,4 +68,49 @@ class Extractor:
 
         res_rule = await self.storage.get_rule_with_collected_tweets(tweet_ids=[t.id for t in data.get_tweets()])
         data.add_rules(res_rule)
+        return data
+
+    async def expand_collected_tweets(self, collected: List[CollectedTweet]):
+        data = BulkData()
+
+        rule_ids = {c.rule_id for c in collected}
+        rule_ids = list(rule_ids)
+        rules = await self.storage.get_rules(ids=rule_ids)
+        data.add_rules(rules)
+        data.add_collected_tweets(collected)
+
+        tweets = [c.tweet for c in collected]
+        # find ids of objects (tweets, media, polls, etc..) referenced by the tweets
+        ref_ids = sum((get_ids_from_tweet(t) for t in tweets), BulkIds())
+
+        # utility function to be awaited later with asyncio.gather
+        # the function awaits the get request to the database and uses a given function to save the result
+        async def get_and_save(get_func, save_func):
+            res = await get_func
+            save_func(res)
+
+        # list of tasks to be gathered later
+        tasks = []
+        if ref_ids.tweets:
+            tasks.append(get_and_save(self.storage.get_collected_tweets(ids=list(ref_ids.tweets), rule_ids=rule_ids),
+                                      data.add_collected_tweets))
+        if ref_ids.users:
+            tasks.append(get_and_save(self.storage.get_users(ids=list(ref_ids.users)), data.add_users))
+        if ref_ids.polls:
+            tasks.append(get_and_save(self.storage.get_polls(ids=list(ref_ids.polls)), data.add_polls))
+        if ref_ids.places:
+            tasks.append(get_and_save(self.storage.get_places(ids=list(ref_ids.places)), data.add_places))
+        if ref_ids.medias:
+            tasks.append(get_and_save(self.storage.get_medias(media_keys=list(ref_ids.medias)), data.add_medias))
+
+        old = time.time()
+        await asyncio.gather(*tasks)
+        print(f'gather: {time.time() - old}')
+
+        if data.medias:
+            res_downloaded = await self.storage.get_downloaded_medias(media_keys=list(ref_ids.medias))
+            for r in res_downloaded:
+                r.media = data.medias[r.media_key]
+            data.add_downloaded_medias(res_downloaded)
+
         return data
