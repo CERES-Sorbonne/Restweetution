@@ -268,6 +268,33 @@ class PostgresJSONBStorage(SystemStorage):
             res = res_to_dicts(res)
             return res
 
+    async def get_collected_tweets(self,
+                                   fields: List[str] = None,
+                                   ids: List[str] = None,
+                                   date_from: datetime.datetime = None,
+                                   date_to: datetime.datetime = None,
+                                   offset: int = None,
+                                   limit: int = None,
+                                   rule_ids: List[int] = None,
+                                   desc: bool = False) -> List[CollectedTweet]:
+        async with self._engine.begin() as conn:
+            stmt = select(TWEET, COLLECTED_TWEET)
+
+            stmt = stmt.select_from(join(TWEET, COLLECTED_TWEET))
+            stmt = stmt.where(COLLECTED_TWEET.c.rule_id.in_(rule_ids))
+
+            stmt = where_in_builder(stmt, True, (TWEET.c.id, ids))
+            stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
+            stmt = offset_limit(stmt, offset, limit)
+            if desc:
+                stmt = stmt.order_by(TWEET.c.created_at.desc())
+            else:
+                stmt = stmt.order_by(TWEET.c.created_at.asc())
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
+            return res
+
     async def get_tweets_count(self,
                                date_from: datetime.datetime = None,
                                date_to: datetime.datetime = None,

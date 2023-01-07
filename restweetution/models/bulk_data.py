@@ -4,7 +4,7 @@ from typing import List, Dict
 
 from pydantic import BaseModel
 
-from restweetution.models.rule import Rule
+from restweetution.models.rule import Rule, CollectedTweet
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.twitter import Media
@@ -102,7 +102,16 @@ class BulkData(BaseModel):
                 self.rules[rule.id] = rule
             else:
                 for collected in rule.collected_tweets_list():
-                    self.rules[rule.id].collected_tweets[collected.rule_tweet_id()] = collected
+                    self.rules[rule.id].collected_tweets[collected.tweet_id] = collected
+
+    def add_collected_tweets(self, collected: List[CollectedTweet]):
+        try:
+            for c in collected:
+                self.rules[c.rule_id].collected_tweets[c.tweet_id] = c
+                if c.tweet:
+                    self.tweets[c.tweet_id] = c.tweet
+        except KeyError as e:
+            raise KeyError('Tried to insert CollectedTweets to a rule not present in the BulkData object', e.__str__())
 
     def add_tweets(self, tweets: List[Tweet]):
         self.set_from_list(self.tweets, tweets)
