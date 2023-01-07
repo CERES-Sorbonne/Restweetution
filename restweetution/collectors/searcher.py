@@ -113,7 +113,7 @@ class Searcher:
         return params
 
     def get_count_time_params(self):
-        params = {}
+        params = {'granularity': 'day'}
         end = self._time_window.end
         start = self._time_window.start
         if start:
