@@ -316,7 +316,7 @@ class PostgresJSONBStorage(SystemStorage):
                 stmt = stmt.order_by(TWEET.c.created_at.asc())
             stream = await conn.stream(stmt)
 
-            async for res in stream.partitions(size=1000):
+            async for res in stream.partitions(size=2000):
                 res = res_to_dicts(res)
                 collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
                 yield collected
