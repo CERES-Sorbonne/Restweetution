@@ -310,14 +310,14 @@ class PostgresJSONBStorage(SystemStorage):
 
             stmt = where_in_builder(stmt, True, (TWEET.c.id, ids))
             stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
-            if desc:
-                stmt = stmt.order_by(TWEET.c.created_at.desc())
-            else:
-                stmt = stmt.order_by(TWEET.c.created_at.asc())
+            # if desc:
+            #     stmt = stmt.order_by(TWEET.c.created_at.desc())
+            # else:
+            #     stmt = stmt.order_by(TWEET.c.created_at.asc())
             conn = await conn.execution_options(yield_per=1000)
             stream = await conn.stream(stmt)
 
-            async for res in stream.partitions(size=1000):
+            async for res in stream.partitions():
                 res = res_to_dicts(res)
                 collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
                 yield collected
