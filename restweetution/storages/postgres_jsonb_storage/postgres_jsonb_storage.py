@@ -314,7 +314,7 @@ class PostgresJSONBStorage(SystemStorage):
                 stmt = stmt.order_by(TWEET.c.created_at.desc())
             else:
                 stmt = stmt.order_by(TWEET.c.created_at.asc())
-            conn = conn.execution_options(yield_per=1000)
+            conn = await conn.execution_options(yield_per=1000)
             stream = await conn.stream(stmt)
 
             async for res in stream.partitions(size=1000):
