@@ -317,7 +317,7 @@ class PostgresJSONBStorage(SystemStorage):
             conn = await conn.execution_options(yield_per=1000)
             stream = await conn.stream(stmt)
 
-            async for res in stream.partitions():
+            async for res in stream.partitions(1000):
                 res = res_to_dicts(res)
                 collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
                 yield collected
