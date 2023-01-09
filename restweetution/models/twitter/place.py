@@ -1,14 +1,14 @@
+from dataclasses import dataclass
 from typing import List, Optional
 
-from pydantic import BaseModel
 
-
-class Place(BaseModel):
+@dataclass
+class Place:
     full_name: str
     id: str
-    contained_within: Optional[List[str]]
-    country: Optional[str]
-    country_code: Optional[str]
-    geo: Optional[dict]
-    name: Optional[str]
-    place_type: Optional[str]
+    contained_within: Optional[List[str]] = None
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    geo: Optional[dict] = None
+    name: Optional[str] = None
+    place_type: Optional[str] = None

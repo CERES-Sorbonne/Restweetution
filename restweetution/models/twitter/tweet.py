@@ -1,117 +1,123 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import List
 
 from pydantic import BaseModel
 
-from restweetution.models.twitter.entities import Annotation, Tag, Url, Mention
-from restweetution.models.twitter.media import Media
-from restweetution.models.twitter.place import Place
-from restweetution.models.twitter.poll import Poll
-from restweetution.models.twitter.user import User
+from restweetution.models.twitter import Media, User, Place, Poll
+from restweetution.models.twitter.entities import Annotation, Tag, Mention, Url, Attachments
+from restweetution.models.twitter.utils import nested_dataclass
 
 
-class Attachments(BaseModel):
-    media_keys: List[str] = []
-    poll_ids: List[str] = []
+@nested_dataclass
+class Entities:
+    annotations: List[Annotation] = None
+    cashtags: List[Tag] = None
+    hashtags: List[Tag] = None
+    mentions: List[Mention] = None
+    urls: List[Url] = None
 
 
-class Entities(BaseModel):
-    annotations: Optional[List[Annotation]]
-    cashtags: Optional[List[Tag]]
-    hashtags: Optional[List[Tag]]
-    mentions: Optional[List[Mention]]
-    urls: Optional[List[Url]]
+@nested_dataclass
+class PublicMetrics:
+    retweet_count: int = None
+    reply_count: int = None
+    like_count: int = None
+    quote_count: int = None
 
 
-class PublicMetrics(BaseModel):
-    retweet_count: int
-    reply_count: int
-    like_count: int
-    quote_count: int
+@nested_dataclass
+class Domain:
+    id: str = None
+    name: str = None
+    description: str = None
 
 
-class Domain(BaseModel):
+@nested_dataclass
+class ContextEntity:
+    id: str = None
+    name: str = None
+
+
+@nested_dataclass
+class ContextAnnotation:
+    domain: Domain = None
+    entity: ContextEntity = None
+
+
+@nested_dataclass
+class Coordinates:
+    type: str = None
+    coordinates: List[float] = None
+
+
+@nested_dataclass
+class Geo:
+    coordinates: Coordinates = None
+    place_id: str = None
+
+
+@nested_dataclass
+class NonPublicMetrics:
+    impression_count: int = None
+    url_link_clicks: int = None
+    user_profile_clicks: int = None
+
+
+@nested_dataclass
+class OrganicMetrics:
+    impression_count: int = None
+    like_count: int = None
+    reply_count: int = None
+    retweet_count: int = None
+    url_link_clicks: int = None
+    user_profile_clicks: int = None
+
+
+@nested_dataclass
+class PromotedMetrics:
+    impression_count: int = None
+    like_count: int = None
+    reply_count: int = None
+    retweet_count: int = None
+    url_link_clicks: int = None
+    user_profile_clicks: int = None
+
+
+@nested_dataclass
+class ReferencedTweet:
+    type: str = None
+    id: str = None
+
+
+@nested_dataclass
+class Withheld:
+    copyright: bool = None
+    country_codes: List[str] = None
+    scope: str = None
+
+
+@nested_dataclass
+class Tweet:
     id: str
-    name: str
-    description: Optional[str]
-
-
-class ContextEntity(BaseModel):
-    id: str
-    name: str
-
-
-class ContextAnnotation(BaseModel):
-    domain: Domain
-    entity: ContextEntity
-
-
-class Coordinates(BaseModel):
-    type: str
-    coordinates: List[float]
-
-
-class Geo(BaseModel):
-    coordinates: Optional[Coordinates]
-    place_id: Optional[str]
-
-
-class NonPublicMetrics(BaseModel):
-    impression_count: int
-    url_link_clicks: int
-    user_profile_clicks: int
-
-
-class OrganicMetrics(BaseModel):
-    impression_count: int
-    like_count: int
-    reply_count: int
-    retweet_count: int
-    url_link_clicks: int
-    user_profile_clicks: int
-
-
-class PromotedMetrics(BaseModel):
-    impression_count: int
-    like_count: int
-    reply_count: int
-    retweet_count: int
-    url_link_clicks: int
-    user_profile_clicks: int
-
-
-class ReferencedTweet(BaseModel):
-    type: str
-    id: str
-
-
-class Withheld(BaseModel):
-    copyright: Optional[bool]
-    country_codes: Optional[List[str]]
-    scope: Optional[str]
-
-
-class Tweet(BaseModel):
-    id: str
-    text: Optional[str]
-    attachments: Optional[Attachments]
-    author_id: Optional[str]
-    context_annotations: Optional[List[ContextAnnotation]]
-    conversation_id: Optional[str]
-    created_at: Optional[datetime]
-    entities: Optional[Entities]
-    geo: Optional[Geo]
-    in_reply_to_user_id: Optional[str]
-    lang: Optional[str]
-    non_public_metrics: Optional[NonPublicMetrics]
-    organic_metrics: Optional[OrganicMetrics]
-    possibly_sensitive: Optional[bool]
-    promoted_metrics: Optional[PromotedMetrics]
-    public_metrics: Optional[PublicMetrics]
-    referenced_tweets: Optional[List[ReferencedTweet]]
-    reply_settings: Optional[str]
-    source: Optional[str]
-    withheld: Optional[Withheld]
+    text: str = None
+    attachments: Attachments = None
+    author_id: str = None
+    context_annotations: List[ContextAnnotation] = None
+    conversation_id: str = None
+    created_at: datetime = None
+    entities: Entities = None
+    geo: Geo = None
+    in_reply_to_user_id: str = None
+    lang: str = None
+    non_public_metrics: NonPublicMetrics = None
+    organic_metrics: OrganicMetrics = None
+    possibly_sensitive: bool = None
+    promoted_metrics: PromotedMetrics = None
+    public_metrics: PublicMetrics = None
+    referenced_tweets: List[ReferencedTweet] = None
+    reply_settings: str = None
+    source: str = None
+    withheld: Withheld = None
 
     def retweet_id(self):
         if not self.referenced_tweets:
@@ -122,21 +128,24 @@ class Tweet(BaseModel):
         return retweet_id
 
 
-class Includes(BaseModel):
-    media: List[Media] = []
-    users: List[User] = []
-    places: List[Place] = []
-    polls: List[Poll] = []
-    tweets: List[Tweet] = []
+@nested_dataclass
+class Includes:
+    media: List[Media] = None
+    users: List[User] = None
+    places: List[Place] = None
+    polls: List[Poll] = None
+    tweets: List[Tweet] = None
 
 
+@nested_dataclass
 class RuleId(BaseModel):
     id: str
     tag: str
 
 
+@nested_dataclass
 class TweetResponse(BaseModel):
     data: Tweet
-    includes: Optional[Includes]
-    matching_rules: Optional[List[RuleId]]
-    errors: Optional[List[dict]]
+    includes: Includes = None
+    matching_rules: List[RuleId] = None
+    errors: List[dict] = None

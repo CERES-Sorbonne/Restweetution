@@ -1,18 +1,19 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel
 
-
-class PollOption(BaseModel):
+@dataclass
+class PollOption:
     position: int
     label: str
     votes: int
 
 
-class Poll(BaseModel):
+@dataclass
+class Poll:
     id: str
     options: List[PollOption]
-    duration_minutes: Optional[int]
-    end_datetime: Optional[datetime]
-    voting_status: Optional[str]
+    duration_minutes: Optional[int] = None
+    end_datetime: Optional[datetime] = None
+    voting_status: Optional[str] = None

@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import datetime
 from typing import List, Optional, Dict
 
@@ -15,12 +16,13 @@ class StreamAPIRule(BaseModel):
         return hash(self.value)
 
 
-class CollectedTweet(BaseModel):
+@dataclasses.dataclass
+class CollectedTweet:
     collected_at: datetime = datetime.now()
     direct_hit: bool = False
-    tweet_id: str
-    rule_id: int
-    tweet: Optional[Tweet]
+    tweet_id: str = None
+    rule_id: int = None
+    tweet: Optional[Tweet] = None
 
 
 class Rule(BaseModel):

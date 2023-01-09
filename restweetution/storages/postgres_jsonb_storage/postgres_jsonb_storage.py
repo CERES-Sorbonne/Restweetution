@@ -320,8 +320,8 @@ class PostgresJSONBStorage(SystemStorage):
 
             async for res in stream.partitions(1000):
                 res = res_to_dicts(res)
-                collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
-                yield collected
+                # res = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
+                yield res
 
     async def get_tweets_count(self,
                                date_from: datetime.datetime = None,

@@ -1,43 +1,47 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Any
-
-from pydantic import BaseModel
 
 from restweetution.models.twitter.entities import Tag, Url
 
 
-class UserHashtags(BaseModel):
-    hashtags: Optional[List[Tag]]
+@dataclass
+class UserHashtags:
+    hashtags: Optional[List[Tag]] = None
 
 
-class UserMetrics(BaseModel):
+@dataclass
+class UserMetrics:
     followers_count: int
     following_count: int
     tweet_count: int
     listed_count: int
 
 
-class UserUrls(BaseModel):
-    urls: List[Url]
+@dataclass
+class UserUrls:
+    urls: List[Url] = None
 
 
-class UserEntity(BaseModel):
-    url: Optional[UserUrls]
-    description: Optional[UserHashtags]
+@dataclass
+class UserEntity:
+    url: Optional[UserUrls] = None
+    description: Optional[UserHashtags] = None
 
 
-class User(BaseModel):
+@dataclass
+class User:
     id: str
-    name: str
-    username: str
-    created_at: Optional[datetime]
-    description: Optional[str]
-    entities: Optional[UserEntity]
-    location: Optional[str]
-    pinned_tweet_id: Optional[str]
-    profile_image_url: Optional[str]
-    protected: Optional[bool]
-    public_metrics: Optional[UserMetrics]
-    url: Optional[str]
-    verified: Optional[bool]
-    withheld: Any
+    name: str = None
+    username: str = None
+    created_at: Optional[datetime] = None
+    description: Optional[str] = None
+    entities: Optional[UserEntity] = None
+    location: Optional[str] = None
+    pinned_tweet_id: Optional[str] = None
+    profile_image_url: Optional[str] = None
+    protected: Optional[bool] = None
+    public_metrics: Optional[UserMetrics] = None
+    url: Optional[str] = None
+    verified: Optional[bool] = None
+    withheld: Any = None
