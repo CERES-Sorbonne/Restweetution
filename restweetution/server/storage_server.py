@@ -82,6 +82,7 @@ async def get_tweets(query: TweetQuery):
         query.fields = RowView.get_required_fields(query.fields)
 
     query.limit = 100
+    logger.warning(f'Start get_tweets: {query}')
     tweets = await storage.get_tweets(**query.dict())
     bulk_data = await extractor.expand_tweets(tweets)
     res = RowView.compute(bulk_data, only_ids=[t.id for t in tweets], fields=row_fields)
