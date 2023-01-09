@@ -282,9 +282,8 @@ class PostgresJSONBStorage(SystemStorage):
             stmt = select(TWEET, COLLECTED_TWEET)
 
             stmt = stmt.select_from(join(TWEET, COLLECTED_TWEET))
-            stmt = stmt.where(COLLECTED_TWEET.c.rule_id.in_(rule_ids))
 
-            stmt = where_in_builder(stmt, True, (TWEET.c.id, ids))
+            stmt = where_in_builder(stmt, True, (TWEET.c.id, ids), (COLLECTED_TWEET.c.rule_id, rule_ids))
             stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
             stmt = offset_limit(stmt, offset, limit)
             if desc:
