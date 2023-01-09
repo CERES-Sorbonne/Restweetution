@@ -85,7 +85,7 @@ async def get_tweets(query: TweetQuery):
     tweets = await storage.get_collected_tweets(**query.dict())
     if tweets:
         bulk_data = await extractor.expand_collected_tweets(tweets)
-        res = RowView.compute(bulk_data, only_ids=[t.id for t in tweets], fields=row_fields)
+        res = RowView.compute(bulk_data, only_ids=[t.tweet_id for t in tweets], fields=row_fields)
         return res
     return []
 
