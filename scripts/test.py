@@ -18,17 +18,21 @@ async def main():
     rule_ids = [78]
     extractor = Extractor(postgres)
 
-    view_exporter = ViewExporter(view=RowView(), exporter=conf.build_elastic())
-    old = time.time()
-    async for res in postgres.get_collected_tweets_stream(rule_ids=rule_ids, date_from=date_from, date_to=date_to):
-        print(f'GET: { len(res)} tweets: {time.time() - old} seconds')
-        inter = time.time()
-        bulk = await extractor.expand_collected_tweets(res)
-        print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
-        inter = time.time()
-        await view_exporter.export(bulk_data=bulk, key='grand_remplacement', only_ids=[r.tweet_id for r in res])
-        print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
-        old = time.time()
+    res = await extractor.expand_collected_tweets([])
+    rows = RowView.compute(res, only_ids=[])
+    print(rows)
+
+    # view_exporter = ViewExporter(view=RowView(), exporter=conf.build_elastic())
+    # old = time.time()
+    # async for res in postgres.get_collected_tweets_stream(rule_ids=rule_ids, date_from=date_from, date_to=date_to):
+    #     print(f'GET: { len(res)} tweets: {time.time() - old} seconds')
+    #     inter = time.time()
+    #     bulk = await extractor.expand_collected_tweets(res)
+    #     print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
+    #     inter = time.time()
+    #     await view_exporter.export(bulk_data=bulk, key='grand_remplacement', only_ids=[r.tweet_id for r in res])
+    #     print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
+    #     old = time.time()
 
 
 loop = asyncio.new_event_loop()
