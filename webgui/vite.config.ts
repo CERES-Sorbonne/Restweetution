@@ -19,7 +19,14 @@ export default defineConfig({
            secure: false,      
            ws: true,
            rewrite: (path) => path.replace(/^\/collector_api/, '')
-       }
+       },
+       '/storage_api': {
+        target: 'http://localhost:1234',
+        changeOrigin: true,
+        secure: false,      
+        ws: true,
+        rewrite: (path) => path.replace(/^\/storage_api/, '')
+    }
     }
   }
 });

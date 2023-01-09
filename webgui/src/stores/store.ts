@@ -1,6 +1,6 @@
 import { ref, reactive, computed, watch } from "vue";
 import { defineStore } from "pinia";
-import * as api from "../api/api"
+import * as api from "../api/collector"
 import { toDatetimeInputString } from "@/utils";
 
 interface Task {
@@ -15,6 +15,11 @@ export interface CollectTasks {
     elastic_dashboard_name: String
 }
 
+export interface Rule {
+    id: number
+    tag: string
+    query: string
+}
 
 interface User {
     name: string
@@ -113,6 +118,7 @@ export const useStore = defineStore("store", () => {
     }
 
     const orderedRules = computed(() => [...rules].sort((a, b) => b.tweet_count - a.tweet_count))
+    const rulesOrderId = computed(() => [...rules].sort((a, b) => a.id - b.id))
 
 
     function reset_users() {
@@ -394,7 +400,7 @@ export const useStore = defineStore("store", () => {
         verifyQuery,
         streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, streamerVerify, streamerSync, streamerSetCollectTasks,
         searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow, connection, searcherSetCollectTasks,
-        rules, loadRules, orderedRules, addRules,
+        rules, loadRules, orderedRules, addRules, rulesOrderId,
         notifs, searcherNotifs, streamerNotifs
     }
 });
