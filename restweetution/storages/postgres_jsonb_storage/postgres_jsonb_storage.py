@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 import time
+from dataclasses import asdict
 from typing import List, TypeVar, Callable, Dict
 
 from pydantic import BaseModel
@@ -213,13 +214,13 @@ class PostgresJSONBStorage(SystemStorage):
             await conn.execute(stmt, values)
 
     @staticmethod
-    async def _upsert_table(conn, table: Table, rows: List[BaseModel]):
+    async def _upsert_table(conn, table: Table, rows: List):
         stmt = insert(table)
         stmt = stmt.on_conflict_do_update(
             index_elements=primary_keys(table),
             set_=update_dict(stmt, rows)
         )
-        values = [r.dict() for r in rows]
+        values = [r for r in rows]
         await conn.execute(stmt, values)
 
     async def get_tweets(self,

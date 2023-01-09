@@ -10,11 +10,12 @@ def res_to_dicts(res):
     return [dict(r) for r in res]
 
 
-def find_fields(datas: List[BaseModel]):
-    fields = set()
+def find_fields(datas: List):
+    total_fields = set()
     for d in datas:
-        fields.update(d.__fields_set__)
-    return fields
+        fields = [f for f in d.__annotations__ if getattr(d, f)]
+        total_fields.update(fields)
+    return total_fields
 
 
 def update_dict(stmt, datas: List[BaseModel]):

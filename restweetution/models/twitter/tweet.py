@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List
 
@@ -137,14 +138,14 @@ class Includes:
     tweets: List[Tweet] = None
 
 
-@nested_dataclass
-class RuleId(BaseModel):
+@dataclass
+class RuleId:
     id: str
     tag: str
 
 
 @nested_dataclass
-class TweetResponse(BaseModel):
+class TweetResponse:
     data: Tweet
     includes: Includes = None
     matching_rules: List[RuleId] = None
