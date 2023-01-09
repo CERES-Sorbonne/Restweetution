@@ -326,7 +326,7 @@ class PostgresJSONBStorage(SystemStorage):
     async def get_tweets_count(self,
                                date_from: datetime.datetime = None,
                                date_to: datetime.datetime = None,
-                               rule_ids: List[int] = None) -> List[Dict]:
+                               rule_ids: List[int] = None) -> int:
         async with self._engine.begin() as conn:
             stmt = select(func.count().label('count'))
             if rule_ids:

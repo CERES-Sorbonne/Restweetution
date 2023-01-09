@@ -65,14 +65,12 @@ class TweetQuery(TweetCountQuery):
 def register_exception(app: FastAPI):
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
-
         exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
         # or logger.error(f'{exc}')
         logger.error(request, exc_str)
         content = {'status_code': 10422, 'message': exc_str, 'data': None}
         return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-register_exception(app)
 
 @app.post("/tweets")
 async def get_tweets(query: TweetQuery):
@@ -82,6 +80,8 @@ async def get_tweets(query: TweetQuery):
     row_fields = query.fields
     if query.fields:
         query.fields = RowView.get_required_fields(query.fields)
+
+    query.limit = 100
     tweets = await storage.get_tweets(**query.dict())
     bulk_data = await extractor.expand_tweets(tweets)
     res = RowView.compute(bulk_data, only_ids=[t.id for t in tweets], fields=row_fields)
@@ -99,11 +99,9 @@ async def get_tweet_discover(query: TweetQuery):
     count = await get_tweet_count(TweetCountQuery(**query.dict()))
 
     query.offset = None
-    if not query.limit or query.limit > 100 or query.limit < 1:
-        query.limit = 100
-
     tweets = await get_tweets(query)
     return {"count": count, "tweets": tweets}
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+register_exception(app)
