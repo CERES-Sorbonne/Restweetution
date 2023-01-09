@@ -31,8 +31,6 @@ async def main():
         old = time.time()
 
 
-try:
-    asyncio.run(main())
-except Exception as e:
-    pass
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
 
