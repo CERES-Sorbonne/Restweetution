@@ -36,6 +36,10 @@ class Extractor:
 
     async def expand_tweets(self, tweets: List[Tweet]):
         data = BulkData()
+
+        if not tweets:
+            return data
+
         data.add_tweets(tweets)
 
         ids = sum((get_ids_from_tweet(t) for t in tweets), BulkIds())
