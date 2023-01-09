@@ -35,5 +35,5 @@ loop = asyncio.new_event_loop()
 try:
     loop.run_until_complete(main())
 except KeyboardInterrupt:
-    pass
+    loop.run_until_complete()
 
