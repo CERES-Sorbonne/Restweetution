@@ -77,8 +77,8 @@ class Extractor:
     async def expand_collected_tweets(self, collected: List[CollectedTweet]):
         data = BulkData()
 
-        # if not collected:
-        #     return data
+        if not collected:
+            return data
 
         rule_ids = {c.rule_id for c in collected}
         rule_ids = list(rule_ids)
