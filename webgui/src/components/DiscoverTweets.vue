@@ -133,7 +133,7 @@ watch(selectedRules, resetTweetResult)
             <hr/>
             <div class="text-center">
                 <button @click="getCount" type="button" class="btn btn-outline-primary btn-lg me-2">Count</button>
-                <button @click="discover" type="button" class="btn btn-outline-primary btn-lg me-2">Search</button>
+                <button @click="discover" type="button" class="btn btn-outline-primary btn-lg me-2">Discover</button>
                 <br />
                 <br />
                 <div v-if="(tweetResult.count != -1)">
