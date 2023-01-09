@@ -32,8 +32,5 @@ async def main():
 
 
 loop = asyncio.new_event_loop()
-try:
-    loop.run_until_complete(main())
-except KeyboardInterrupt:
-    loop.run_until_complete()
+loop.run_until_complete(main())
 
