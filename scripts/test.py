@@ -15,7 +15,7 @@ async def main():
 
     date_from = datetime.datetime(2020, 9, 1, 0, 0, tzinfo=datetime.timezone.utc)
     date_to = datetime.datetime(2024, 6, 1, 0, 0, tzinfo=datetime.timezone.utc)
-    rule_ids = [2]
+    rule_ids = [78]
     extractor = Extractor(postgres)
 
     view_exporter = ViewExporter(view=RowView(), exporter=conf.build_elastic())
