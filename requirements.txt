@@ -9,7 +9,6 @@ elasticsearch
 aiohttp
 aiofiles
 sqlalchemy
-psycopg2
 httpx
 setuptools
 tweepy[async]

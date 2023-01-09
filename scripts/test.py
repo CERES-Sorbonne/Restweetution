@@ -24,12 +24,12 @@ async def main():
         print(f'GET: { len(res)} tweets: {time.time() - old} seconds')
         # print(res[0])
         inter = time.time()
-        # await postgres.get_tweets(rule_ids=[2])
-        # bulk = await extractor.expand_collected_tweets(res)
-        # print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
-        # inter = time.time()
-        # # await view_exporter.export(bulk_data=bulk, key='debug', only_ids=[r.tweet_id for r in res])
-        # print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
+        await postgres.get_tweets(rule_ids=[2])
+        bulk = await extractor.expand_collected_tweets(res)
+        print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
+        inter = time.time()
+        await view_exporter.export(bulk_data=bulk, key='grand_remplacement', only_ids=[r.tweet_id for r in res])
+        print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
         old = time.time()
 
 
