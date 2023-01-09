@@ -15,7 +15,7 @@ async def main():
 
     date_from = datetime.datetime(2021, 9, 1, 0, 0, tzinfo=datetime.timezone.utc)
     date_to = datetime.datetime(2022, 6, 1, 0, 0, tzinfo=datetime.timezone.utc)
-    rule_ids = [78]
+    rule_ids = [2]
     extractor = Extractor(postgres)
 
     view_exporter = ViewExporter(view=RowView(), exporter=conf.build_elastic())
@@ -23,12 +23,11 @@ async def main():
     async for res in postgres.get_collected_tweets_stream(rule_ids=rule_ids, date_from=date_from, date_to=date_to):
         print(f'GET: { len(res)} tweets: {time.time() - old} seconds')
         inter = time.time()
-        # await postgres.get_tweets(rule_ids=[2])
         bulk = await extractor.expand_collected_tweets(res)
         print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
-        # inter = time.time()
-        # # await view_exporter.export(bulk_data=bulk, key='debug', only_ids=[r.tweet_id for r in res])
-        # print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
+        inter = time.time()
+        await view_exporter.export(bulk_data=bulk, key='grand_remplacement', only_ids=[r.tweet_id for r in res])
+        print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
         old = time.time()
 
 
