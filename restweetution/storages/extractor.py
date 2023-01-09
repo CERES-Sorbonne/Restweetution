@@ -37,7 +37,7 @@ class Extractor:
     async def expand_tweets(self, tweets: List[Tweet]):
         data = BulkData()
 
-        if not tweets:
+        if not tweets or not len(tweets) > 0:
             return data
 
         data.add_tweets(tweets)
