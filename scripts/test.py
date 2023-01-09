@@ -31,4 +31,8 @@ async def main():
         old = time.time()
 
 
-asyncio.run(main())
+try:
+    asyncio.run(main())
+except Exception as e:
+    pass
+
