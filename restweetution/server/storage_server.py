@@ -1,14 +1,11 @@
 import asyncio
-import datetime
 import logging
 import os
 from time import time
-from typing import List
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -16,6 +13,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from restweetution import config_loader
 from restweetution.data_view.row_view import RowView
+from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery
 from restweetution.server.connection_manager import ConnectionManager
 from restweetution.storages.extractor import Extractor
 
@@ -48,22 +46,8 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
-class TweetCountQuery(BaseModel):
-    date_from: datetime.datetime = None
-    date_to: datetime.datetime = None
-    rule_ids: List[int] = None
-
-
-class TweetQuery(TweetCountQuery):
-    ids: List[str] = None
-    offset: int = None
-    limit: int = None
-    desc: bool = False
-    fields: List[str] = None
-
-
-def register_exception(app: FastAPI):
-    @app.exception_handler(RequestValidationError)
+def register_exception(app_: FastAPI):
+    @app_.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
         # or logger.error(f'{exc}')
@@ -73,22 +57,20 @@ def register_exception(app: FastAPI):
 
 
 @app.post("/tweets")
-async def get_tweets(query: TweetQuery):
+async def get_tweets(query: TweetRowQuery):
     if not query.limit or query.limit > 100 or query.limit < 1:
         query.limit = 100
 
-    row_fields = query.fields
-    if query.fields:
-        query.fields = RowView.get_required_fields(query.fields)
-
     old = time()
-    tweets = await storage.get_collected_tweets(**query.dict())
+
+    t_query = CollectedTweetQuery(**query.dict())
+    tweets = await storage.get_collected_tweets(**t_query.dict())
     logger.info(f'get_collected_tweets: {time() - old} seconds')
     if tweets:
         inter = time()
         bulk_data = await extractor.expand_collected_tweets(tweets)
         logger.info(f'expand_collected_tweets: {time() - inter} seconds')
-        res = RowView.compute(bulk_data, only_ids=[t.tweet_id for t in tweets], fields=row_fields)
+        res = RowView.compute(bulk_data, only_ids=[t.tweet_id for t in tweets], fields=query.row_fields)
         logger.info(f'get_tweets: {time() - old} seconds')
         return res
     return []
@@ -102,7 +84,7 @@ async def get_tweet_count(query: TweetCountQuery):
 
 
 @app.post("/tweet_discover")
-async def get_tweet_discover(query: TweetQuery):
+async def get_tweet_discover(query: TweetRowQuery):
     query.offset = None
 
     count, tweets = await asyncio.gather(get_tweet_count(TweetCountQuery(**query.dict())), get_tweets(query))

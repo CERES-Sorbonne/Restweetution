@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import logging
-import time
 from typing import List, TypeVar, Callable, Dict
 
 from pydantic import BaseModel
@@ -18,7 +17,7 @@ from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter import Tweet, Media, User, Poll, Place
 from restweetution.storages.postgres_jsonb_storage.helpers import res_to_dicts, update_dict, where_in_builder, \
-    select_builder, primary_keys, offset_limit, date_from_to
+    select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
 from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
     USER, POLL, PLACE, COLLECTED_TWEET, DOWNLOADED_MEDIA
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
@@ -269,55 +268,63 @@ class PostgresJSONBStorage(SystemStorage):
             res = res_to_dicts(res)
             return res
 
-    async def get_collected_tweets(self,
-                                   fields: List[str] = None,
+    @staticmethod
+    def _get_collected_tweets_stmt(tweet_fields: List[str] = None,
+                                   collected_fields: List[str] = None,
                                    ids: List[str] = None,
                                    date_from: datetime.datetime = None,
                                    date_to: datetime.datetime = None,
-                                   offset: int = None,
-                                   limit: int = None,
                                    rule_ids: List[int] = None,
-                                   desc: bool = False) -> List[CollectedTweet]:
+                                   desc: bool = False,
+                                   offset: int = None,
+                                   limit: int = None):
+        stmt = select_join_builder((TWEET, tweet_fields), (COLLECTED_TWEET, collected_fields))
+
+        stmt = where_in_builder(stmt, True, (TWEET.c.id, ids), (COLLECTED_TWEET.c.rule_id, rule_ids))
+        stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
+        stmt = offset_limit(stmt, offset, limit)
+        if desc:
+            stmt = stmt.order_by(TWEET.c.created_at.desc())
+        else:
+            stmt = stmt.order_by(TWEET.c.created_at.asc())
+        return stmt
+
+    async def get_collected_tweets(self,
+                                   tweet_fields: List[str] = None,
+                                   collected_fields: List[str] = None,
+                                   ids: List[str] = None,
+                                   date_from: datetime.datetime = None,
+                                   date_to: datetime.datetime = None,
+                                   rule_ids: List[int] = None,
+                                   desc: bool = False,
+                                   offset: int = None,
+                                   limit: int = None) -> List[CollectedTweet]:
         async with self._engine.begin() as conn:
-            stmt = select(TWEET, COLLECTED_TWEET)
-
-            stmt = stmt.select_from(join(COLLECTED_TWEET, TWEET))
-
-            stmt = where_in_builder(stmt, True, (TWEET.c.id, ids), (COLLECTED_TWEET.c.rule_id, rule_ids))
-            stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
-            stmt = offset_limit(stmt, offset, limit)
-            if desc:
-                stmt = stmt.order_by(TWEET.c.created_at.desc())
-            else:
-                stmt = stmt.order_by(TWEET.c.created_at.asc())
+            stmt = self._get_collected_tweets_stmt(
+                tweet_fields, collected_fields, ids, date_from, date_to, rule_ids, desc, offset, limit)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             res = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
             return res
 
     async def get_collected_tweets_stream(self,
-                                          fields: List[str] = None,
+                                          tweet_fields: List[str] = None,
+                                          collected_fields: List[str] = None,
                                           ids: List[str] = None,
                                           date_from: datetime.datetime = None,
                                           date_to: datetime.datetime = None,
                                           rule_ids: List[int] = None,
-                                          desc: bool = False):
+                                          desc: bool = False,
+                                          offset: int = None,
+                                          limit: int = None,
+                                          chunk_size=1000) -> List[CollectedTweet]:
         async with self._engine.begin() as conn:
-            stmt = select(TWEET, COLLECTED_TWEET)
-
-            stmt = stmt.select_from(join(TWEET, COLLECTED_TWEET))
-            stmt = stmt.where(COLLECTED_TWEET.c.rule_id.in_(rule_ids))
-
-            stmt = where_in_builder(stmt, True, (TWEET.c.id, ids))
-            stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
-            if desc:
-                stmt = stmt.order_by(TWEET.c.created_at.desc())
-            else:
-                stmt = stmt.order_by(TWEET.c.created_at.asc())
-            conn = await conn.execution_options(yield_per=1000)
+            stmt = self._get_collected_tweets_stmt(
+                tweet_fields, collected_fields, ids, date_from, date_to, rule_ids, desc, offset, limit)
+            conn = await conn.execution_options(yield_per=chunk_size)
             stream = await conn.stream(stmt)
 
-            async for res in stream.partitions(1000):
+            async for res in stream.partitions(chunk_size):
                 res = res_to_dicts(res)
                 collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
                 yield collected
@@ -325,7 +332,7 @@ class PostgresJSONBStorage(SystemStorage):
     async def get_tweets_count(self,
                                date_from: datetime.datetime = None,
                                date_to: datetime.datetime = None,
-                               rule_ids: List[int] = None) -> int:
+                               rule_ids: List[int] = None, ) -> int:
         async with self._engine.begin() as conn:
             stmt = select(func.count().label('count'))
             if rule_ids:

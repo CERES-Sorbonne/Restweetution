@@ -45,6 +45,8 @@ function removeRule(rule: Rule) {
         <div class="col">
             <h5 class="text-center">Selected</h5>
             <RuleSelectionTable :rules="props.selectedRules" action-name="del" @select="removeRule"/>
+            <h4 v-if="(props.selectedRules.length == 0)" class="text-center">All Rules</h4>
+
         </div>
     </div>
 </template>

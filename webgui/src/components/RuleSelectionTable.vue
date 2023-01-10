@@ -28,7 +28,7 @@ function expand(id: number) {
 
 <template>
     <div class="table-responsive">
-        <table class="table table-sm" @click="">
+        <table class="table table-sm">
             <thead>
                 <tr>
                 <th scope="col">ID</th>
@@ -38,9 +38,9 @@ function expand(id: number) {
             </thead>
             <tbody>
                 <template v-for="rule in rules">
-                    <tr @click="expand(rule.id)">
+                    <tr @click="expand(rule.id)" role='button'>
                         <th scope="row" class="align-middle">{{rule.id}}</th>
-                        <td class="align-middle">{{rule.tag}}</td>
+                        <td class="align-middle user-select-none">{{rule.tag}}</td>
                         <td class="text-end"><button @click.stop="$emit('select', rule)" type="button" class="btn btn-light btn-sm">{{actionName}}</button></td>
                     </tr>
                     <tr v-if="(expanded == rule.id)">

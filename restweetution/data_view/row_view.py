@@ -3,7 +3,6 @@ from typing import List
 from restweetution.data_view.data_view import DataView
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.twitter import Tweet
-from restweetution.storages.exporter.exporter import Exporter
 
 ID = 'id'
 TEXT = 'text'
