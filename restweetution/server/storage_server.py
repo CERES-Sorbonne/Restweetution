@@ -103,10 +103,9 @@ async def get_tweet_count(query: TweetCountQuery):
 
 @app.post("/tweet_discover")
 async def get_tweet_discover(query: TweetQuery):
-    count = await get_tweet_count(TweetCountQuery(**query.dict()))
-
     query.offset = None
-    tweets = await get_tweets(query)
+
+    count, tweets = await asyncio.gather(get_tweet_count(TweetCountQuery(**query.dict())), await get_tweets(query))
     return {"count": count, "tweets": tweets}
 
 

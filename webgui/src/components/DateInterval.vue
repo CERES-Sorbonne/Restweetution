@@ -4,6 +4,8 @@ import { toDatetimeInputString } from '@/utils';
 import { computed, reactive, ref } from '@vue/reactivity';
 import { onMounted, watch } from 'vue';
 
+const emits = defineEmits(['update:start', 'update:end'])
+
 const props = defineProps({
     start: String,
     end: String,
@@ -22,6 +24,18 @@ function updateSet() {
 
 onMounted(() => {
     updateSet()
+})
+
+watch(setStart, () => {
+    if(!setStart.value) {
+        emits('update:start', undefined)
+    }
+})
+
+watch(setEnd, () => {
+    if(!setEnd.value) {
+        emits('update:end', undefined)
+    }
 })
 
 </script>
