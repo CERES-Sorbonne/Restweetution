@@ -6,35 +6,33 @@ import time
 from restweetution import config_loader
 from restweetution.data_view.row_view import RowView
 from restweetution.data_view.view_exporter import ViewExporter
+from restweetution.models.storage.queries import CollectedTweetQuery
+from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
+from restweetution.storages.exporter.csv_exporter import CSVExporter
 from restweetution.storages.extractor import Extractor
+from restweetution.tasks.tweet_export_task import TweetExportTask
+
+elastic: ElasticStorage
 
 
 async def main():
+    global elastic
     conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
     postgres = conf.build_storage()
+    elastic = conf.build_elastic()
+    extractor = Extractor(postgres)
+
+    csv = CSVExporter('tweet', '/Users/david/Restweetution')
 
     date_from = datetime.datetime(2021, 9, 1, 0, 0, tzinfo=datetime.timezone.utc)
     date_to = datetime.datetime(2022, 6, 1, 0, 0, tzinfo=datetime.timezone.utc)
-    rule_ids = [78]
-    extractor = Extractor(postgres)
+    rule_ids = [2]
 
-    res = await extractor.expand_collected_tweets([])
-    rows = RowView.compute(res, only_ids=[])
-    print(rows)
+    res = await postgres.get_collected_tweets(rule_ids=rule_ids)
+    bulk = await extractor.expand_collected_tweets(res)
 
-    # view_exporter = ViewExporter(view=RowView(), exporter=conf.build_elastic())
-    # old = time.time()
-    # async for res in postgres.get_collected_tweets_stream(rule_ids=rule_ids, date_from=date_from, date_to=date_to):
-    #     print(f'GET: { len(res)} tweets: {time.time() - old} seconds')
-    #     inter = time.time()
-    #     bulk = await extractor.expand_collected_tweets(res)
-    #     print(f'Extract {time.time() - inter} seconds (total: {time.time() - old})')
-    #     inter = time.time()
-    #     await view_exporter.export(bulk_data=bulk, key='grand_remplacement', only_ids=[r.tweet_id for r in res])
-    #     print(f'Send to dashboard {time.time() - inter} seconds (total: {time.time() - old})')
-    #     old = time.time()
+    view_exporter = ViewExporter(RowView(), csv)
+    await view_exporter.export(bulk_data=bulk, key='felix', only_ids=[r.tweet_id for r in res], fields=['id', 'created_at', 'author_username', 'author_id', 'text', 'in_reply_to_user_id'])
 
 
-loop = asyncio.new_event_loop()
-loop.run_until_complete(main())
-
+asyncio.run(main())
