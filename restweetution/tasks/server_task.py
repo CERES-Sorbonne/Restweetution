@@ -21,20 +21,16 @@ class TaskInfo(BaseModel):
 
 class ServerTask(ABC):
     id_iter = itertools.count()
-    id: int
-    name: str
-
-    task: asyncio.Task = None
-    started_at: datetime
-    _progress: int = 0
-    _max_progress: int = 1
-    on_finish: Event = Event()
-
-    result = {}
 
     def __init__(self, name: str):
         self.id = next(ServerTask.id_iter)
         self.name = name
+        self.result = {}
+        self.on_finish: Event = Event()
+        self.task: asyncio.Task | None = None
+        self.started_at: datetime | None = None
+        self._progress: int = 0
+        self._max_progress: int = 1
 
     def is_running(self):
         return self.task and not self.task.done()

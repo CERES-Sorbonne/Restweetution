@@ -50,6 +50,7 @@ class TweetExportFileTask(TweetExportTask):
                  exporter: FileExporter,
                  key: str):
         super().__init__(storage=storage, query=query, view=view, exporter=exporter, key=key)
+        self.name = 'TweetExportFile'
 
     async def _task_routine(self):
         await super()._task_routine()

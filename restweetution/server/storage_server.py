@@ -137,11 +137,13 @@ async def export_tweets(request: ExportTweetRequest):
 
         exporter = sys_conf.build_csv_exporter(sub_folder=sub_folder)
         task = TweetExportFileTask(storage=storage, query=request.query, view=view, exporter=exporter, key=key)
+        task.name = 'CSV Export'
         on_finish = convert_path
 
     if request.export_type == 'elastic':
         exporter = exporter_elastic
         task = TweetExportTask(storage=storage, query=request.query, view=view, exporter=exporter, key=key)
+        task.name = 'Elastic Export'
 
     if task:
         tasks.append(task)
