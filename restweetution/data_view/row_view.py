@@ -10,6 +10,7 @@ MEDIA_KEYS = 'media_keys'
 MEDIA_SHA1S = 'media_sha1s'
 MEDIA_FORMAT = 'media_format'
 MEDIA_TYPES = 'media_types'
+MEDIA_FILES = 'media_files'
 POLL_IDS = 'poll_ids'
 AUTHOR_ID = 'author_id'
 AUTHOR_USERNAME = 'author_username'
@@ -50,6 +51,7 @@ required_tweet_fields = {
     MEDIA_SHA1S: 'attachments',
     MEDIA_FORMAT: 'attachments',
     MEDIA_TYPES: 'attachments',
+    MEDIA_FILES: 'attachments',
     POLL_IDS: 'attachments',
     AUTHOR_ID: 'author_id',
     AUTHOR_USERNAME: 'author_id',
@@ -134,7 +136,7 @@ class RowView(DataView):
                     tags.update(r.tag.split(','))
             data[RULE_TAGS] = list(tags)
 
-        if any_field(MEDIA_KEYS, MEDIA_SHA1S, MEDIA_TYPES):
+        if any_field(MEDIA_KEYS, MEDIA_SHA1S, MEDIA_TYPES, MEDIA_FILES):
             if tweet.attachments and tweet.attachments.media_keys:
                 keys = tweet.attachments.media_keys
                 safe_set(MEDIA_KEYS, keys)
@@ -145,10 +147,12 @@ class RowView(DataView):
                 d_medias = [bulk_data.downloaded_medias[k] for k in keys if k in bulk_data.downloaded_medias]
                 sha1_list = [m.sha1 for m in d_medias]
                 format_list = [m.format for m in d_medias]
+                file_list = [m.sha1 + '.' + m.format for m in d_medias]
 
                 safe_set(MEDIA_TYPES, type_list)
                 safe_set(MEDIA_SHA1S, sha1_list)
                 safe_set(MEDIA_FORMAT, format_list)
+                safe_set(MEDIA_FILES, file_list)
         if tweet.attachments and tweet.attachments.poll_ids:
             safe_set(POLL_IDS, tweet.attachments.poll_ids)
 

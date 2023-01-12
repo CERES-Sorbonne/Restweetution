@@ -32,7 +32,7 @@ async def main():
     bulk = await extractor.expand_collected_tweets(res)
 
     view_exporter = ViewExporter(RowView(), csv)
-    await view_exporter.export(bulk_data=bulk, key='felix', only_ids=[r.tweet_id for r in res], fields=['id', 'created_at', 'author_username', 'author_id', 'text', 'in_reply_to_user_id'])
+    await view_exporter.export(bulk_data=bulk, key='felix-sha1s', only_ids=[r.tweet_id for r in res], fields=['media_sha1s'])
 
 
 asyncio.run(main())
