@@ -36,7 +36,8 @@ const store = useStorageStore()
             </form>
         </div>
         <div class="col-3">
-            <div v-for="task in store.tasks" class="card">
+            <button type="button" @click="store.loadTasks" class="btn btn-outline-primary mt-2">Reload</button>
+            <div v-for="task in store.tasks" class="card m-2 p-2">
                 {{task.name}} <br />
                 {{task.is_running}} <br />
                 {{ task.progress }} <br />
