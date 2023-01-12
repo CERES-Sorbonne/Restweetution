@@ -2,6 +2,23 @@ import json
 from typing import Dict
 
 
+class AsyncEvent(set):
+    """
+    Event utility class
+    Can be used as set to add callbacks
+    ex: event.add(callback)
+    Use like a function et execute
+    ex: event(*args, **kwargs)
+    """
+
+    async def __call__(self, *args, **kwargs):
+        for f in self:
+            await f(*args, **kwargs)
+
+    def __repr__(self):
+        return "AsyncEvent(%s)" % list.__repr__(self)
+
+
 class Event(set):
     """
     Event utility class
@@ -10,9 +27,10 @@ class Event(set):
     Use like a function et execute
     ex: event(*args, **kwargs)
     """
-    async def __call__(self, *args, **kwargs):
+
+    def __call__(self, *args, **kwargs):
         for f in self:
-            await f(*args, **kwargs)
+            f(*args, **kwargs)
 
     def __repr__(self):
         return "Event(%s)" % list.__repr__(self)

@@ -10,6 +10,7 @@ import CollectionSelection from './CollectionSelection.vue';
 import * as storage_api from '@/api/storage'
 import TweetTable from './TweetTable.vue';
 import RowFieldSelection from './RowFieldSelection.vue';
+import Exporter from '@/components/Exporter.vue'
 
 interface TweetCountQuery{
     date_from?: String
@@ -121,6 +122,9 @@ watch(selectedRules, resetTweetResult)
         <li class="nav-item" @click="setMode(1)">
             <a :class="'nav-link' + discoverTabClass" href="#" >Discover</a>
         </li>
+        <li class="nav-item" @click="setMode(2)">
+            <a class="nav-link" :class="(mode == 2 ? 'active' : '')" href="#" >Export</a>
+        </li>
     </ul>
 
 
@@ -143,7 +147,7 @@ watch(selectedRules, resetTweetResult)
             </div>
         </div>
     </div>
-    <div v-else class="row">
+    <div v-if="(mode == 1)" class="row">
         <div class="col-3">
             <RowFieldSelection :fields="selectedFields"/>
         </div>
@@ -159,6 +163,9 @@ watch(selectedRules, resetTweetResult)
             </div>
             <TweetTable :tweets="tweetResult.tweets" :fields="selectedFields"/>
         </div>
+    </div>
+    <div v-if="(mode == 2)">
+        <Exporter />
     </div>
 
 </template>

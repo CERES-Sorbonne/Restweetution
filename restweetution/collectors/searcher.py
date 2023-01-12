@@ -20,7 +20,7 @@ from restweetution.models.searcher import CountResponse, LookupResponseUnit, Loo
 from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
-from restweetution.utils import Event
+from restweetution.utils import AsyncEvent
 
 from restweetution.models.config.user_config import RuleConfig
 
@@ -41,9 +41,9 @@ class Searcher:
 
         self._collect_task: Optional[asyncio.Task] = None
 
-        self.event_update: Event = Event()
-        self.event_stop = Event()
-        self.event_collect = Event()
+        self.event_update: AsyncEvent = AsyncEvent()
+        self.event_stop = AsyncEvent()
+        self.event_collect = AsyncEvent()
 
         self._running = False
 

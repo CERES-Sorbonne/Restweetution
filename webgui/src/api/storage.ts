@@ -17,3 +17,13 @@ export async function getTweetCount(query = {}) {
     let res = await axios.post(BASE_URL + '/tweet_count', query)
     return res.data
 }
+
+export async function getTasks() {
+    let res = await axios.get(BASE_URL + '/tasks')
+    return res.data
+}
+
+export async function exportTweets(exportQuery: any) {
+    let res = await axios.post(BASE_URL + '/export/tweets', exportQuery)
+    return res.data
+}

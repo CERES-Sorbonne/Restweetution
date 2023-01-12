@@ -1,22 +1,24 @@
 import os
 from collections import defaultdict
-from pathlib import Path
 from typing import List, DefaultDict
 
 import aiofiles
 from aiocsv import AsyncWriter
-from numpy.core.defchararray import isnumeric
+from aiopath import AsyncPath
 
 from restweetution.models.storage.custom_data import CustomData
-from restweetution.storages.exporter.exporter import Exporter
+from restweetution.storages.exporter.exporter import FileExporter
 
 STORAGE_TYPE = 'csv'
 
 
-class CSVExporter(Exporter):
-    def __init__(self, name, root_dir, **kwargs):
+class CSVExporter(FileExporter):
+    def get_root(self) -> AsyncPath:
+        return self._root
+
+    def __init__(self, root_dir, name='csv', **kwargs):
         super().__init__(name)
-        self._root = Path(root_dir)
+        self._root = AsyncPath(root_dir)
         self.root_dir = root_dir
 
     def get_config(self):
@@ -32,15 +34,14 @@ class CSVExporter(Exporter):
             key_group[data.key].append(data)
 
         for key in key_group:
-            rows = sorted(key_group[key], key=lambda x: int(x.id) if isnumeric(x.id) else x.id)
-            min_id = rows[0].id
-            max_id = rows[-1].id
-            filename = key + min_id + '-' + max_id + '.csv'
+            rows = key_group[key]
+            filename = key + '.csv'
+            await self._root.mkdir(parents=True, exist_ok=True)
             path = self._root / filename
-            path = Path(self.uniquify(path))
-            async with aiofiles.open(path, mode="w", encoding="utf-8", newline="") as afp:
+
+            async with aiofiles.open(path, mode="a", encoding="utf-8", newline="") as afp:
                 writer = AsyncWriter(afp, dialect="excel")
-                await writer.writerows([[self._parse(r2) for r2 in r1.data.values()] for r1 in rows])
+                await writer.writerows([[value for value in row.data.values()] for row in rows])
 
     @staticmethod
     def uniquify(path):

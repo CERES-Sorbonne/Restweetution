@@ -19,10 +19,10 @@ async def main():
     global elastic
     conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
     postgres = conf.build_storage()
-    elastic = conf.build_elastic()
+    elastic = conf.build_elastic_exporter()
     extractor = Extractor(postgres)
 
-    csv = CSVExporter('tweet', '/Users/david/Restweetution')
+    csv = CSVExporter('tweet', '/Users/david/Restweetution/csv_dump')
 
     date_from = datetime.datetime(2021, 9, 1, 0, 0, tzinfo=datetime.timezone.utc)
     date_to = datetime.datetime(2022, 6, 1, 0, 0, tzinfo=datetime.timezone.utc)

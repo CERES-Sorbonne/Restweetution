@@ -1,21 +1,17 @@
-import asyncio
-import copy
-import time
 from abc import ABC
-from typing import List, Optional
+from typing import List
 
-from restweetution.errors import handle_error, FunctionNotImplementedError
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.user_config import UserConfig
+from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.rule import Rule
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import User, Tweet
 from restweetution.storages.exporter.exporter import Exporter
-from restweetution.utils import Event
+from restweetution.utils import AsyncEvent
 
 
 class SystemStorage(Exporter, ABC):
@@ -30,7 +26,7 @@ class SystemStorage(Exporter, ABC):
         """
         super().__init__(name)
 
-        self.save_event = Event()
+        self.save_event = AsyncEvent()
 
     # Events
     async def _emit_save_event(self, **kwargs):

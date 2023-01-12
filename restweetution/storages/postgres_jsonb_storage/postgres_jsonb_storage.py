@@ -317,7 +317,7 @@ class PostgresJSONBStorage(SystemStorage):
                                           desc: bool = False,
                                           offset: int = None,
                                           limit: int = None,
-                                          chunk_size=1000) -> List[CollectedTweet]:
+                                          chunk_size=1000):
         async with self._engine.begin() as conn:
             stmt = self._get_collected_tweets_stmt(
                 tweet_fields, collected_fields, ids, date_from, date_to, rule_ids, desc, offset, limit)

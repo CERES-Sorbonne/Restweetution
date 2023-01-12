@@ -14,7 +14,7 @@ from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import User, Tweet
 from restweetution.storages.exporter.exporter import Exporter
-from restweetution.utils import Event
+from restweetution.utils import AsyncEvent
 
 
 class Storage(Exporter, ABC):
@@ -37,8 +37,8 @@ class Storage(Exporter, ABC):
 
         self._periodic_flush_task: Optional[asyncio.Task] = None
 
-        self.save_event = Event()
-        self.update_event = Event()
+        self.save_event = AsyncEvent()
+        self.update_event = AsyncEvent()
 
     # Configuration
     def get_config(self):

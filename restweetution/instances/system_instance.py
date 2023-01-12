@@ -5,14 +5,14 @@ from restweetution.instances.storage_instance import StorageInstance
 from restweetution.instances.user_instance import UserInstance
 from restweetution.models.config.system_config import SystemConfig
 from restweetution.models.config.user_config import UserConfig
-from restweetution.utils import Event
+from restweetution.utils import AsyncEvent
 
 
 class SystemInstance:
     system_config: SystemConfig
     storage_instance: StorageInstance
     user_instances: Dict[str, UserInstance] = {}
-    event = Event()
+    event = AsyncEvent()
 
     def __init__(self, system_config: SystemConfig):
         self.system_config = system_config

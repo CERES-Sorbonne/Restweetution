@@ -17,7 +17,7 @@ from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.collectors.clients.streamer_client import StreamerClient
-from restweetution.utils import Event
+from restweetution.utils import AsyncEvent
 
 logger = logging.getLogger('Streamer')
 
@@ -51,8 +51,8 @@ class Streamer:
         set_error_handler(self._main_error_handler)
 
         self._collect_task: Optional[asyncio.Task] = None
-        self.event_update = Event()
-        self.event_collect = Event()
+        self.event_update = AsyncEvent()
+        self.event_collect = AsyncEvent()
 
     async def verify_api_sync(self):
         api_rules = await self.get_api_rules()

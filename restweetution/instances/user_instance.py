@@ -10,7 +10,7 @@ from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.config.user_config import UserConfig, RuleConfig, CollectorConfig, CollectTasks
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.searcher import TimeWindow
-from restweetution.utils import Event
+from restweetution.utils import AsyncEvent
 
 logger = logging.getLogger('UserInterface')
 
@@ -19,7 +19,7 @@ class UserInstance:
     _streamer: Streamer = None
     _searcher: Searcher = None
 
-    event = Event()
+    event = AsyncEvent()
 
     def __init__(self, user_config: UserConfig, storage_instance: StorageInstance):
         self.user_config = user_config

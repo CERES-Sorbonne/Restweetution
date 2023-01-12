@@ -13,7 +13,7 @@ from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.twitter.media import Media
 from restweetution.storages.object_storage.filestorage_helper import FileStorageHelper
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
-from restweetution.utils import Event
+from restweetution.utils import AsyncEvent
 
 
 class MediaCache(BaseModel):
@@ -39,7 +39,7 @@ class MediaDownloader:
         self._download_queue = asyncio.Queue()
         self._process_queue_task: Optional[Task] = None
 
-        self.event_downloaded = Event()
+        self.event_downloaded = AsyncEvent()
 
     # Public functions
 

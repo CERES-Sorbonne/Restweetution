@@ -48,7 +48,10 @@ class ElasticStorage(Storage):
         self.pwd = pwd
 
     def __del__(self):
-        asyncio.ensure_future(self.es.close())
+        asyncio.ensure_future(self.close())
+
+    async def close(self):
+        await self.es.close()
 
     def get_config(self):
         return {
