@@ -186,8 +186,8 @@ class PostgresJSONBStorage(SystemStorage):
 
             if data.rules:
                 await self._save_collected_refs(conn, data.get_rules())
-            if data.downloaded_medias:
-                await self._save_downloaded_medias(conn, data.get_downloaded_medias())
+            # if data.downloaded_medias:
+            #     await self._save_downloaded_medias(conn, data.get_downloaded_medias())
 
             if callback:
                 asyncio.create_task(callback(data))
