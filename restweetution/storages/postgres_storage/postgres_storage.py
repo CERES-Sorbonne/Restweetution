@@ -18,9 +18,8 @@ from restweetution.models.twitter import Media, User, Poll, Place
 from restweetution.models.twitter.tweet import Tweet
 from restweetution.storages.storage import Storage
 from . import models
-from .helpers import get_helper, save_helper, get_statement, request_history_update
+from .helpers import get_helper, save_helper, get_statement, request_history_update, get_helper_stmt
 from .models import TweetPublicMetricsHistory
-from ..postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from ..query_params import tweet_fields, user_fields, poll_fields, place_fields, media_fields, rule_fields
 from ...models.config.user_config import UserConfig
 
@@ -138,6 +137,14 @@ class PostgresStorage(Storage):
                                    order=order, **kwargs)
             return [Tweet(**r.to_dict()) for r in res]
 
+    async def get_tweets_stream(self):
+        async with self._async_session() as conn:
+            stmt = get_helper_stmt(pg_model=models.Tweet, fields=tweet_fields)
+            stream = await conn.stream(stmt)
+
+            async for res in stream.scalars():
+                yield Tweet(**res.to_dict())
+
     async def get_users(self,
                         ids: List[str] = None,
                         no_ids: List[str] = None,
@@ -165,10 +172,10 @@ class PostgresStorage(Storage):
     async def get_medias(self,
                          ids: List[str] = None,
                          no_ids: List[str] = None,
-                         fields: List[str] = media_fields) -> Iterator[Media]:
+                         fields: List[str] = media_fields) -> List[Dict]:
         async with self._async_session() as session:
             res = await get_helper(session, models.Media, ids=ids, no_ids=no_ids, fields=fields, id_field='media_key')
-            return [Media(**r.to_dict()) for r in res]
+            return [r.to_dict() for r in res]
 
     async def get_rules(
             self,
