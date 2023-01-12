@@ -203,6 +203,9 @@ class UserInstance:
     def searcher_is_running(self):
         return self._searcher.is_running()
 
+    def searcher_is_sleeping(self):
+        return self._searcher.is_sleeping()
+
     def searcher_set_time_window(self, time_window: TimeWindow):
         self._searcher.set_time_window(time_window)
 

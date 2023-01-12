@@ -281,6 +281,7 @@ async def searcher_info(user_id):
         user = restweet.user_instances[user_id]
         res = {
             "running": user.searcher_is_running(),
+            "sleeping": user.searcher_is_sleeping(),
             "fields": user.searcher_get_fields(),
             "rule": user.searcher_get_rule(),
             "time_window": user.searcher_get_time_window(),

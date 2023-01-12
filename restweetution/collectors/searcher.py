@@ -12,17 +12,15 @@ from tweepy.asynchronous import AsyncClient
 
 from restweetution.collectors.response_parser import parse_includes
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.query_fields_preset import ALL_CONFIG
 from restweetution.models.config.query_fields import QueryFields
+from restweetution.models.config.query_fields_preset import ALL_CONFIG
+from restweetution.models.config.user_config import RuleConfig
 from restweetution.models.rule import Rule
 from restweetution.models.searcher import CountResponse, LookupResponseUnit, LookupResponse, TweetPyLookupResponse, \
     TimeWindow
 from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
-from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 from restweetution.utils import AsyncEvent
-
-from restweetution.models.config.user_config import RuleConfig
 
 logger = logging.getLogger('Searcher')
 
@@ -46,6 +44,7 @@ class Searcher:
         self.event_collect = AsyncEvent()
 
         self._running = False
+        self._sleeping = False
 
     def start_collection(self):
         if self.is_running():
@@ -62,6 +61,9 @@ class Searcher:
 
     def is_running(self):
         return self._collect_task is not None and not self._collect_task.done() and self._running
+
+    def is_sleeping(self):
+        return self.is_running() and self._sleeping
 
     async def set_rule(self, rule: RuleConfig):
         rule = Rule(query=rule.query, tag=rule.tag)
@@ -295,8 +297,7 @@ class Searcher:
 
             yield result
 
-    @staticmethod
-    async def _token_loop(get_function: Callable, query: str, **kwargs):
+    async def _token_loop(self, get_function: Callable, query: str, **kwargs):
         next_token = None
         running = True
         while running:
@@ -320,12 +321,16 @@ class Searcher:
                 if rate_limit_remaining == 0:
                     wait_duration = rate_limit_reset - math.floor(time.time())
                     logger.info(f'sleep for {wait_duration} seconds')
+                    self._sleeping = True
                     await asyncio.sleep(wait_duration)
+                    self._sleeping = False
 
                 yield res
             except tweepy.errors.TooManyRequests:
                 logger.info('Unexpected TooManyRequest, sleep for 15min')
+                self._sleeping = True
                 await asyncio.sleep(15 * 60)
+                self._sleeping = False
                 continue
             except Exception as e:
                 raise e
