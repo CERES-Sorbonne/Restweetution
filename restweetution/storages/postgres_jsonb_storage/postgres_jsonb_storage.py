@@ -173,7 +173,7 @@ class PostgresJSONBStorage(SystemStorage):
                 await self._upsert_table(conn, TWEET, data.get_tweets())
             if data.medias:
                 await self._upsert_table(conn, MEDIA, data.get_medias())
-            if data.medias:
+            if data.users:
                 await self._upsert_table(conn, USER, data.get_users())
             if data.polls:
                 await self._upsert_table(conn, POLL, data.get_polls())
