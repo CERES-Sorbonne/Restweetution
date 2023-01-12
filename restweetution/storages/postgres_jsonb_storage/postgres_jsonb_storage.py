@@ -139,11 +139,15 @@ class PostgresJSONBStorage(SystemStorage):
 
     async def save_downloaded_medias(self, downloaded_medias: List[DownloadedMedia]):
         async with self._engine.begin() as conn:
-            stmt = insert(DOWNLOADED_MEDIA)
-            stmt = stmt.on_conflict_do_update(index_elements=['media_key'], set_=dict(stmt.excluded))
-            values = [d.dict() for d in downloaded_medias]
+            await self._save_downloaded_medias(conn, downloaded_medias)
 
-            await conn.execute(stmt, values)
+    @staticmethod
+    async def _save_downloaded_medias(conn, downloaded_medias: List[DownloadedMedia]):
+        stmt = insert(DOWNLOADED_MEDIA)
+        stmt = stmt.on_conflict_do_update(index_elements=['media_key'], set_=dict(stmt.excluded))
+        values = [d.dict() for d in downloaded_medias]
+
+        await conn.execute(stmt, values)
 
     async def get_downloaded_medias(self,
                                     media_keys: List[str] = None,
@@ -182,6 +186,8 @@ class PostgresJSONBStorage(SystemStorage):
 
             if data.rules:
                 await self._save_collected_refs(conn, data.get_rules())
+            if data.downloaded_medias:
+                await self._save_downloaded_medias(conn, data.get_downloaded_medias())
 
             if callback:
                 asyncio.create_task(callback(data))
