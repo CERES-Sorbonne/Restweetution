@@ -319,7 +319,7 @@ class Searcher:
                 rate_limit_reset = int(resp.headers.get('x-rate-limit-reset'))
                 if rate_limit_remaining == 0:
                     wait_duration = rate_limit_reset - math.floor(time.time())
-                    logger.info('sleep for ', str(wait_duration), ' seconds')
+                    logger.info(f'sleep for {wait_duration} seconds')
                     await asyncio.sleep(wait_duration)
 
                 yield res
