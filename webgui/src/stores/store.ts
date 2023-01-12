@@ -46,6 +46,7 @@ interface Streamer {
 
 interface Searcher {
     running: boolean
+    sleeping: boolean
     rule: { query: string, tag: string, id: string }
     time_window: any
     collect_tasks: CollectTasks

@@ -75,7 +75,7 @@ function setTimeWindow(window: any) {
     <div v-if="isLoaded">
 
     <h2 class="text-center pb-4" >Searcher: 
-        <span class="text-success" v-if="searcher.running">Collecting</span>
+        <span class="text-success" v-if="searcher.running">Collecting <span v-if="searcher.sleeping">(Sleeping)</span></span>
         <span class="text-warning" v-else>Stopped</span></h2>
     <div class="row">
         <div class="col-2">

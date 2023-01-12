@@ -58,7 +58,7 @@ def set_filter(stmt, model, ids, no_ids, id_field, **kwargs):
         stmt = stmt.filter(_(date_field) <= kwargs.get('date_stop'))
     if 'type_' in kwargs and kwargs.get('type_'):
         stmt = stmt.filter(_('type') == kwargs.get('type_'))
-    # print(stmt)
+
     return stmt
 
 
@@ -79,6 +79,22 @@ async def get_helper(session,
     res = await session.execute(stmt)
     res = res.unique().scalars().all()
     return res
+
+
+def get_helper_stmt(pg_model,
+                    ids: List[str] = None,
+                    no_ids: List[str] = None,
+                    fields: List[str] = None,
+                    sort_by: str = None,
+                    order: str = None,
+                    id_field: str = 'id',
+                    **kwargs):
+    if fields is None:
+        fields = fields_by_type[pg_model]
+
+    stmt = get_statement(pg_model=pg_model, ids=ids, no_ids=no_ids, fields=fields, sort_by=sort_by, order=order,
+                         id_field=id_field, **kwargs)
+    return stmt
 
 
 def get_statement(pg_model,
