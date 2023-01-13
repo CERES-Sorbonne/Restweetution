@@ -18,9 +18,8 @@ from restweetution.data_view.row_view import RowView
 from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery
 from restweetution.server.connection_manager import ConnectionManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
-from restweetution.storages.exporter.exporter import Exporter
 from restweetution.storages.extractor import Extractor
-from restweetution.tasks.server_task import ServerTask, TaskInfo
+from restweetution.tasks.server_task import ServerTask
 from restweetution.tasks.tweet_export_task import TweetExportTask, TweetExportFileTask
 
 logging.basicConfig()
@@ -44,7 +43,7 @@ tasks: List[ServerTask] = []
 class ExportTweetRequest(BaseModel):
     export_type: str  # type of exporter (elastic, csv, etc..)
     id: str  # id of the exported data for future identification
-    query: CollectedTweetQuery
+    query: TweetRowQuery
 
 
 class Error(HTTPException):
@@ -126,6 +125,8 @@ async def export_tweets(request: ExportTweetRequest):
     key = request.id.split('/')[-1]
     on_finish = None
     task: ServerTask | None = None
+
+    print(request.query)
 
     if request.export_type == 'csv':
         path = request.id.split('/')

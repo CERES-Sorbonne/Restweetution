@@ -24,6 +24,7 @@ const mode = ref(0) // 0: settings, 1: discover
 const discoverPage = ref(0)
 const tweetPerPage = ref(100)
 const selectedFields = reactive(['id', 'author_username', 'created_at', 'text'])
+const modeExport = ref(false)
 
 const hasTweets = computed(() => tweetResult.tweets.length > 0)
 
@@ -146,20 +147,31 @@ watch(selectedRules, resetTweetResult)
             <RowFieldSelection :fields="selectedFields"/>
         </div>
         <div class="col-9">
-            <div class="text-end">
-                <h5 class="text-start">Total: {{tweetResult.count}} Tweets</h5>
-                <h5>
-                    Page {{discoverPage}} from {{maxDiscoverPages}} 
-                    <button :disabled="(discoverPage == 0)" @click="getPage(discoverPage-1)" type="button" class="btn btn-outline-primary me-2">Prev</button>
-                    <button :disabled="(discoverPage == maxDiscoverPages)" @click="getPage(discoverPage+1)" type="button" class="btn btn-outline-primary me-2">Next</button>
-                </h5>
-                
+            <div class="row">
+                <div class="col-3">
+                    <h5>Total: {{tweetResult.count}} Tweets</h5>
+                </div>
+                <div class="col">
+                    <div class="text-end">
+                        <h5>
+                            <button @click="modeExport = !modeExport" type="button" class="btn btn-outline-primary me-2">Export</button>
+                            Page {{discoverPage}} from {{maxDiscoverPages}} 
+                            <button :disabled="(discoverPage == 0)" @click="getPage(discoverPage-1)" type="button" class="btn btn-outline-primary me-2">Prev</button>
+                            <button :disabled="(discoverPage == maxDiscoverPages)" @click="getPage(discoverPage+1)" type="button" class="btn btn-outline-primary me-2">Next</button>
+                        </h5>
+                    </div>
+                </div>
             </div>
-            <TweetTable :tweets="tweetResult.tweets" :fields="selectedFields"/>
+            <div class="row" v-if="modeExport">
+                <Exporter :query="query" :count="tweetResult.count" :fields="selectedFields"/>
+            </div>
+            <div class="row mt-3">
+                <TweetTable :tweets="tweetResult.tweets" :fields="selectedFields"/>
+            </div>
+            
         </div>
     </div>
     <div v-if="(mode == 2)">
-        <Exporter :query="query" :count="tweetResult.count"/>
     </div>
 
 </template>

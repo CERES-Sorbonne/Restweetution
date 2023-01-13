@@ -20,7 +20,7 @@ export interface TweetQuery extends TweetCountQuery {
     offset?: number
     limit?: number
     desc?: boolean
-    fields?: string[]
+    row_fields?: string[]
 }
 
 
