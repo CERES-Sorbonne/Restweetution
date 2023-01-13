@@ -35,7 +35,7 @@ class CSVExporter(FileExporter):
 
         for key in key_group:
             rows = key_group[key]
-            filename = key + '.csv'
+            filename = key
             await self._root.mkdir(parents=True, exist_ok=True)
             path = self._root / filename
 

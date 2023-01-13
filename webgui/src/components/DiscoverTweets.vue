@@ -5,27 +5,12 @@ import { computed, reactive, ref } from '@vue/reactivity';
 import { onMounted, watch } from 'vue';
 import { useStore, type CollectTasks, type Rule } from '@/stores/store'
 import DateInterval from '@/components/DateInterval.vue'
-import SelectableTableRows from './RuleSelectionTable.vue';
 import CollectionSelection from './CollectionSelection.vue';
 import * as storage_api from '@/api/storage'
 import TweetTable from './TweetTable.vue';
 import RowFieldSelection from './RowFieldSelection.vue';
 import Exporter from '@/components/Exporter.vue'
-
-interface TweetCountQuery{
-    date_from?: String
-    date_to?: String
-    rule_ids?: Array<Number>
-}
-
-
-interface TweetQuery extends TweetCountQuery {
-    ids?: string[]
-    offset?: number
-    limit?: number
-    desc?: boolean
-    fields?: string[]
-}
+import type { TweetQuery } from '@/api/types';
 
 
 const store = useStore()
@@ -41,21 +26,37 @@ const tweetPerPage = ref(100)
 const selectedFields = reactive(['id', 'author_username', 'created_at', 'text'])
 
 const hasTweets = computed(() => tweetResult.tweets.length > 0)
-const discoverTabClass = computed(() => {
-    let cls = ''
-    if(!hasTweets.value) {
-        cls += ' disabled'
+
+function optionalNavLinkClass(n: number) {
+    let class_ = 'nav-link '
+    if(tweetResult.count < 1 || (n == 1 && !hasTweets.value)) {
+        class_ += 'disabled '
     }
-    if(mode.value == 1) {
-        cls += ' active'
+    else if(mode.value == n) {
+        class_ += 'active '
     }
-    return cls
-})
+    return class_
+}
+
 const maxDiscoverPages = computed(() => {
     if(tweetResult.count < 0) {
         return 0
     }
     return Math.floor(tweetResult.count / tweetPerPage.value)
+})
+
+const query = computed(() => {
+    let query: TweetQuery = {}
+    if(dateInterval.start) {
+        query.date_from = dateInterval.start
+    }
+    if(dateInterval.end) {
+        query.date_to = dateInterval.end
+    }
+    if(selectedRules.values.length > 0) {
+        query.rule_ids = selectedRules.values.map(r => r.id)
+    }
+    return query
 })
 
 function resetTweetResult() {
@@ -68,44 +69,36 @@ function setMode(value: number) {
     if(value == 1 && !hasTweets.value) {
         return
     }
+    if(value == 2 && tweetResult.count < 1) {
+        return
+    }
+
     mode.value = value
 }
 
-function getQuery() {
-    let query: TweetQuery = {}
-    if(dateInterval.start) {
-        query.date_from = dateInterval.start
-    }
-    if(dateInterval.end) {
-        query.date_to = dateInterval.end
-    }
-    if(selectedRules.values.length > 0) {
-        query.rule_ids = selectedRules.values.map(r => r.id)
-    }
-    return query
-}
-
 async function discover() {
-
-    let query = getQuery()
-    let res = await storage_api.discoverTweets({...query})
+    let res = await storage_api.discoverTweets(query.value)
     tweetResult.count = res.count
     tweetResult.tweets = res.tweets
     discoverPage.value = 0
     setMode(1)
 }
 
+async function export_() {
+    await getCount()
+    setMode(2)
+}
+
 async function getPage(nb: number) {
-    let query = getQuery()
-    query.offset = nb * tweetPerPage.value
-    let res = await storage_api.getTweets(query)
+    let q = Object.assign({}, query.value)
+    q.offset = nb * tweetPerPage.value
+    let res = await storage_api.getTweets(q)
     tweetResult.tweets = res
     discoverPage.value = nb
 }
 
 async function getCount() {
-    let query = getQuery()
-    let res = await storage_api.getTweetCount(query)
+    let res = await storage_api.getTweetCount(query.value)
     tweetResult.count = res
 }
 
@@ -120,10 +113,10 @@ watch(selectedRules, resetTweetResult)
             <a class="nav-link" :class="(mode == 0 ? 'active' : '')" href="#">Collection Settings</a>
         </li>
         <li class="nav-item" @click="setMode(1)">
-            <a :class="'nav-link' + discoverTabClass" href="#" >Discover</a>
+            <a :class="optionalNavLinkClass(1)" href="#" >Discover</a>
         </li>
         <li class="nav-item" @click="setMode(2)">
-            <a class="nav-link" :class="(mode == 2 ? 'active' : '')" href="#" >Export</a>
+            <a :class="optionalNavLinkClass(2)" href="#" >Export</a>
         </li>
     </ul>
 
@@ -136,8 +129,9 @@ watch(selectedRules, resetTweetResult)
             <DateInterval v-model:start="dateInterval.start" v-model:end="dateInterval.end"/>
             <hr/>
             <div class="text-center">
-                <button @click="getCount" type="button" class="btn btn-outline-primary btn-lg me-2">Count</button>
-                <button @click="discover" type="button" class="btn btn-outline-primary btn-lg me-2">Discover</button>
+                <button @click="getCount" type="button" class="btn btn-outline-primary me-2">Count</button>
+                <button @click="discover" type="button" class="btn btn-outline-primary me-2">Discover</button>
+                <button @click="export_" type="button" class="btn btn-outline-primary me-2">Export</button>
                 <br />
                 <br />
                 <div v-if="(tweetResult.count != -1)">
@@ -165,7 +159,7 @@ watch(selectedRules, resetTweetResult)
         </div>
     </div>
     <div v-if="(mode == 2)">
-        <Exporter />
+        <Exporter :query="query" :count="tweetResult.count"/>
     </div>
 
 </template>

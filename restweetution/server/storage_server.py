@@ -123,7 +123,7 @@ async def get_tweet_discover(query: TweetRowQuery):
 @app.post("/export/tweets")
 async def export_tweets(request: ExportTweetRequest):
     view = RowView()
-    key = request.id.split('/')[0]
+    key = request.id.split('/')[-1]
     on_finish = None
     task: ServerTask | None = None
 
@@ -136,6 +136,10 @@ async def export_tweets(request: ExportTweetRequest):
             sub_folder = path[0]
 
         exporter = sys_conf.build_csv_exporter(sub_folder=sub_folder)
+
+        if not key.endswith('.csv'):
+            key = key + '.csv'
+
         task = TweetExportFileTask(storage=storage, query=request.query, view=view, exporter=exporter, key=key)
         task.name = 'CSV Export'
         on_finish = convert_path

@@ -1,15 +1,8 @@
 import { defineStore } from "pinia";
 import { reactive } from "vue";
 import * as storage from '@/api/storage'
+import type { ExportTweetRequest, TaskInfo } from "@/api/types";
 
-interface TaskInfo {
-    id: number;
-    name: string;
-    started_at: Date;
-    is_running: boolean;
-    progress: number;
-    result: object;
-}
 
 export const useStorageStore = defineStore("storageStore", () => {
     const tasks: TaskInfo[] = reactive([])
@@ -23,8 +16,8 @@ export const useStorageStore = defineStore("storageStore", () => {
         storage.getTasks().then(updateTasks)
     }
 
-    function exportTweets(query: any) {
-        storage.exportTweets(query).then(updateTasks)
+    function exportTweets(request: ExportTweetRequest) {
+        storage.exportTweets(request).then(updateTasks)
     }
 
     loadTasks()
