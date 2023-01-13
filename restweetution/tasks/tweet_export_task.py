@@ -39,6 +39,11 @@ class TweetExportTask(ServerTask):
             self._progress += len(tweet_ids)
             await asyncio.sleep(0)
 
+    def get_info(self):
+        info = super().get_info()
+        info.key = self.key
+        return info
+
 
 class TweetExportFileTask(TweetExportTask):
     exporter: FileExporter

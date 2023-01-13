@@ -5,6 +5,7 @@ export interface TaskInfo {
     is_running: boolean;
     progress: number;
     result: any;
+    key: string
 }
 
 export interface TweetCountQuery{

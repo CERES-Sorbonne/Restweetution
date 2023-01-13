@@ -17,6 +17,7 @@ class TaskInfo(BaseModel):
     is_running: bool
     progress: int
     result: Dict = {}
+    key: str = None
 
 
 class ServerTask(ABC):

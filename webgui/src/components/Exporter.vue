@@ -107,6 +107,7 @@ function requestExport() {
                     <ul class="list-group">
                         <li class="list-group-item text-center">{{task.name}}</li>
                         <li class="list-group-item">Running: {{task.is_running}}</li>
+                        <li class="list-group-item">Key: {{task.key}}</li>
                         <li class="list-group-item">
                             Progress: {{task.progress}}
                             <div class="progress">
