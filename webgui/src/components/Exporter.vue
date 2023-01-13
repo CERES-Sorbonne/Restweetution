@@ -103,7 +103,7 @@ function requestExport() {
             <div class="text-center">
                 <button type="button" @click="store.loadTasks" class="btn btn-outline-primary">Reload</button>
             </div>
-            <div v-for="task in store.tasks.reverse()" class="m-3">
+            <div v-for="task in store.tasksReversed" class="m-3">
                     <ul class="list-group">
                         <li class="list-group-item text-center">{{task.name}}</li>
                         <li class="list-group-item">Running: {{task.is_running}}</li>
