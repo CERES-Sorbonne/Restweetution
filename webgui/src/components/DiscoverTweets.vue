@@ -11,6 +11,7 @@ import TweetTable from './TweetTable.vue';
 import RowFieldSelection from './RowFieldSelection.vue';
 import Exporter from '@/components/Exporter.vue'
 import type { TweetQuery } from '@/api/types';
+import TaskList from './TaskList.vue';
 
 
 const store = useStore()
@@ -20,20 +21,28 @@ const showResult = ref(false)
 const editRules = ref(false)
 const selectedRules = reactive({values: new Array<Rule>()})
 const tweetResult = reactive({count: -1, tweets: []})
-const mode = ref(0) // 0: settings, 1: discover
+const actualTab = ref(0) // 0: settings, 1: discover
 const discoverPage = ref(0)
 const tweetPerPage = ref(100)
 const selectedFields = reactive(['id', 'author_username', 'created_at', 'text'])
 const modeExport = ref(false)
 
+
+enum Tabs {
+    Collection,
+    Discover,
+    Tasks
+}
+
+
 const hasTweets = computed(() => tweetResult.tweets.length > 0)
 
-function optionalNavLinkClass(n: number) {
+function optionalNavLinkClass(tab: Tabs) {
     let class_ = 'nav-link '
-    if(tweetResult.count < 1 || (n == 1 && !hasTweets.value)) {
+    if(tweetResult.count < 1 || (tab == Tabs.Discover && !hasTweets.value)) {
         class_ += 'disabled '
     }
-    else if(mode.value == n) {
+    else if(actualTab.value == tab) {
         class_ += 'active '
     }
     return class_
@@ -66,15 +75,11 @@ function resetTweetResult() {
     discoverPage.value = 0
 }
 
-function setMode(value: number) {
-    if(value == 1 && !hasTweets.value) {
+function setTab(tab: Tabs) {
+    if(tab == 1 && !hasTweets.value) {
         return
     }
-    if(value == 2 && tweetResult.count < 1) {
-        return
-    }
-
-    mode.value = value
+    actualTab.value = tab
 }
 
 async function discover() {
@@ -82,12 +87,12 @@ async function discover() {
     tweetResult.count = res.count
     tweetResult.tweets = res.tweets
     discoverPage.value = 0
-    setMode(1)
+    setTab(Tabs.Discover)
 }
 
 async function export_() {
     await getCount()
-    setMode(2)
+    setTab(Tabs.Tasks)
 }
 
 async function getPage(nb: number) {
@@ -110,19 +115,19 @@ watch(selectedRules, resetTweetResult)
 <template >
 
     <ul class="nav nav-tabs mb-5">
-        <li class="nav-item" @click="setMode(0)">
-            <a class="nav-link" :class="(mode == 0 ? 'active' : '')" href="#">Collection Settings</a>
+        <li class="nav-item" @click="setTab(Tabs.Collection)">
+            <a class="nav-link" :class="(actualTab == Tabs.Collection ? 'active' : '')" href="#">Collection Settings</a>
         </li>
-        <li class="nav-item" @click="setMode(1)">
+        <li class="nav-item" @click="setTab(Tabs.Discover)">
             <a :class="optionalNavLinkClass(1)" href="#" >Discover</a>
         </li>
-        <li class="nav-item" @click="setMode(2)">
-            <a :class="optionalNavLinkClass(2)" href="#" >Export</a>
+        <li class="nav-item" @click="setTab(Tabs.Tasks)">
+            <a class="nav-link" :class="(actualTab == Tabs.Tasks ? 'active' : '')" href="#" >Tasks</a>
         </li>
     </ul>
 
 
-    <div class="row" v-if="(mode == 0)">
+    <div class="row" v-if="(actualTab == Tabs.Collection)">
         <div class="col">
             <CollectionSelection :selectedRules="selectedRules.values"/>
         </div>
@@ -142,7 +147,7 @@ watch(selectedRules, resetTweetResult)
             </div>
         </div>
     </div>
-    <div v-if="(mode == 1)" class="row">
+    <div v-if="(actualTab == Tabs.Discover)" class="row">
         <div class="col-3">
             <RowFieldSelection :fields="selectedFields"/>
         </div>
@@ -171,7 +176,8 @@ watch(selectedRules, resetTweetResult)
             
         </div>
     </div>
-    <div v-if="(mode == 2)">
+    <div v-if="(actualTab == Tabs.Tasks)">
+        <TaskList />
     </div>
 
 </template>
