@@ -90,11 +90,6 @@ async function discover() {
     setTab(Tabs.Discover)
 }
 
-async function export_() {
-    await getCount()
-    setTab(Tabs.Tasks)
-}
-
 async function getPage(nb: number) {
     let q = Object.assign({}, query.value)
     q.offset = nb * tweetPerPage.value
@@ -137,7 +132,6 @@ watch(selectedRules, resetTweetResult)
             <div class="text-center">
                 <button @click="getCount" type="button" class="btn btn-outline-primary me-2">Count</button>
                 <button @click="discover" type="button" class="btn btn-outline-primary me-2">Discover</button>
-                <button @click="export_" type="button" class="btn btn-outline-primary me-2">Export</button>
                 <br />
                 <br />
                 <div v-if="(tweetResult.count != -1)">

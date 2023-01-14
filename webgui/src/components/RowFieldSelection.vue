@@ -26,10 +26,23 @@ function check(field: string) {
     }
 }
 
+function checkAll() {
+    props.fields.length = 0
+    props.fields.push(...possibleFields)
+}
+
+function checkNone() {
+    props.fields.length = 0
+}
+
 </script>
 
 <template>
     <ul class="list-group">
+        <div class="input-group mb-2">
+            <button @click="checkAll" class="btn btn-outline-dark form-control">All</button>
+            <button @click="checkNone" class="btn btn-outline-dark form-control">None</button>
+        </div>
         <li v-for="field in possibleFields" class="list-group-item">
             <input class="form-check-input me-1" type="checkbox" :checked="props.fields.includes(field)" @click="check(field)">
             {{field}}
