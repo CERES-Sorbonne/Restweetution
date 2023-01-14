@@ -17,3 +17,6 @@ class Exporter(ABC):
 class FileExporter(Exporter, ABC):
     def get_root(self) -> AsyncPath:
         raise NotImplementedError('get_root is not implemented')
+
+    async def clear_key(self, key: str):
+        raise NotImplementedError('clear key is not implemented')

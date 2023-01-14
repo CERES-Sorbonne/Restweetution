@@ -60,5 +60,6 @@ class TweetExportFileTask(TweetExportTask):
         self.name = 'TweetExportFile'
 
     async def _task_routine(self):
+        await self.exporter.clear_key(self.key)
         await super()._task_routine()
         self.result['path'] = (self.exporter.get_root() / self.key).__str__()

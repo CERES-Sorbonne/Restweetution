@@ -13,6 +13,10 @@ STORAGE_TYPE = 'csv'
 
 
 class CSVExporter(FileExporter):
+    async def clear_key(self, key: str):
+        path = self.get_root() / key
+        await path.unlink(missing_ok=True)
+
     def get_root(self) -> AsyncPath:
         return self._root
 
