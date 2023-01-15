@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from restweetution.config_loader import load_system_config
+from restweetution import config_loader
 from restweetution.collectors.searcher import TimeWindow
 from restweetution.instances.system_instance import SystemInstance
 from restweetution.models.config.user_config import RuleConfig, UserConfig, CollectTasks
@@ -22,7 +22,7 @@ from restweetution.server.connection_manager import ConnectionManager
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
-sys_conf = load_system_config(os.getenv('SYSTEM_CONFIG'))
+sys_conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
 
 restweet: Optional[SystemInstance] = None
 loop = asyncio.get_event_loop()
