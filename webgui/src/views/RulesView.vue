@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Menu from "../components/Menu.vue"
-import RuleTable from "../components/RuleTable.vue"
+import RuleSelectionTable from "@/components/RuleSelectionTable.vue";
 
 import { computed, reactive, ref } from "@vue/reactivity";
 import { watch } from "vue";
@@ -85,5 +85,5 @@ watch(edit, () => {
         </div>
     </div>
 
-  <RuleTable :rules="store.rules" />
+    <RuleSelectionTable :rules="store.orderedRules"/>
 </template>

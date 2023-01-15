@@ -1,6 +1,15 @@
 import type { CollectTasks } from '@/stores/store';
 import axios from 'axios';
 
+export interface RuleInfo {
+    id: number
+    tag: string
+    query: string
+    created_at: string
+    tweet_count: number
+}
+
+
 export const BASE_URL = '/collector_api'
 let user_id = ''
 
@@ -26,7 +35,10 @@ export async function delUsers(names: string[]) {
 
 export async function getRules() {
     const res = await axios.get(BASE_URL + '/rules/info');
-    return res.data;
+    const ruleInfos = res.data as RuleInfo[]
+    ruleInfos.forEach(r => r.tweet_count = Number(r.tweet_count))
+    ruleInfos.forEach(r => r.id = Number(r.id))
+    return ruleInfos
 }
 
 export async function getStreamerInfo(user:string) {

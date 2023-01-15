@@ -1,12 +1,9 @@
 <script setup lang="ts">
 
-import { toDatetimeInputString } from '@/utils';
-import { computed, reactive, ref } from '@vue/reactivity';
-import { onMounted, watch } from 'vue';
-import { useStore, type Rule } from '@/stores/store'
-import DateInterval from '@/components/DateInterval.vue'
+import { computed } from '@vue/reactivity';
+import { useStore } from '@/stores/store'
 import RuleSelectionTable from './RuleSelectionTable.vue';
-import { propsToAttrMap } from '@vue/shared';
+import type { RuleInfo } from '@/api/collector';
 
 
 const store = useStore()
@@ -14,19 +11,19 @@ const store = useStore()
 const emits = defineEmits(['update:selectedRules'])
 
 const props = defineProps({
-    selectedRules: {type:Array<Rule>, required: true}
+    selectedRules: {type:Array<RuleInfo>, required: true}
 })
 
 const availableRules = computed(() => {
     return store.rulesOrderId.filter(r => !props.selectedRules.some(rule => rule.id == r.id))
 })
 
-function selectRule(rule: Rule) {
+function selectRule(rule: RuleInfo) {
     props.selectedRules.push(rule)
     emits("update:selectedRules", props.selectedRules)
 }
 
-function removeRule(rule: Rule) {
+function removeRule(rule: RuleInfo) {
     let index = props.selectedRules.findIndex(r => r.id == rule.id)
     if(index != -1) {
         props.selectedRules.splice(index, 1)

@@ -120,9 +120,7 @@ async def del_users(names: List[str]):
 @app.get("/rules/info")
 async def get_rules():
     try:
-        return {
-            "rules": await restweet.get_all_rule_info()
-        }
+        return await restweet.get_all_rule_info()
     except Exception as e:
         raise HTTPException(400, e.__str__())
 

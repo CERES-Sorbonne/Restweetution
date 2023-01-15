@@ -15,11 +15,11 @@ export interface CollectTasks {
     elastic_dashboard_name: String
 }
 
-export interface Rule {
-    id: number
-    tag: string
-    query: string
-}
+// export interface Rule {
+//     id: number
+//     tag: string
+//     query: string
+// }
 
 interface User {
     name: string
@@ -70,7 +70,7 @@ export const useStore = defineStore("store", () => {
     const hasSelectedUser = computed(() => users[selectedUser.value] != undefined)
     const streamers: StreamerDict = reactive({})
     const searchers: SearcherDict = reactive({})
-    const rules: any[] = reactive([])
+    const rules: api.RuleInfo[] = reactive([])
     const notifs: Notif[] = reactive([])
 
     const searcherNotifs = computed(() => {
@@ -108,7 +108,7 @@ export const useStore = defineStore("store", () => {
         let res = await api.getRules()
         console.log(res)
         rules.length = 0
-        rules.push(...res.rules)
+        rules.push(...res)
     }
 
 
