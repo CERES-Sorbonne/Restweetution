@@ -3,7 +3,7 @@
 import { toDatetimeInputString } from '@/utils';
 import { computed, reactive, ref } from '@vue/reactivity';
 import { onMounted, watch } from 'vue';
-import { useStore, type CollectTasks, type Rule } from '@/stores/store'
+import { useStore, type CollectTasks} from '@/stores/store'
 import DateInterval from '@/components/DateInterval.vue'
 import CollectionSelection from './CollectionSelection.vue';
 import * as storage_api from '@/api/storage'
@@ -12,6 +12,7 @@ import RowFieldSelection from './RowFieldSelection.vue';
 import Exporter from '@/components/Exporter.vue'
 import type { TweetQuery } from '@/api/types';
 import TaskList from './TaskList.vue';
+import type { RuleInfo } from '@/api/collector';
 
 
 const store = useStore()
@@ -19,7 +20,7 @@ const dateInterval = reactive({start: undefined, end: undefined})
 const show = ref(false)
 const showResult = ref(false)
 const editRules = ref(false)
-const selectedRules = reactive({values: new Array<Rule>()})
+const selectedRules = reactive({values: new Array<RuleInfo>()})
 const tweetResult = reactive({count: -1, tweets: []})
 const actualTab = ref(0) // 0: settings, 1: discover
 const discoverPage = ref(0)
