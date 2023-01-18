@@ -289,10 +289,10 @@ class PostgresJSONBStorage(SystemStorage):
         stmt = where_in_builder(stmt, True, (TWEET.c.id, ids), (COLLECTED_TWEET.c.rule_id, rule_ids))
         stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
         stmt = offset_limit(stmt, offset, limit)
-        if desc:
-            stmt = stmt.order_by(TWEET.c.created_at.desc())
-        else:
-            stmt = stmt.order_by(TWEET.c.created_at.asc())
+        # if desc:
+        #     stmt = stmt.order_by(TWEET.c.created_at.desc())
+        # else:
+        #     stmt = stmt.order_by(TWEET.c.created_at.asc())
         return stmt
 
     async def get_collected_tweets(self,
