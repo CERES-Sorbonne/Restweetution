@@ -37,7 +37,7 @@ class PostgresJSONBStorage(SystemStorage):
         super().__init__(name)
 
         self._url = url
-        self._engine = create_async_engine(url, echo=True)
+        self._engine = create_async_engine(url, echo=False)
 
     async def reset_database(self):
         async with self._engine.begin() as conn:
@@ -330,24 +330,13 @@ class PostgresJSONBStorage(SystemStorage):
         async with self._engine.connect() as conn:
             stmt = self._get_collected_tweets_stmt(
                 tweet_fields, collected_fields, ids, date_from, date_to, rule_ids, desc, offset, limit)
-            # conn = await conn.execution_options(yield_per=chunk_size)
-            # stream = await conn.stream(stmt)
-            stmt = stmt.compile(self._engine, compile_kwargs={"literal_binds": True})
-            conn = await asyncpg.connect(self._url.replace('postgresql+asyncpg', 'postgres'))
-            async with conn.transaction():
-                print(str(stmt))
-                cur = await conn.cursor(str(stmt))
-                res = True
-                while res:
-                    await cur.forward(1000)
-                    res = await cur.fetch(1000)
-                    yield res
+            conn = await conn.execution_options(yield_per=chunk_size)
 
-            # conn = await conn.stream(stmt)
-            # async for res in conn.partitions(chunk_size):
-            #     res = res_to_dicts(res)
-            #     collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
-            #     yield collected
+            conn = await conn.stream(stmt)
+            async for res in conn.partitions(chunk_size):
+                res = res_to_dicts(res)
+                collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
+                yield collected
 
     async def get_tweets_count(self,
                                date_from: datetime.datetime = None,
