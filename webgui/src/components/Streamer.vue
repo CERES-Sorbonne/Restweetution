@@ -5,6 +5,7 @@ import {useStore} from '@/stores/store'
 import { computed } from '@vue/reactivity';
 import Notifications from './Notifications.vue';
 import CollectTasks from './CollectTasks.vue';
+import RuleSelectionTable from './RuleSelectionTable.vue';
 
 const props = defineProps({
     selectedUser: {type: String, required: true}
@@ -108,41 +109,51 @@ watch(props, () => showApiInfo.value = false)
             <span class="text-warning" v-else>Stopped</span>
         </h2>
         <div class="row">
-            <div class="col-2">
-                <div class="text-center">
-                    <button type="button" class="btn btn-primary btn-lg mt-5" @click="triggerStartStop">{{streamer.running ? 'Stop' : 'Start'}}</button>
+            <div class="col text-center">
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <button type="button" class="btn btn-primary btn-lg me-2" @click="triggerStartStop">{{streamer.running ? 'Stop' : 'Start'}}</button>
+                            <button v-if="(!showApiInfo || loadingVerify) && !streamer.conflict" type="button" class="btn btn-lg btn-outline-secondary me-1" @click="triggerDebugData">Verify</button>
+                            <button type="button" class="btn btn-lg btn-success" @click="(showApiInfo = false)" v-if="(!streamer.conflict && showApiInfo && !loadingVerify)">No Conflict</button>
+                            <button type="button" class="btn btn-lg btn-danger" disabled="true" v-if="(streamer.conflict)">Conflict</button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-warning me-1" @click="syncFromAPI" v-if="streamer.conflict">Sync From API</button>
+                            <button type="button" class="btn btn-warning" @click="syncFromUI" v-if="streamer.conflict">Sync From UI</button>
+                        </div>
+                    </div>
+                        
+                </div>
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <CollectTasks :collect-tasks="streamer.collect_tasks" @submit="(tasks) => store.streamerSetCollectTasks(props.selectedUser, tasks)"/>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Collected</h5>
+                        <p>Since Startup: {{streamer.count}}</p>
+                    </div>
                 </div>
             </div>
-
-            <div class="col-2">
-                <h5>Counters</h5>
-                <p>Since Startup: {{streamer.count}}</p>
-            </div>
-
-            <div class="col-3">
-                <CollectTasks :collect-tasks="streamer.collect_tasks" @submit="(tasks) => store.streamerSetCollectTasks(props.selectedUser, tasks)"/>
-            </div>
-
-            <div class="col-5 overflow-scroll" style="max-height: 200px;">
-                <Notifications :notifications="store.streamerNotifs"/>
+            <div class="col-9">
+                <div v-show="showApiInfo">
+                    <RuleTable title="[DEBUG] Streamer Rules on Twitter API" :rules="apiRules" :fields="['api_id', 'tag', 'query']"/>
+                </div>
+                <button type="button" class="btn btn-outline-primary me-1" :disabled="loading" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
+                <div class="row">
+                    <div class="col">
+                        <h5 class="text-center">Active Rules</h5>
+                        <RuleSelectionTable action-name="Remove" :loading="loading" :rules="streamer.active_rules" :selectable="editRules" @selected="delRules" :fields="['id', 'tag', 'query', 'api_id']"/>
+                
+                    </div>
+                    <div class="col">
+                        <h5 class="text-center">Available Rules</h5>
+                        <RuleSelectionTable action-name="Add" :loading="loading" :selectable="editRules" :rules="availableRules" @selected="addRules" :fields="['id', 'tag', 'query', 'tweet_count']"/>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <br>
-        <br>
-        <button type="button" class="btn btn-outline-primary me-1" :disabled="loading" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
-        <button type="button" class="btn btn-outline-secondary me-1" @click="triggerDebugData"><span v-if="!showApiInfo">Verify</span><span v-if="showApiInfo">Close</span></button>
-        <button type="button" class="btn btn-warning me-1" @click="syncFromAPI" v-if="streamer.conflict">Sync From API</button>
-        <button type="button" class="btn btn-warning" @click="syncFromUI" v-if="streamer.conflict">Sync From UI</button>
-        <button type="button" class="btn btn-success" @click="(showApiInfo = false)" v-if="(!streamer.conflict && showApiInfo && !loadingVerify)">No Conflict</button>
-        
-        <div v-show="showApiInfo">
-            <RuleTable title="[DEBUG] Streamer Rules on Twitter API" :rules="apiRules" :fields="['api_id', 'tag', 'query']"/>
-        </div>
-        <h5 class="text-center">Active Rules</h5>
-        <RuleTable action-name="Remove" :loading="loading" :rules="streamer.active_rules" :selectable="editRules" @selected="delRules" :fields="['id', 'tag', 'query', 'api_id']"/>
-        
-        <h5 class="text-center">Available Rules</h5>
-        <RuleTable action-name="Add" :loading="loading" :selectable="editRules" :rules="availableRules" @selected="addRules" :fields="['id', 'tag', 'query', 'tweet_count']"/>
     </div>
 </template>

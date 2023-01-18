@@ -48,7 +48,8 @@ function expand(id: number) {
                         <td v-if="props.actionName" class="text-end"><button @click.stop="$emit('select', rule)" type="button" class="btn btn-light btn-sm">{{actionName}}</button></td>
                     </tr>
                     <tr v-if="(expanded == rule.id)">
-                        <td colspan="3"><i @click="copyClipboard(rule.query, rule.id)" :class="'btn bi bi-' + (copied == rule.id ? 'clipboard-check' : 'clipboard') + ' me-2'" style="cursor:pointer;"></i>{{rule.query}}</td>
+                        <td><i @click="copyClipboard(rule.query, rule.id)" :class="'btn bi bi-' + (copied == rule.id ? 'clipboard-check' : 'clipboard') + ' me-2'" style="cursor:pointer;"></i></td>
+                        <td colspan="1">{{rule.query}}</td>
                     </tr>
                 </template>
             </tbody>

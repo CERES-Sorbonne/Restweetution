@@ -36,7 +36,7 @@ function reset() {
 
 <template >
     <h5>Collected Tasks</h5>
-    <ul style="list-style-type:none; padding-left: 0;">
+    <ul class="text-start" style="list-style-type:none; padding-left: 0;">
         <li>
             Media Download:
             <span class="text-success" v-if="props.collectTasks.download_media">Yes</span>

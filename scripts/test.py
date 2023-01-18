@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 
 from restweetution import config_loader
 from restweetution.models.bulk_data import BulkData
@@ -22,30 +23,13 @@ async def main():
     #                             # logger=create_logger(loglevel=1)  # Makes processes being ran displayed
     #                             )
     # server.start()
-    # url = 'postgresql+asyncpg://ceres:arbouserougesang@127.0.0.1:' + str(server.local_bind_port)
-    url = 'postgresql+asyncpg://ceres:arbouserougesang@localhost/ceres'
-    old_postgres = PostgresStorage(url=url)
-    # old = time.time()
-    # async for res in old_postgres.get_tweets_stream():
-    #     pass
 
-    bulk = BulkData()
+    storage = conf.build_storage()
 
-    res = await old_postgres.get_medias()
-    for r in res:
-        media = Media(**r)
-        bulk.add_medias([media])
-        if 'sha1' in r:
-            downloaded = DownloadedMedia(**r, media=media)
-            bulk.add_downloaded_medias([downloaded])
-
-    new_postgres = conf.build_storage()
-    await new_postgres.save_bulk(bulk)
-    await new_postgres.save_downloaded_medias(bulk.get_downloaded_medias())
-
-
-    # res = await old_postgres.get_tweets()
-    # print(res[0])
+    old = time.time()
+    async for res in storage.get_collected_tweets_stream(rule_ids=[78]):
+        print(f'time: {time.time() - old}')
+        old = time.time()
 
 
 
