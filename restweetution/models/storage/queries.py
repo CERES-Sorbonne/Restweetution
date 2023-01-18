@@ -14,7 +14,7 @@ class TweetQuery(TweetCountQuery):
     ids: List[str] = None
     offset: int = None
     limit: int = None
-    desc: bool = False
+    order: int = 0
     tweet_fields: List[str] = None
 
 

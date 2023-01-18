@@ -27,13 +27,9 @@ async def main():
     # server.start()
 
     storage = conf.build_storage()
-    async with storage._engine.begin() as conn:
-        res = await conn.execute(text('SHOW cursor_tuple_fraction'))
-        res = res.fetchall()
-        print(res)
 
     old = time.time()
-    async for res in storage.get_collected_tweets_stream(rule_ids=[78]):
+    async for res in storage.get_collected_tweets_stream(rule_ids=[78], order=1):
         print(f'time: {time.time() - old}')
         old = time.time()
 

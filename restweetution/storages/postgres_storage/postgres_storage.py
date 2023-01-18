@@ -61,7 +61,7 @@ class PostgresStorage(Storage):
     async def update_error(self):
         async with self._async_session() as session:
             stmt = select(models.CollectedTweet).order_by(
-                cast(models.CollectedTweet.tweet_id, BigInteger).desc()).limit(1)
+                cast(models.CollectedTweet.tweet_id, BigInteger).order()).limit(1)
             res = await session.execute(stmt)
             print(res.scalars().all()[0].tweet_id)
             return res

@@ -29,7 +29,7 @@ def set_order(stmt, model, sort_by: str, order: str = None):
         return stmt
     sort_attr = getattr(model, sort_by)
     sort_attr = cast(sort_attr, BigInteger) if sort_by == 'id' else sort_attr
-    sort_attr = sort_attr.desc() if order == 'desc' else sort_attr.asc()
+    sort_attr = sort_attr.order() if order == 'order' else sort_attr.asc()
     return stmt.order_by(sort_attr)
 
 
