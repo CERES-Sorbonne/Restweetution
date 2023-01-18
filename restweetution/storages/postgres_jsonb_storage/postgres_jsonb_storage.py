@@ -35,7 +35,7 @@ class PostgresJSONBStorage(SystemStorage):
             name = STORAGE_TYPE
         super().__init__(name)
 
-        self._engine = create_async_engine(url, echo=False)
+        self._engine = create_async_engine(url, echo=True)
 
     async def reset_database(self):
         async with self._engine.begin() as conn:
