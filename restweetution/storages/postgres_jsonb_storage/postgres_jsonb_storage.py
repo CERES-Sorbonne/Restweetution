@@ -284,7 +284,7 @@ class PostgresJSONBStorage(SystemStorage):
                                    desc: bool = False,
                                    offset: int = None,
                                    limit: int = None):
-        stmt = select_join_builder((TWEET, tweet_fields), (COLLECTED_TWEET, collected_fields))
+        stmt = select_join_builder((COLLECTED_TWEET, collected_fields), (TWEET, tweet_fields))
 
         stmt = where_in_builder(stmt, True, (TWEET.c.id, ids), (COLLECTED_TWEET.c.rule_id, rule_ids))
         stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)

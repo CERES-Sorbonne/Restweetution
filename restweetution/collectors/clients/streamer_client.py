@@ -51,7 +51,7 @@ class StreamerClient:
                             yield line
             except KeyboardInterrupt as e:
                 raise e
-            except BaseException as e:
+            except Exception as e:
                 self._logger.warning(f'Tweet Stream {e}')
                 raise e
             print('wait: ', wait_time)
