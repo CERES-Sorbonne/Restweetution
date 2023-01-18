@@ -53,7 +53,7 @@ class StreamerClient:
                 raise e
             except Exception as e:
                 self._logger.warning(f'Tweet Stream {e}')
-                raise e
+                #raise e
             print('wait: ', wait_time)
             await asyncio.sleep(wait_time)
             wait_time = min(max(wait_time * 2, 1), 30)
