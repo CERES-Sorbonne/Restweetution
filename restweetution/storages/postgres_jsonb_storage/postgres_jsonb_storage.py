@@ -325,15 +325,14 @@ class PostgresJSONBStorage(SystemStorage):
                                           offset: int = None,
                                           limit: int = None,
                                           chunk_size=1000):
-        async with self._engine.begin() as conn:
+        async with self._engine.connect() as conn:
             stmt = self._get_collected_tweets_stmt(
                 tweet_fields, collected_fields, ids, date_from, date_to, rule_ids, desc, offset, limit)
             # conn = await conn.execution_options(yield_per=chunk_size)
             # stream = await conn.stream(stmt)
 
-            conn = await conn.cursor(stmt)
-            while res := await conn.fetch(1000):
-            # async for res in stream.partitions(chunk_size):
+            conn = await conn.stream(stmt)
+            async for res in conn.partitions(chunk_size):
                 res = res_to_dicts(res)
                 collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
                 yield collected
