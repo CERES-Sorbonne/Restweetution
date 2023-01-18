@@ -29,8 +29,15 @@ async def main():
     storage = conf.build_storage()
 
     old = time.time()
-    async for res in storage.get_collected_tweets_stream(rule_ids=[78], order=1):
+    old_big = 0
+    b_count = 0
+    async for res in storage.get_collected_tweets_stream(rule_ids=[78]):
         print(f'time: {time.time() - old}')
+        for i in range(len(res)-1):
+            if res[i].tweet.created_at > res[i+1].tweet.created_at:
+                b_count = b_count + 1
+                print(f'bigger: {b_count}')
+
         old = time.time()
 
 
