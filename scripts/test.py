@@ -2,6 +2,8 @@ import asyncio
 import os
 import time
 
+from sqlalchemy import text
+
 from restweetution import config_loader
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
@@ -25,6 +27,10 @@ async def main():
     # server.start()
 
     storage = conf.build_storage()
+    async with storage._engine.begin() as conn:
+        res = await conn.execute(text('SHOW cursor_tuple_fraction'))
+        res = res.fetchall()
+        print(res)
 
     old = time.time()
     async for res in storage.get_collected_tweets_stream(rule_ids=[78]):
