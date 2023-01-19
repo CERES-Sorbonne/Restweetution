@@ -15,7 +15,7 @@ const console = window.console
 
 </script>
 <template>
-  <div class="row" v-if="store.isLoaded">
+  <div class="row">
     <!-- <div class="col-sm-6"> -->
       <Menu />
       <div v-if="store.isLoaded">
