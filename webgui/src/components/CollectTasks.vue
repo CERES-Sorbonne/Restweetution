@@ -35,7 +35,7 @@ function reset() {
 </script>
 
 <template >
-    <h5>Collected Tasks</h5>
+    <h5>Options</h5>
     <ul class="text-start" style="list-style-type:none; padding-left: 0;">
         <li>
             Media Download:

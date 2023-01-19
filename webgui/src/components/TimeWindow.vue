@@ -33,6 +33,11 @@ function resetEdit() {
 }
 
 function submitEdit() {
+
+    if(props.time_window.start == timeWindow.start && props.time_window.end == timeWindow.end && timeWindow.recent == props.time_window.recent) {
+        return
+    }
+
     let window = Object.assign({}, timeWindow)
 
     // set back to Date format to automatically take care of Timezone informations 
@@ -54,6 +59,9 @@ onMounted(() => {
 watch(props.time_window, resetEdit)
 watch(props, () => {
     resetEdit()
+    if(!props.edit) {
+        submitEdit()
+    }
 })
 
 watch(setStart, () => {
@@ -92,6 +100,13 @@ watch(setEnd, () => {
 
 <template >
     <h5>Time Window ({{timeWindow.recent ? 'Recent' : 'Full Search'}})</h5>
+    <div class="pt-2">
+        <button v-if="props.edit" :disabled="!changed" @click="resetEdit" type="button" class="btn btn-outline-primary me-1" >Reset</button>
+        <span v-if="props.edit" class="form-switch ms-3">
+            <input class="form-check-input mt-2" type="checkbox" role="switch" id="flexSwitchCheckDefault" v-model="timeWindow.recent">
+            <label class="form-check-label ms-2" for="flexSwitchCheckDefault">Recent</label>
+        </span>
+    </div>
     <form>        
         <div class="input-group mt-1">
             <span class="input-group-text" style="width: 55px;">From</span>
@@ -115,14 +130,6 @@ watch(setEnd, () => {
     </div>
     <div v-if="hasTotalCount" class="progress">
         <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" :aria-valuenow="Math.round(percentage)" aria-valuemin="0" aria-valuemax="100" :style="'width: ' + Math.round(percentage) +'%'"></div>
-    </div>
-    <div class="pt-2">
-        <button v-if="props.edit" :disabled="!changed" @click="resetEdit" type="button" class="btn btn-outline-primary me-1" >Reset</button>
-        <button v-if="props.edit" :disabled="!changed" @click="submitEdit" type="button" class="btn btn-outline-primary" >Submit</button>
-        <span v-if="props.edit" class="form-switch ms-3">
-            <input class="form-check-input mt-2" type="checkbox" role="switch" id="flexSwitchCheckDefault" v-model="timeWindow.recent">
-            <label class="form-check-label ms-2" for="flexSwitchCheckDefault">Recent</label>
-        </span>
     </div>
 
 </template>

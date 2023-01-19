@@ -18,7 +18,7 @@ const console = window.console
   <div class="row">
     <!-- <div class="col-sm-6"> -->
       <Menu />
-      <div v-if="userStore.hasSelectedUser">
+      <div v-if="userStore.isLoaded">
         <Streamer :selectedUser="userStore.selectedUser"/>
       </div>
       <div v-else>

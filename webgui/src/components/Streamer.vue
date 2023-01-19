@@ -6,6 +6,8 @@ import { computed } from '@vue/reactivity';
 import Notifications from './Notifications.vue';
 import CollectTasks from './CollectTasks.vue';
 import RuleSelectionTable from './RuleSelectionTable.vue';
+import type { RuleInfo } from '@/api/collector';
+import {areArraysEqualSets} from '@/utils'
 
 const props = defineProps({
     selectedUser: {type: String, required: true}
@@ -18,18 +20,48 @@ const showApiInfo = ref(false)
 const loading = ref(false)
 const loadingVerify = ref(false)
 
-const streamer = computed(() => store.streamers[props.selectedUser])
+const streamer = computed(() => {
+    return store.streamers[props.selectedUser]
+})
 const isLoaded = computed(() => streamer.value != undefined)
+
+const localActiveRules: RuleInfo[] = reactive([])
 const availableRules = computed(() => {
-    let active: any = {}
-    if(streamer.value) {
-        streamer.value.active_rules.forEach((r) => active[r.id] = true)
-    }
-    return store.orderedRules.filter((r:any) => !active[r.id])
+    return store.orderedRules.filter((r:RuleInfo) => !localActiveRules.some(r2 => r2.id == r.id))
 })
 
 const apiRules: any[] = reactive([])
 
+
+function takeRulesFromStore() {
+    //console.log('take rules')
+    localActiveRules.length = 0
+    // console.log('active rules: ')
+    // console.log(streamer.value.active_rules)
+    // console.log(store.ruleFromId)
+    let tmpRules = streamer.value.active_rules.map(r => store.ruleFromId[r.id]).filter(r => r != undefined)
+    localActiveRules.push(...tmpRules)
+}
+
+const localRulesEqualToStore = computed(() => {
+    //console.log(streamer.value.active_rules)
+    // console.log(localActiveRules)
+    let eq = areArraysEqualSets(streamer.value.active_rules.map(r => r.id),localActiveRules.map(r => r.id))
+    //console.log(eq)
+    return eq
+})
+
+watch(streamer, () => {
+    console.log('trigger watch')
+    console.log(streamer.value)
+    if(!streamer) {
+        return
+    }
+    if(!localRulesEqualToStore.value) {
+        console.log('take rules')
+        takeRulesFromStore()
+    }
+})
 
 function triggerStartStop() {
     if(streamer.value.running) {
@@ -51,7 +83,7 @@ function triggerDebugData() {
     apiRules.length = 0
     apiRules.push({tag: 'loadig', query: 'loading', api_id: 'loading'})
     store.streamerVerify(props.selectedUser).then((res) => {
-        console.log(res)
+        //console.log(res)
         apiRules.length = 0
         res.api_rules.forEach(r => {
             apiRules.push({tag: r.tag, query: r.value, api_id: r.id})
@@ -60,23 +92,17 @@ function triggerDebugData() {
     })
 }
 
-function addRules(rules: any[]) {
-    loading.value = true
-    store.streamerAddRules(store.selectedUser, rules).
-    then(() => loading.value = false)
-    editRules.value = false
+function addRules(rule: RuleInfo) {
+    localActiveRules.push(rule)
 }
 
-function delRules(rules: any) {
-    loading.value = true
-    store.streamerDelRules(store.selectedUser, rules.map((r:any) => r.id)).
-    then(() => loading.value = false)
-    editRules.value = false
+function delRules(rule: RuleInfo) {
+    localActiveRules.splice(localActiveRules.findIndex(r => r.id == rule.id), 1)
 }
 
 function syncFromUI() {
     loading.value = true
-    store.streamerSetRules(store.selectedUser, streamer.value.active_rules).
+    store.streamerSetRules(store.selectedUser, localActiveRules).
     then(() => loading.value = false)
     editRules.value = false
     showApiInfo.value = false
@@ -90,19 +116,21 @@ function syncFromAPI() {
     showApiInfo.value = false
 }
 
-// onMounted(() => {
-//     if(!store.hasSelectedUser) {
-//         return
-//     }
-//     store.streamerInfo(props.selectedUser)
-// })
+onMounted(() => {
+    if(!store.hasSelectedUser) {
+        return
+    }
+    if(streamer.value) {
+        takeRulesFromStore()
+    }
+})
 
 watch(props, () => showApiInfo.value = false)
 
 </script>
 
 <template>
-    <div v-if="isLoaded && props.selectedUser != 'undefined'">
+    <div v-if="store.isLoaded && isLoaded && props.selectedUser != 'undefined'">
         <h2 class="mb-5 text-center">Streamer:
             <span class="text-danger" v-if="streamer.conflict">Conflict</span>
             <span class="text-success" v-else-if="streamer.running">Collecting</span>
@@ -112,6 +140,7 @@ watch(props, () => showApiInfo.value = false)
             <div class="col text-center">
                 <div class="card mb-2">
                     <div class="card-body">
+                        <h5 class="text-center">Controls</h5>
                         <div class="mb-2">
                             <button type="button" class="btn btn-primary btn-lg me-2" @click="triggerStartStop">{{streamer.running ? 'Stop' : 'Start'}}</button>
                             <button v-if="(!showApiInfo || loadingVerify) && !streamer.conflict" type="button" class="btn btn-lg btn-outline-secondary me-1" @click="triggerDebugData">Verify</button>
@@ -130,10 +159,15 @@ watch(props, () => showApiInfo.value = false)
                         <CollectTasks :collect-tasks="streamer.collect_tasks" @submit="(tasks) => store.streamerSetCollectTasks(props.selectedUser, tasks)"/>
                     </div>
                 </div>
-                <div class="card">
+                <div class="card mb-2">
                     <div class="card-body">
                         <h5>Collected</h5>
                         <p>Since Startup: {{streamer.count}}</p>
+                    </div>
+                </div>
+                <div class="card mb-2">
+                    <div class="card-body" style="max-height:200px; overflow: auto;">
+                        <Notifications :notifications="store.streamerNotifs"/>    
                     </div>
                 </div>
             </div>
@@ -141,16 +175,21 @@ watch(props, () => showApiInfo.value = false)
                 <div v-show="showApiInfo">
                     <RuleTable title="[DEBUG] Streamer Rules on Twitter API" :rules="apiRules" :fields="['api_id', 'tag', 'query']"/>
                 </div>
-                <button type="button" class="btn btn-outline-primary me-1" :disabled="loading" @click="editRules = !editRules"><span v-if="!editRules">Edit Rules</span><span v-if="editRules">Stop Edit</span></button>
+                <div>
+                    <button type="button" class="btn btn-outline-primary me-1" :disabled="loading || localRulesEqualToStore" @click="takeRulesFromStore">Cancel</button>
+                    <button type="button" class="btn btn-outline-primary me-1" :disabled="loading || localRulesEqualToStore" @click="syncFromUI">Submit</button>
+                    <button v-if="loading" type="button" class="btn btn-dark me-1" :disabled="true">Loading</button>
+                </div>
+                
                 <div class="row">
                     <div class="col">
                         <h5 class="text-center">Active Rules</h5>
-                        <RuleSelectionTable action-name="Remove" :loading="loading" :rules="streamer.active_rules" :selectable="editRules" @selected="delRules" :fields="['id', 'tag', 'query', 'api_id']"/>
+                        <RuleSelectionTable action-name="Remove" :loading="loading" :rules="localActiveRules" :selectable="editRules" @select="delRules" :fields="['id', 'tag', 'query', 'api_id']"/>
                 
                     </div>
                     <div class="col">
                         <h5 class="text-center">Available Rules</h5>
-                        <RuleSelectionTable action-name="Add" :loading="loading" :selectable="editRules" :rules="availableRules" @selected="addRules" :fields="['id', 'tag', 'query', 'tweet_count']"/>
+                        <RuleSelectionTable action-name="Add" :loading="loading" :selectable="editRules" :rules="availableRules" @select="addRules" :fields="['id', 'tag', 'query', 'tweet_count']"/>
                     </div>
                 </div>
             </div>

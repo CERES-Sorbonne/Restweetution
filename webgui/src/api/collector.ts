@@ -13,7 +13,7 @@ export interface RuleInfo {
 export const BASE_URL = '/collector_api'
 let user_id = ''
 
-console.log(BASE_URL)
+// console.log(BASE_URL)
 
 export function getUsers() {
     return axios.get(BASE_URL + '/users/info')

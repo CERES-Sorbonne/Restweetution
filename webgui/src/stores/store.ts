@@ -2,6 +2,7 @@ import { ref, reactive, computed, watch } from "vue";
 import { defineStore } from "pinia";
 import * as api from "../api/collector"
 import { toDatetimeInputString } from "@/utils";
+import type { RuleInfo } from "../api/collector";
 
 interface Task {
     updated_at: string
@@ -72,6 +73,10 @@ export const useStore = defineStore("store", () => {
     const searchers: SearcherDict = reactive({})
     const rules: api.RuleInfo[] = reactive([])
     const notifs: Notif[] = reactive([])
+    
+    const loadedRules = ref(false)
+
+    const ruleFromId: {[id: string]: RuleInfo} = {}
 
     const searcherNotifs = computed(() => {
         return notifs.filter(n => n.source == 'searcher').filter(n => n.user_id == selectedUser.value)
@@ -81,7 +86,7 @@ export const useStore = defineStore("store", () => {
     })
     const isLoaded = computed(() => {
         let user_ids = Object.keys(users)
-        return !user_ids.some(user_id => streamers[user_id] == undefined)
+        return !user_ids.some(user_id => streamers[user_id] == undefined) && loadedRules.value
     })
 
     function notifyError(message: string, source: string, user_id: any=undefined) {
@@ -106,9 +111,15 @@ export const useStore = defineStore("store", () => {
 
     async function loadRules() {
         let res = await api.getRules()
-        console.log(res)
+        // console.log(res)
         rules.length = 0
         rules.push(...res)
+
+        const idToRule:{ [id: string] : api.RuleInfo; } = {}
+        rules.forEach(r => idToRule[r.id] = r)
+        
+        Object.assign(ruleFromId, idToRule)
+        loadedRules.value = true, 1000
     }
 
 
@@ -149,7 +160,7 @@ export const useStore = defineStore("store", () => {
 
     async function deleteUsers(names: string[]) {
         const users_res = await api.delUsers(names)
-        console.log(users_res)
+       // console.log(users_res)
         reset_users()
         registerUsers(users_res)
         return users_res
@@ -160,7 +171,7 @@ export const useStore = defineStore("store", () => {
         if (selectedUser.value == undefined || selectedUser.value == 'undefined') {
             return
         }
-        console.log(selectedUser.value)
+        //console.log(selectedUser.value)
         streamerInfo(selectedUser.value)
         searcherInfo(selectedUser.value)
     }
@@ -401,7 +412,7 @@ export const useStore = defineStore("store", () => {
         verifyQuery,
         streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, streamerVerify, streamerSync, streamerSetCollectTasks,
         searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow, connection, searcherSetCollectTasks,
-        rules, loadRules, orderedRules, addRules, rulesOrderId,
+        rules, loadRules, orderedRules, addRules, rulesOrderId, ruleFromId,
         notifs, searcherNotifs, streamerNotifs
     }
 });

@@ -5,7 +5,7 @@ import Searcher from '@/components/Searcher.vue';
 
 import {useStore} from '@/stores/store'
 
-const userStore = useStore()
+const store = useStore()
 
 
 const editStreamerRules = ref(false)
@@ -15,11 +15,11 @@ const console = window.console
 
 </script>
 <template>
-  <div class="row">
+  <div class="row" v-if="store.isLoaded">
     <!-- <div class="col-sm-6"> -->
       <Menu />
-      <div v-if="userStore.hasSelectedUser">
-        <Searcher :selectedUser="userStore.selectedUser"/>
+      <div v-if="store.hasSelectedUser">
+        <Searcher :selectedUser="store.selectedUser"/>
       </div>
       <div v-else>
         <h1 class="pt-4 text-danger text-center">No User Config Selected !</h1>

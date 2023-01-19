@@ -11,7 +11,8 @@ function copyClipboard(value: string, id: number) {
 
 const props = defineProps({
     rules: Array<RuleInfo>,
-    actionName: {type: String, default: undefined}
+    actionName: {type: String, default: undefined},
+    showAction: {type: Boolean, default: true}
 })
 
 const expanded = ref(-1)
@@ -36,16 +37,16 @@ function expand(id: number) {
                 <th scope="col">ID</th>
                 <th scope="col">Tags</th>
                 <th scope="col">Count</th>
-                <th v-if="props.actionName" scope="col" class="text-end">Action</th>
+                <th v-if="props.actionName && showAction" scope="col" class="text-end">Action</th>
                 </tr>
             </thead>
             <tbody class="">
                 <template v-for="rule in rules">
                     <tr @click="expand(rule.id)" role='button'>
                         <th scope="row" class="align-middle">{{rule.id}}</th>
-                        <td class="align-middle user-select-none">{{rule.tag}}</td>
+                        <td class="align-middle user-select-none" style="width: 100%;">{{rule.tag}}</td>
                         <td class="align-middle user-select-none">{{ rule.tweet_count }}</td>
-                        <td v-if="props.actionName" class="text-end"><button @click.stop="$emit('select', rule)" type="button" class="btn btn-light btn-sm">{{actionName}}</button></td>
+                        <td v-if="props.actionName && showAction" class="text-end"><button @click.stop="$emit('select', rule)" type="button" class="btn btn-light btn-sm">{{actionName}}</button></td>
                     </tr>
                     <tr v-if="(expanded == rule.id)">
                         <td><i @click="copyClipboard(rule.query, rule.id)" :class="'btn bi bi-' + (copied == rule.id ? 'clipboard-check' : 'clipboard') + ' me-2'" style="cursor:pointer;"></i></td>
