@@ -18,10 +18,13 @@ const console = window.console
   <div class="row" v-if="store.isLoaded">
     <!-- <div class="col-sm-6"> -->
       <Menu />
-      <div v-if="store.hasSelectedUser">
+      <div v-if="store.isLoaded">
         <Searcher :selectedUser="store.selectedUser"/>
       </div>
       <div v-else>
+        <h1 class="text-center pt-4 text-info">Loading ...</h1>
+      </div>
+      <div v-if="store.isLoaded && store.selectedUser == 'undefined'">
         <h1 class="pt-4 text-danger text-center">No User Config Selected !</h1>
       </div>
   </div>

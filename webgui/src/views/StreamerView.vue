@@ -22,7 +22,11 @@ const console = window.console
         <Streamer :selectedUser="userStore.selectedUser"/>
       </div>
       <div v-else>
+        <h1 class="text-center pt-4 text-info">Loading ...</h1>
+      </div>
+      <div v-if="userStore.isLoaded && userStore.selectedUser == 'undefined'">
         <h1 class="pt-4 text-danger text-center">No User Config Selected !</h1>
       </div>
+
   </div>
 </template>
