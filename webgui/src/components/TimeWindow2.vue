@@ -45,14 +45,14 @@ watch(setEnd, () => {
         <div class="input-group mb-3">
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">From</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#" @click="setStart = false">Oldest</a></li>
+                <li><a class="dropdown-item" href="#" @click="setStart = false">Default</a></li>
                 <li><a class="dropdown-item" href="#" @click="setStart = true">Date</a></li>
             </ul>
             <input v-if="setStart" :disabled="(!edit || !setStart)" type="datetime-local" aria-label="First name" class="form-control " v-model="props.time_window.start">
-            <input v-else :disabled="true" type="text" class="form-control" value="Oldest"/>
+            <input v-else :disabled="true" type="text" class="form-control" :value="props.time_window.recent ? '1 Week Ago' : '1 Month Ago'"/>
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">To</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" @click="setEnd = false" href="#">Now</a></li>
+                <li><a class="dropdown-item" @click="setEnd = false" href="#">Default</a></li>
                 <li><a class="dropdown-item" @click="setEnd = true" href="#">Date</a></li>
             </ul>
             <input v-if="setEnd" :disabled="(!edit || !setEnd)" type="datetime-local" class="form-control" v-model="props.time_window.end">
