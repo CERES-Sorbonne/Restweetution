@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import datetime
 import logging
 import math
 import time
@@ -124,6 +124,18 @@ class Searcher:
             params['end_time'] = end
         return params
 
+    @staticmethod
+    def _build_count_params(start: datetime = None, end: datetime = None, granularity: str = None):
+        if granularity is None:
+            granularity = 'day'
+
+        params = {'granularity': granularity}
+        if start:
+            params['start_time'] = start
+        if end:
+            params['end_time'] = end
+        return params
+
     async def collect(self):
         logger.info('Start Searcher')
 
@@ -151,7 +163,7 @@ class Searcher:
                 bulk_data.add(**parse_includes(includes))
 
                 # set collected tweets to rule
-                collected_at = datetime.datetime.now()
+                collected_at = datetime.now()
                 # use copy of rule to avoid polluting global object
                 rule_copy = rule.copy()
 
@@ -199,6 +211,22 @@ class Searcher:
         asyncio.create_task(self.event_update())
         logger.info(f'Found {total_count} tweets to collect')
         return total_count
+
+    async def count(self, query: str, start: datetime = None, end: datetime = None, recent=True, step: str = None):
+        logger.info('Start Count...')
+
+        params = self._build_count_params(start, end, granularity=step)
+        print(params)
+        count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
+
+        total_count = 0
+        count_units = []
+        async for res in self._token_loop(count_func, query=query, **params):
+            count = CountResponse(**res.dict())
+            total_count += count.meta.total_tweet_count
+            count_units.extend(count.data)
+
+        return total_count, count_units
 
     async def collect_count_test(self):
         if not self._rule:

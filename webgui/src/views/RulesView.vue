@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import Menu from "../components/Menu.vue"
 import RuleSelectionTable from "@/components/RuleSelectionTable.vue";
+import RuleCountChart2 from '@/components/RuleCountChart2.vue'
 
 import { computed, reactive, ref } from "@vue/reactivity";
 import { watch } from "vue";
 import { useStore } from "@/stores/store";
+import TimeWindow2 from "@/components/TimeWindow2.vue";
+import type { CountRequest, CountResult } from "@/api/collector";
+import * as collector from '@/api/collector'
 
 const store = useStore()
 
@@ -13,33 +17,66 @@ const newRule = reactive({tag: '', query: ''})
 
 const anyQuery = computed(() => newRule.query != '')
 const anyTags = computed(() => newRule.tag != '')
-const ruleIsVerified = ref(false)
+// const ruleIsVerified = ref(false)
 const errorMessage: any = reactive({})
 const loading = ref(false)
+const timeWindow = reactive({start: undefined, end: undefined, recent: true})
 
-function verifyRule() {
-    loading.value = true
-    store.verifyQuery(newRule).then(res => {
-        loading.value = false
-        ruleIsVerified.value = res.valid
-        if(!res.valid) {
-            setErrorMessage(res.error[0])
-        }
-        else {
-            setErrorMessage({})
-        }
-    })
+const countResults: CountResult[] = reactive([])
+const actualResult: {res?: CountResult} = reactive({res: undefined})
+
+const ruleIsVerified = computed(() => actualResult.res != undefined)
+
+function setRule(rule: {tag: string, query: string}) {
+    newRule.query = rule.query
+    newRule.tag = rule.tag
 }
+
+// function verifyRule() {
+//     loading.value = true
+//     store.verifyQuery(newRule).then(res => {
+//         loading.value = false
+//         ruleIsVerified.value = res.valid
+//         if(!res.valid) {
+//             setErrorMessage(res.error[0])
+//         }
+//         else {
+//             setErrorMessage({})
+//         }
+//     })
+// }
+
 
 function setErrorMessage(error: any) {
     Object.keys(errorMessage).forEach(k => delete errorMessage[k])
     Object.assign(errorMessage, error)
 }
 
+function count() {
+    setErrorMessage({})
+    const request: CountRequest = {
+        query: newRule.query,
+        start: timeWindow.start,
+        end: timeWindow.end,
+        recent: timeWindow.recent
+    }
+    loading.value = true
+    collector.searcherCount(store.selectedUser, request).then(res => {
+        countResults.unshift(res)
+        actualResult.res = res
+        loading.value = false
+    }).catch(err => {
+        loading.value = false
+        setErrorMessage(err.response.data)
+    })
+}
+
+
+
 function reset() {
     newRule.tag = ''
     newRule.query = ''
-    ruleIsVerified.value = false
+    actualResult.res = undefined
     setErrorMessage({})
 }
 
@@ -53,37 +90,67 @@ watch(edit, () => {
     }
 })
 
+const query = computed(() => newRule.query)
+watch(query, ()=> {
+    actualResult.res = undefined
+})
+
+const queryClass = computed(() => {
+    if(ruleIsVerified.value) {
+        return 'is-valid'
+    }
+    if(errorMessage.title) {
+        return 'is-invalid'
+    }
+})
+
 
 </script>
 <template>
   <Menu />
-  
-  <div class="text-left pb-1 pt-3">
-        <button type="button" class="btn btn-primary" @click="edit = !edit">{{edit ? 'Stop Edit' : 'Edit'}}</button>
-        <button v-if="edit && !ruleIsVerified" :disabled="!store.hasSelectedUser || !anyQuery" type="button" class="btn btn-primary ms-1" @click="verifyRule">Verify Query</button>
-        <button v-if="edit && ruleIsVerified" type="button" class="btn btn-primary ms-1"  @click="ruleIsVerified = false">Modify Query</button>
-        <button v-if="ruleIsVerified" :disabled="!anyTags" type="button" class="btn btn-primary ms-1" @click="addRule">Submit</button>
-        <button v-if="loading" disabled="true" type="button" class="btn btn-secondary ms-1">Loading...</button>
-        
-        <div class="pt-2" v-if="edit">
-            <div v-if="errorMessage.title">
-                <p class="text-danger">{{errorMessage.title}}</p>
-                <div v-if="errorMessage.details">
-                    <p class="text-danger" v-for="detail in errorMessage.details">{{detail}}</p>
+
+  <div class="row">
+    <div class="col">
+        <div class="text-left pb-1 pt-3">
+            <div class="pt-2 mb-3">
+                <TimeWindow2 :time_window="timeWindow" :edit="true"/>
+                <div v-if="errorMessage">
+                    <p class="text-danger" v-for="err in errorMessage">{{err}}</p>
                 </div>
+                <div v-else>
+                    <p class="text-warning" v-if="!store.hasSelectedUser">Select a User Config to perform verification</p>
+                </div>
+                <form action="/streamer/add_rule" method="POST" class="input-group needs-validation">
+                    <textarea type="text" v-model="newRule.query" name="query" rows="3" cols="40" class="form-control" :class="queryClass" placeholder="Rule"></textarea>
+                    <button type="button" @click="count" class="btn btn-outline-secondary" :disabled="loading || !store.hasSelectedUser">{{ loading ? 'Loading..' : 'Count' }}</button>
+                    <div class="valid-feedback">
+                        Count:  {{actualResult.res ? actualResult.res.total : ''}}
+                    </div>
+                    <div class="invalid-feedback">
+                        <p class="text-danger" v-for="detail in errorMessage.details">{{detail}}</p>
+                    </div>
+                    <div v-if="ruleIsVerified" class="input-group needs-validation mt-2">
+                        <input type="text" placeholder="Tags" v-model="newRule.tag" class="form-control" />
+                        <button @click="addRule" class="btn btn-outline-secondary" type="button" :disabled="newRule.tag == undefined || newRule.tag == ''">Save Rule</button>
+                        <div class="invalid-feedback">
+                            Define at least one Tag
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div v-else>
-                <p class="text-warning" v-if="!store.hasSelectedUser">Select a User Config to perform verification</p>
+        </div>
+        <h5 v-if="countResults.length > 0" class="text-center">Count Results: </h5>
+        <div v-for="count in countResults" class="card mb-2">
+            <div class="card-body">
+                <p>{{ count.query }}</p>
+                <RuleCountChart2  :points="count.points"/>
             </div>
-            <div v-if="ruleIsVerified">
-                <p class="text-success">Query is Valid ! Choose some Tags for identification</p>
-            </div>
-            <form action="/streamer/add_rule" method="POST">
-                <div><textarea :disabled="ruleIsVerified" type="text" v-model="newRule.query" name="query" rows="3" cols="40" class="form-control" placeholder="Query"></textarea></div>
-                <div v-if="ruleIsVerified" class="pt-1"><input type="text" v-model="newRule.tag" name="tag" class="form-control" placeholder="Tags" /></div>
-            </form>
         </div>
     </div>
-
-    <RuleSelectionTable :rules="store.orderedRules"/>
+    
+    <div class="col">
+        <h5 class="text-center">Saved Rules</h5>
+        <RuleSelectionTable :rules="store.orderedRules" actionName="Set" @select="setRule"/>
+    </div>
+  </div>
 </template>

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime
 from typing import List, Dict
 
 from restweetution.collectors import Streamer
@@ -208,6 +209,9 @@ class UserInstance:
 
     def searcher_set_time_window(self, time_window: TimeWindow):
         self._searcher.set_time_window(time_window)
+
+    async def searcher_count(self, query: str, start: datetime = None, end: datetime = None, recent=True, step: str = None):
+        return await self._searcher.count(query=query, start=start, end=end, recent=recent, step=step)
 
     async def _searcher_update(self):
         self.write_config()

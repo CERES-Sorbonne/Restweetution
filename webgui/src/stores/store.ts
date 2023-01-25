@@ -125,8 +125,9 @@ export const useStore = defineStore("store", () => {
 
     async function addRules(rule: any[]) {
         let res = await api.addRules(rule)
+        console.log(res)
         rules.length = 0
-        rules.push(...res.rules)
+        rules.push(...res)
     }
 
     const orderedRules = computed(() => [...rules].sort((a, b) => b.tweet_count - a.tweet_count))

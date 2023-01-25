@@ -72,3 +72,8 @@ def safe_dict(data):
     @return: Dictionary
     """
     return json.loads(safe_json(data))
+
+
+def chunks(arr, n):
+    for i in range(0, len(arr), n):
+        yield arr[i:i + n]

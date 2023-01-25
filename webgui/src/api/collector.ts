@@ -9,6 +9,23 @@ export interface RuleInfo {
     tweet_count: number
 }
 
+export interface CountRequest {
+    query: string
+    start?: Date
+    end?: Date
+    recent?: boolean
+}
+
+export interface CountPoint {
+    date: string
+    count: number
+}
+
+export interface CountResult {
+    total: number
+    points: CountPoint[]
+    query: string,
+}
 
 export const BASE_URL = '/collector_api'
 let user_id = ''
@@ -131,4 +148,9 @@ export async function searcherSetTimeWindow(user_id: string, time_window:any) {
 export async function searcherSetCollectTasks(user:string, tasks: CollectTasks) {
     const res = await axios.post(BASE_URL + '/searcher/set/collect_tasks/' + user, tasks)
     return res.data
+}
+
+export async function searcherCount(user: string, countRequest: CountRequest) {
+    const res = await axios.post(BASE_URL + '/searcher/count/' + user, countRequest)
+    return res.data as CountResult
 }

@@ -1,6 +1,8 @@
 import asyncio
+import datetime
 import json
 import logging
+import math
 import os
 import time
 import traceback
@@ -9,6 +11,7 @@ from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from restweetution import config_loader
@@ -17,7 +20,9 @@ from restweetution.instances.system_instance import SystemInstance
 from restweetution.models.config.user_config import RuleConfig, UserConfig, CollectTasks
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.rule import Rule
+from restweetution.models.searcher import CountUnit
 from restweetution.server.connection_manager import ConnectionManager
+from restweetution.utils import chunks
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -31,6 +36,13 @@ app = FastAPI()
 manager = ConnectionManager()
 
 last_streamer_update = time.time()
+
+
+class CountRequest(BaseModel):
+    query: str
+    start: datetime.datetime = None
+    end: datetime.datetime = None
+    recent: bool = True
 
 
 class Error(HTTPException):
@@ -360,6 +372,34 @@ async def searcher_set_time(user_id, time_window: TimeWindow):
         user.searcher_set_time_window(time_window)
         await user.save_user_config()
         return await searcher_info(user_id)
+    except Exception as e:
+        print(e)
+        raise HTTPException(400, e.__str__())
+
+
+@app.post("/searcher/count/{user_id}")
+async def searcher_count(user_id, req: CountRequest, max_points=200):
+    try:
+        user = restweet.user_instances[user_id]
+        total, arr = await user.searcher_count(query=req.query, start=req.start, recent=req.recent)
+
+        if len(arr) > max_points:
+            res = []
+            div = math.floor(len(arr) / max_points)
+            for counts in chunks(arr, div):
+                counts: List[CountUnit]
+                new_count = CountUnit(start=counts[0].start, end=counts[-1].end,
+                                      tweet_count=sum((c.tweet_count for c in counts)))
+                res.append(new_count)
+            arr = res
+
+        points = [{"date": c.start, "count": c.tweet_count} for c in arr]
+        return {
+            "total": total,
+            "points": points,
+            "query": req.query
+        }
+
     except Exception as e:
         print(e)
         raise HTTPException(400, e.__str__())
