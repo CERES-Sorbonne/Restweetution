@@ -107,50 +107,49 @@ const queryClass = computed(() => {
 
 </script>
 <template>
-  <Menu />
+    <Menu />
 
-  <div class="row">
-    <div class="col">
-        <div class="text-left pb-1 pt-3">
-            <div class="pt-2 mb-3">
-                <TimeWindow2 :time_window="timeWindow" :edit="true"/>
-                <div v-if="errorMessage">
-                    <p class="text-danger" v-for="err in errorMessage">{{err}}</p>
+    <div class="row">
+        <div class="col">
+            <h4 class="text-center">Rule Tester</h4>
+            <TimeWindow2 :time_window="timeWindow" :edit="true"/>
+            <div v-if="errorMessage">
+                <p class="text-danger" v-for="err in errorMessage">{{err}}</p>
+            </div>
+            <div v-else>
+                <p class="text-warning" v-if="!store.hasSelectedUser">Select a User Config to perform verification</p>
+            </div>
+            <form action="/streamer/add_rule" method="POST" class="input-group needs-validation">
+                <textarea type="text" v-model="newRule.query" name="query" rows="3" cols="40" class="form-control" :class="queryClass" placeholder="Rule"></textarea>
+                <button type="button" @click="count" class="btn btn-outline-secondary" :disabled="loading || !store.hasSelectedUser">{{ loading ? 'Loading..' : 'Count' }}</button>
+                <div class="valid-feedback">
+                    Count:  {{actualResult.res ? actualResult.res.total : ''}}
                 </div>
-                <div v-else>
-                    <p class="text-warning" v-if="!store.hasSelectedUser">Select a User Config to perform verification</p>
+                <div class="invalid-feedback">
+                    <p class="text-danger" v-for="detail in errorMessage.details">{{detail}}</p>
                 </div>
-                <form action="/streamer/add_rule" method="POST" class="input-group needs-validation">
-                    <textarea type="text" v-model="newRule.query" name="query" rows="3" cols="40" class="form-control" :class="queryClass" placeholder="Rule"></textarea>
-                    <button type="button" @click="count" class="btn btn-outline-secondary" :disabled="loading || !store.hasSelectedUser">{{ loading ? 'Loading..' : 'Count' }}</button>
-                    <div class="valid-feedback">
-                        Count:  {{actualResult.res ? actualResult.res.total : ''}}
-                    </div>
+                <div v-if="ruleIsVerified" class="input-group needs-validation mt-2">
+                    <input type="text" placeholder="Tags" v-model="newRule.tag" class="form-control" />
+                    <button @click="addRule" class="btn btn-outline-secondary" type="button" :disabled="newRule.tag == undefined || newRule.tag == ''">Save Rule</button>
                     <div class="invalid-feedback">
-                        <p class="text-danger" v-for="detail in errorMessage.details">{{detail}}</p>
+                        Define at least one Tag
                     </div>
-                    <div v-if="ruleIsVerified" class="input-group needs-validation mt-2">
-                        <input type="text" placeholder="Tags" v-model="newRule.tag" class="form-control" />
-                        <button @click="addRule" class="btn btn-outline-secondary" type="button" :disabled="newRule.tag == undefined || newRule.tag == ''">Save Rule</button>
-                        <div class="invalid-feedback">
-                            Define at least one Tag
-                        </div>
-                    </div>
-                </form>
+                </div>
+            </form>
+
+            <h5 v-if="countResults.length > 0" class="text-center">Count Results: </h5>
+            <div v-for="count in countResults" class="card mb-2">
+                <div class="card-body">
+                    <p>{{ count.query }}</p>
+                    <RuleCountChart2  :points="count.points"/>
+                </div>
             </div>
         </div>
-        <h5 v-if="countResults.length > 0" class="text-center">Count Results: </h5>
-        <div v-for="count in countResults" class="card mb-2">
-            <div class="card-body">
-                <p>{{ count.query }}</p>
-                <RuleCountChart2  :points="count.points"/>
-            </div>
-        </div>
-    </div>
+
     
-    <div class="col">
-        <h5 class="text-center">Saved Rules</h5>
-        <RuleSelectionTable :rules="store.orderedRules" actionName="Set" @select="setRule"/>
+        <div class="col">
+            <h5 class="text-center">Saved Rules</h5>
+            <RuleSelectionTable :rules="store.orderedRules" actionName="Set" @select="setRule"/>
+        </div>
     </div>
-  </div>
 </template>
