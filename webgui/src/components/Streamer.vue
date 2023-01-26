@@ -156,7 +156,7 @@ watch(props, () => showApiInfo.value = false)
                 </div>
                 <div class="card mb-2">
                     <div class="card-body">
-                        <CollectTasks :collect-tasks="streamer.collect_tasks" @submit="(tasks) => store.streamerSetCollectTasks(props.selectedUser, tasks)"/>
+                        <CollectTasks :collect-tasks="streamer.collect_options" @submit="(tasks) => store.streamerSetCollectTasks(props.selectedUser, tasks)"/>
                     </div>
                 </div>
                 <div class="card mb-2">

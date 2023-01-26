@@ -12,54 +12,43 @@ const props = defineProps({
 
 })
 
-const setStart = ref(false)
-const setEnd = ref(false)
+const setStart = computed(() => props.time_window.start != undefined)
+const setEnd = computed(() => props.time_window.end != undefined)
 
 
-watch(setStart, () => {
-    if(setStart.value) {
-        let start = new Date()
-        start.setDate(start.getDate() - 6)
-        props.time_window.start = toDatetimeInputString(start)
-    }
-    else {
-        props.time_window.start = undefined
-    }
-})
+function initStart() {
+    let start = new Date()
+    start.setDate(start.getDate() - 6)
+    props.time_window.start = toDatetimeInputString(start)
+}
 
-watch(setEnd, () => {
-    if(setEnd.value) {
-        let end = new Date()
-        props.time_window.end = toDatetimeInputString(end)
-    }
-    else {
-        props.time_window.end = undefined
-    }
-})
-
+function initEnd() {
+    let end = new Date()
+    props.time_window.end = toDatetimeInputString(end)
+}
 
 </script>
 
 <template >
     <div>
         <div class="input-group mb-3">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">From</button>
+            <button :disabled="!edit" class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">From</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#" @click="setStart = false">Default</a></li>
-                <li><a class="dropdown-item" href="#" @click="setStart = true">Date</a></li>
+                <li><a class="dropdown-item" href="#" @click="props.time_window.start = undefined">Default</a></li>
+                <li><a class="dropdown-item" href="#" @click="initStart">Date</a></li>
             </ul>
             <input v-if="setStart" :disabled="(!edit || !setStart)" type="datetime-local" aria-label="First name" class="form-control " v-model="props.time_window.start">
             <input v-else :disabled="true" type="text" class="form-control" :value="props.time_window.recent ? '1 Week Ago' : '1 Month Ago'"/>
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">To</button>
+            <button :disabled="!edit" class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">To</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" @click="setEnd = false" href="#">Default</a></li>
-                <li><a class="dropdown-item" @click="setEnd = true" href="#">Date</a></li>
+                <li><a class="dropdown-item" @click="props.time_window.end = undefined" href="#">Default</a></li>
+                <li><a class="dropdown-item" @click="initEnd" href="#">Date</a></li>
             </ul>
             <input v-if="setEnd" :disabled="(!edit || !setEnd)" type="datetime-local" class="form-control" v-model="props.time_window.end">
             <input v-else :disabled="true" type="text" class="form-control" value="Now"/>
 
 
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{{ props.time_window.recent ? 'Recent': 'Full Search' }}</button>
+            <button class="btn btn-outline-secondary dropdown-toggle" :disabled="!edit" type="button" data-bs-toggle="dropdown" aria-expanded="false">{{ props.time_window.recent ? 'Recent': 'Full Search' }}</button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="#" @click="props.time_window.recent = true">Recent</a></li>
                 <li><a class="dropdown-item" href="#" @click="props.time_window.recent = false">Full Search</a></li>

@@ -14,7 +14,7 @@ class RuleConfig(BaseModel):
     query: str  # Query string (streamer or searcher) Can also be used to describe custom rules
 
 
-class CollectTasks(BaseModel):
+class CollectOptions(BaseModel):
     download_media: bool = False
     elastic_dashboard: bool = False
     elastic_dashboard_name: str = ''
@@ -24,7 +24,7 @@ class CollectorConfig(BaseModel, ABC):
     updated_at: datetime
     is_running: bool = False
     fields: QueryFields = ALL_CONFIG
-    collect_tasks: CollectTasks = CollectTasks()
+    collect_options: CollectOptions = CollectOptions()
 
     def __init__(self, **kwargs):
         if 'updated_at' not in kwargs:

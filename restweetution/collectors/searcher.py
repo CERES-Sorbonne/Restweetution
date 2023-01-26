@@ -66,6 +66,8 @@ class Searcher:
         return self.is_running() and self._sleeping
 
     async def set_rule(self, rule: RuleConfig):
+        if self._rule and rule.query == self._rule.query:
+            return
         rule = Rule(query=rule.query, tag=rule.tag)
         res = await self.storage.request_rules([rule])
         if res:
@@ -82,12 +84,18 @@ class Searcher:
     def get_fields(self):
         return self._fields
 
-    def set_time_window(self, time_window: TimeWindow, reset=True):
+    def load_time_window(self, time_window: TimeWindow):
+        if self.is_running():
+            raise Exception('Cannot load time window if searcher is running')
+        self._time_window = time_window
+
+    def set_time_window(self, start: datetime, end: datetime, recent=True):
         if self.is_running():
             raise Exception('Cannot change time_window during collection. Please use stop_collection() before')
-        self._time_window = time_window
-        if reset:
-            self._time_window.reset_cursor()
+        if self._time_window.start == start and self._time_window.end == end and self._time_window.recent == recent:
+            return
+
+        self._time_window = TimeWindow(start=start, end=end, recent=recent)
 
     def get_time_window(self):
         return self._time_window

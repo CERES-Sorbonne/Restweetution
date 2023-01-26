@@ -8,7 +8,7 @@ from restweetution.collectors.searcher import Searcher
 from restweetution.instances.storage_instance import StorageInstance
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
-from restweetution.models.config.user_config import UserConfig, RuleConfig, CollectorConfig, CollectTasks
+from restweetution.models.config.user_config import UserConfig, RuleConfig, CollectorConfig, CollectOptions
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.searcher import TimeWindow
 from restweetution.utils import AsyncEvent
@@ -85,7 +85,7 @@ class UserInstance:
 
     def _on_collect(self, collect_config: CollectorConfig):
         async def on_collect_event(bulk_data: BulkData):
-            collect_tasks = collect_config.collect_tasks
+            collect_tasks = collect_config.collect_options
             media_downloader = self.storage_instance.media_downloader
             elastic_dashboard = self.storage_instance.elastic_dashboard
 
@@ -107,7 +107,7 @@ class UserInstance:
 
     def _on_download_media(self, collect_config: CollectorConfig, bulk_data: BulkData, media_to_tweet: Dict[str, str]):
         async def on_download_event(d_media: DownloadedMedia):
-            collect_tasks = collect_config.collect_tasks
+            collect_tasks = collect_config.collect_options
             elastic_dashboard = self.storage_instance.elastic_dashboard
 
             if collect_tasks.elastic_dashboard and collect_tasks.elastic_dashboard_name:
@@ -118,17 +118,17 @@ class UserInstance:
                 elastic_dashboard.export(bulk_data, collect_tasks.elastic_dashboard_name, only_ids=only_ids)
         return on_download_event
 
-    def streamer_set_collect_tasks(self, tasks: CollectTasks):
-        self.user_config.streamer_state.collect_tasks = tasks
+    def streamer_set_collect_options(self, tasks: CollectOptions):
+        self.user_config.streamer_state.collect_options = tasks
 
-    def streamer_get_collect_tasks(self):
-        return self.user_config.streamer_state.collect_tasks
+    def streamer_get_collect_options(self):
+        return self.user_config.streamer_state.collect_options
 
-    def searcher_set_collect_tasks(self, tasks: CollectTasks):
-        self.user_config.searcher_state.collect_tasks = tasks
+    def searcher_set_collect_options(self, tasks: CollectOptions):
+        self.user_config.searcher_state.collect_options = tasks
 
-    def searcher_get_collect_tasks(self):
-        return self.user_config.searcher_state.collect_tasks
+    def searcher_get_collect_options(self):
+        return self.user_config.searcher_state.collect_options
 
     def streamer_start(self):
         self._streamer.start_collection(fields=self.user_config.streamer_state.fields)
@@ -174,7 +174,7 @@ class UserInstance:
         if config.fields:
             self._searcher.set_fields(config.fields)
         if config.time_window:
-            self._searcher.set_time_window(config.time_window, reset=False)
+            self._searcher.load_time_window(config.time_window)
 
         if config.is_running and config.rule:
             try:
@@ -207,8 +207,8 @@ class UserInstance:
     def searcher_is_sleeping(self):
         return self._searcher.is_sleeping()
 
-    def searcher_set_time_window(self, time_window: TimeWindow):
-        self._searcher.set_time_window(time_window)
+    def searcher_set_time_window(self, start: datetime = None, end: datetime = None, recent=True):
+        self._searcher.set_time_window(start, end, recent)
 
     async def searcher_count(self, query: str, start: datetime = None, end: datetime = None, recent=True, step: str = None):
         return await self._searcher.count(query=query, start=start, end=end, recent=recent, step=step)

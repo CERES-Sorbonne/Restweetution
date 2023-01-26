@@ -40,7 +40,7 @@ interface Streamer {
     running: boolean
     active_rules: any[]
     count: number
-    collect_tasks: CollectTasks
+    collect_options: CollectTasks
     conflict: boolean
     api_rules: APIRule[]
 }
@@ -50,7 +50,7 @@ interface Searcher {
     sleeping: boolean
     rule: { query: string, tag: string, id: string }
     time_window: any
-    collect_tasks: CollectTasks
+    collect_options: CollectTasks
 }
 
 export interface Notif {
@@ -119,7 +119,7 @@ export const useStore = defineStore("store", () => {
         rules.forEach(r => idToRule[r.id] = r)
         
         Object.assign(ruleFromId, idToRule)
-        loadedRules.value = true, 1000
+        loadedRules.value = true
     }
 
 

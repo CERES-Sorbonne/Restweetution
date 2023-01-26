@@ -15,9 +15,8 @@ from pydantic import BaseModel
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from restweetution import config_loader
-from restweetution.collectors.searcher import TimeWindow
 from restweetution.instances.system_instance import SystemInstance
-from restweetution.models.config.user_config import RuleConfig, UserConfig, CollectTasks
+from restweetution.models.config.user_config import RuleConfig, UserConfig, CollectOptions
 from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.rule import Rule
 from restweetution.models.searcher import CountUnit
@@ -43,6 +42,14 @@ class CountRequest(BaseModel):
     start: datetime.datetime = None
     end: datetime.datetime = None
     recent: bool = True
+
+
+class SearcherRuleRequest(BaseModel):
+    query: str
+    tag: str
+    start: datetime.datetime = None
+    end: datetime.datetime = None
+    recent = True
 
 
 class Error(HTTPException):
@@ -167,7 +174,7 @@ async def streamer_info(user_id):
             "running": user.streamer_is_running(),
             "active_rules": user.streamer_get_rules(),
             "count": user.streamer_get_count(),
-            "collect_tasks": user.streamer_get_collect_tasks(),
+            "collect_options": user.streamer_get_collect_options(),
             "conflict": user.streamer_has_conflict()
         }
     except Exception as e:
@@ -247,11 +254,11 @@ async def streamer_verify(user_id: str):
         raise HTTPException(400, e.__str__())
 
 
-@app.post("/streamer/set/collect_tasks/{user_id}")
-async def streamer_set_collect_task(tasks: CollectTasks, user_id):
+@app.post("/streamer/set/collect_options/{user_id}")
+async def streamer_set_collect_options(options: CollectOptions, user_id):
     try:
         user = restweet.user_instances[user_id]
-        user.streamer_set_collect_tasks(tasks)
+        user.streamer_set_collect_options(options)
         await user.save_user_config()
         return await streamer_info(user_id)
     except Exception as e:
@@ -295,7 +302,7 @@ async def searcher_info(user_id):
             "fields": user.searcher_get_fields(),
             "rule": user.searcher_get_rule(),
             "time_window": user.searcher_get_time_window(),
-            "collect_tasks": user.searcher_get_collect_tasks()
+            "collect_options": user.searcher_get_collect_options()
         }
         return res
     except Exception as e:
@@ -304,10 +311,12 @@ async def searcher_info(user_id):
 
 
 @app.post("/searcher/set/rule/{user_id}")
-async def searcher_set_rule(rules: RuleConfig, user_id):
+async def searcher_set_rule(rule: SearcherRuleRequest, user_id):
     try:
         user = restweet.user_instances[user_id]
-        await user.searcher_set_rule(rules)
+        print(rule)
+        await user.searcher_set_rule(RuleConfig(**rule.dict()))
+        user.searcher_set_time_window(start=rule.start, end=rule.end, recent=rule.recent)
         await user.save_user_config()
         return await searcher_info(user_id)
     except Exception as e:
@@ -327,11 +336,11 @@ async def searcher_del_rule(user_id):
         raise HTTPException(400, e.__str__())
 
 
-@app.post("/searcher/set/collect_tasks/{user_id}")
-async def searcher_set_collect_tasks(tasks: CollectTasks, user_id):
+@app.post("/searcher/set/collect_options/{user_id}")
+async def searcher_set_collect_options(options: CollectOptions, user_id):
     try:
         user = restweet.user_instances[user_id]
-        user.searcher_set_collect_tasks(tasks)
+        user.searcher_set_collect_options(options)
         await user.save_user_config()
         return await searcher_info(user_id)
     except Exception as e:
@@ -365,16 +374,16 @@ async def searcher_stop(user_id):
         raise HTTPException(400, e.__str__())
 
 
-@app.post("/searcher/set/time/{user_id}")
-async def searcher_set_time(user_id, time_window: TimeWindow):
-    try:
-        user = restweet.user_instances[user_id]
-        user.searcher_set_time_window(time_window)
-        await user.save_user_config()
-        return await searcher_info(user_id)
-    except Exception as e:
-        print(e)
-        raise HTTPException(400, e.__str__())
+# @app.post("/searcher/set/time/{user_id}")
+# async def searcher_set_time(user_id, time_window: TimeWindow):
+#     try:
+#         user = restweet.user_instances[user_id]
+#         user.searcher_set_time_window(time_window)
+#         await user.save_user_config()
+#         return await searcher_info(user_id)
+#     except Exception as e:
+#         print(e)
+#         raise HTTPException(400, e.__str__())
 
 
 @app.post("/searcher/count/{user_id}")
