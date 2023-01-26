@@ -378,7 +378,7 @@ async def searcher_set_time(user_id, time_window: TimeWindow):
 
 
 @app.post("/searcher/count/{user_id}")
-async def searcher_count(user_id, req: CountRequest, max_points=200):
+async def searcher_count(user_id, req: CountRequest, max_points=60):
     try:
         user = restweet.user_instances[user_id]
         total, arr = await user.searcher_count(query=req.query, start=req.start, recent=req.recent)
