@@ -62,6 +62,7 @@ function count() {
     }
     loading.value = true
     collector.searcherCount(store.selectedUser, request).then(res => {
+        res.points.reverse()
         countResults.unshift(res)
         actualResult.res = res
         loading.value = false
