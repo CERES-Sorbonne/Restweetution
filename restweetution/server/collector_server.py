@@ -141,7 +141,7 @@ async def get_rules():
 async def add_rules(rules: List[RuleConfig]):
     try:
         rules = [Rule(**r.dict()) for r in rules]
-        await restweet.storage_instance.storage.request_rules(rules)
+        await restweet.storage_instance.storage.request_rules(rules, override=True)
         return await get_rules()
     except Exception as e:
         print(e)

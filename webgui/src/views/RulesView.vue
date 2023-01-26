@@ -25,7 +25,8 @@ const timeWindow = reactive({start: undefined, end: undefined, recent: true})
 const countResults: CountResult[] = reactive([])
 const actualResult: {res?: CountResult} = reactive({res: undefined})
 
-const ruleIsVerified = computed(() => actualResult.res != undefined)
+const ruleAlreadyExist = computed(() => store.rules.some(r => r.query == newRule.query))
+const ruleIsVerified = computed(() => actualResult.res != undefined || ruleAlreadyExist.value)
 
 function setRule(rule: {tag: string, query: string}) {
     newRule.query = rule.query
@@ -130,7 +131,7 @@ const queryClass = computed(() => {
                 </div>
                 <div v-if="ruleIsVerified" class="input-group needs-validation mt-2">
                     <input type="text" placeholder="Tags" v-model="newRule.tag" class="form-control" />
-                    <button @click="addRule" class="btn btn-outline-secondary" type="button" :disabled="newRule.tag == undefined || newRule.tag == ''">Save Rule</button>
+                    <button @click="addRule" class="btn btn-outline-secondary" type="button" :disabled="newRule.tag == undefined || newRule.tag == ''">{{ruleAlreadyExist ? 'Update Rule' : 'Save Rule'}}</button>
                     <div class="invalid-feedback">
                         Define at least one Tag
                     </div>

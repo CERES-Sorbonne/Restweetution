@@ -127,7 +127,7 @@ watch(selectedRules, resetTweetResult)
         <div class="col">
             <CollectionSelection :selectedRules="selectedRules.values"/>
         </div>
-        <div class="col-3 m-5">
+        <div class="col-3">
             <DateInterval v-model:start="dateInterval.start" v-model:end="dateInterval.end"/>
             <hr/>
             <div class="text-center">
