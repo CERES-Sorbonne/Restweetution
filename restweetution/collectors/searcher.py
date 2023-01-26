@@ -224,7 +224,7 @@ class Searcher:
         async for res in self._token_loop(count_func, query=query, **params):
             count = CountResponse(**res.dict())
             total_count += count.meta.total_tweet_count
-            count_units.extend(count.data)
+            count_units = [*count.data, *count_units]
 
         return total_count, count_units
 
