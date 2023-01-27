@@ -21,8 +21,9 @@ You have to launch the storage_server and the collector_server to make full use 
 
 ```
 cd Restweetution/restweetution/server/
-SYSTEM_CONFIG="path/to/your/config.yaml" uvicorn app:collecor_server
-SYSTEM_CONFIG="path/to/your/config.yaml" uvicorn app:storage_server
+SYSTEM_CONFIG="path/to/your/config.yaml" uvicorn collecor_server:app
+SYSTEM_CONFIG="path/to/your/config.yaml" uvicorn storage_server:app
+change port with --port <PORT>
 ```
 
 
