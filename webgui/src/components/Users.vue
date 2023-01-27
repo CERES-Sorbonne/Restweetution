@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, compile } from 'vue'
 import RuleTable from './RuleTable.vue'
 import {useStore} from '@/stores/store'
 import { computed } from '@vue/reactivity';
@@ -7,9 +7,12 @@ import { stringifyQuery } from 'vue-router';
 
 const store = useStore()
 
+const copied = ref('')
 function copyToken(token: string) {
     navigator.clipboard.writeText(token);
+    copied.value = token
 }
+
 
 const edit = ref(false)
 const selected: {[name: string]: boolean} = reactive({})
@@ -100,14 +103,11 @@ const newUserValid = computed(() => {
         </span>
     </div>
     <div class="table-responsive" v-if="store.isLoaded">
-        <table class="table table-striped table-sm text-nowrap table-hover">
+        <table class="table table-sm table-hover text-nowrap table-hover">
             <thead class="table-dark">
                 <tr>
                     <th v-if="edit"><input type="checkbox" @change="triggerSelectAll" v-model="allSelected"></th>
                     <th>User</th>
-                    <th>Streamer</th>
-                    <th>Searcher</th>
-                    <th class="text-center">...</th>
                     <th>bearer_token</th>
                 </tr>
             </thead>
@@ -115,10 +115,10 @@ const newUserValid = computed(() => {
                 <tr v-for="user in store.users">
                     <th v-if="edit"><input type="checkbox" v-model="selected[user.name]" @change="triggerSelect(user.name)"></th>
                     <td>{{user.name}}</td>
-                    <td class="text-center">{{store.streamers[user.name].running ? 'running' : 'paused'}}</td>
-                    <td class="text-center">{{store.searchers[user.name].running ? 'running' : 'paused'}}</td>
-                    <td class="text-success btn" @click="copyToken(user.bearer_token)">copy</td>
-                    <td>{{user.bearer_token}}</td>
+                    <td>
+                        <i @click="copyToken(user.bearer_token)" :class="'btn btn-sm bi bi-' + (copied == user.bearer_token ? 'clipboard-check' : 'clipboard') + ' me-2'" style="cursor:pointer;"></i>
+                        {{user.bearer_token}}
+                    </td>
                 </tr>
             </tbody>
         </table>
