@@ -13,6 +13,8 @@ import Exporter from '@/components/Exporter.vue'
 import type { TweetQuery } from '@/api/types';
 import TaskList from './TaskList.vue';
 import type { RuleInfo } from '@/api/collector';
+import TimeWindow2 from './TimeWindow2.vue';
+import TimeWindowStorage from './TimeWindowStorage.vue';
 
 
 const store = useStore()
@@ -128,7 +130,8 @@ watch(selectedRules, resetTweetResult)
             <CollectionSelection :selectedRules="selectedRules.values"/>
         </div>
         <div class="col-3">
-            <DateInterval v-model:start="dateInterval.start" v-model:end="dateInterval.end"/>
+            <h4 class="text-center">Time</h4>
+            <TimeWindowStorage :time_window="dateInterval" :edit="true" :showRecent="false"/>
             <hr/>
             <div class="text-center">
                 <button @click="getCount" type="button" class="btn btn-outline-primary me-2">Count</button>
