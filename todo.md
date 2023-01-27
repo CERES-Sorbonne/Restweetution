@@ -1,20 +1,3 @@
-TODO:
-- handle asynchrone
-- récupérer les vidéos
-- ajout des callbakcs variés (autre que Callable)
-- multi storage
-- logger custom (elk ? )
-- searcher
-- cli
-- api
-- ui
-- gérer le partial hash avec paramètre
-- prévenir si y a un media storage et que y a aps les medias dans la configs de récupération des tweets
-- si on a deux images identiques en partial hash -> garder la plus haute res
-- réfléchir à la bonne façon de gérer les get en multistorage -> merge tout ? est ce qu'on envoie tout avec la clé du storage à chaque fois ?
-- ajouter un cache pour les users et les rules ? 
-- définir comment stocker les users
-- backend IIIF pour les images -> demander à Thomas 
-- écrire les extractors: csv, zip, drop sql, gephi, txm, iramuteq, statistiques, clusters, graphs, skelettons?
-- tester si partialhash ça fait la différence entre les parodies ou non
-- que faire avec les erreurs ? 
+Error UI
+Media Downloader UI
+Dashboard UI
