@@ -163,6 +163,15 @@ class BulkData(BaseModel):
                     res[k].add(tweet.id)
         return res
 
+    def generate_video_urls(self):
+        media_to_tweets = self.compute_media_to_tweets()
+        for k in media_to_tweets:
+            if k not in self.medias:
+                continue
+            media = self.medias[k]
+            if not media.url:
+                media.url = 'https://twitter.com/anyuser/status/' + list(media_to_tweets[k])[0]
+
     @staticmethod
     def set_from_list(target: dict, array: list, id_lambda=lambda x: x.id):
         for item in array:

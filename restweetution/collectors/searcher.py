@@ -183,6 +183,7 @@ class Searcher:
                     rule_copy.add_includes_tweets(tweet_ids=includes_ids, collected_at=collected_at)
 
                 bulk_data.add_rules([rule_copy])
+                bulk_data.generate_video_urls()
 
                 logger.info(f'Received: {len(bulk_data.get_tweets())} tweets')
                 await self.storage.save_bulk(bulk_data, callback=self.event_collect)

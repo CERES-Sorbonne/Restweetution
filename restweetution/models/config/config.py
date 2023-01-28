@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
-from restweetution.media_downloader import MediaDownloader
+from restweetution.downloaders.media_downloader import MediaDownloader
 from restweetution.models.config.query_fields import QueryFields
 from restweetution.models.rule import StreamerRule, Rule
 from restweetution.storages.exporter.exporter import Exporter

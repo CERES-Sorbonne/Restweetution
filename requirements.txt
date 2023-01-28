@@ -21,3 +21,4 @@ numpy
 starlette
 sshtunnel
 aiopath
+youtube-dl

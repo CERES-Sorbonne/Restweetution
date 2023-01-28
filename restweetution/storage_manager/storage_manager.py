@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import List, Dict, Optional
 
-from restweetution.media_downloader import MediaDownloader
+from restweetution.downloaders.media_downloader import MediaDownloader
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.twitter.media import Media
 from restweetution.models.twitter.place import Place

@@ -291,6 +291,7 @@ class Streamer:
         # print(rules[0].collected_tweets)
         # Add rules to bulk data
         bulk_data.add_rules(rules)
+        bulk_data.generate_video_urls()
         return bulk_data
 
     # def _handle_errors(self, errors: List[dict]) -> None:

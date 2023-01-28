@@ -1,14 +1,14 @@
 import asyncio
-import hashlib
-import io
 import logging
 import traceback
 from asyncio import Task
 from typing import List, Optional, Callable
 
-import aiohttp
 from pydantic import BaseModel
 
+from restweetution.downloaders.photo_downloader import PhotoDownloader
+from restweetution.downloaders.queue_worker import DownloadResult
+from restweetution.downloaders.video_downloader import VideoDownloader
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.twitter.media import Media
 from restweetution.storages.object_storage.filestorage_helper import FileStorageHelper
@@ -41,7 +41,16 @@ class MediaDownloader:
 
         self.event_downloaded = AsyncEvent()
 
+        self._photo_downloader = PhotoDownloader(root=root)
+        self._video_downloader = VideoDownloader(root=root)
+
     # Public functions
+
+    def status(self):
+        print(f'to dispatch: {self._download_queue.qsize()}')
+        print(f'videos: {self._video_downloader.qsize()}')
+        print(f'photos: {self._photo_downloader.qsize()}')
+        print('\n')
 
     def is_running(self):
         return self._process_queue_task and not self._process_queue_task.done()
@@ -77,12 +86,25 @@ class MediaDownloader:
         if not self.is_running():
             self._process_queue_task = asyncio.create_task(self._process_queue())
 
+    def _downloader_callback(self, d_task: DownloadTask):
+        async def save_to_storage(res: DownloadResult):
+            if not res.error:
+                downloaded = DownloadedMedia(media_key=d_task.media.media_key, sha1=res.sha1, format=res.format())
+                await self._storage.save_downloaded_medias([downloaded])
+                self._logger.info(f'Downloaded {d_task.media.type} | sha1: {downloaded.sha1}')
+
+                if d_task.callback:
+                    asyncio.create_task(d_task.callback(downloaded))
+
+        return save_to_storage
+
     async def _process_queue(self):
         """
         Loop to empty the queue
         """
         while True:
             try:
+                # self.status()
                 d_task: DownloadTask = await self._download_queue.get()
                 media = d_task.media
 
@@ -91,9 +113,7 @@ class MediaDownloader:
                     await self._save_duplicate(media, d_media)
                     asyncio.create_task(d_task.callback(d_media))
                 else:
-                    res = await self._download_by_type(media)
-                    if res and d_task.callback:
-                        asyncio.create_task(d_task.callback(res))
+                    self._download_by_type(media, self._downloader_callback(d_task))
 
             except Exception as e:
                 self._logger.error(traceback.print_exc(limit=3))
@@ -109,15 +129,6 @@ class MediaDownloader:
         to_save = DownloadedMedia(**media.dict(), sha1=d_media.sha1, format=d_media.format)
         await self._storage.save_downloaded_medias([to_save])
 
-    async def _write_media(self, media: DownloadedMedia):
-        """
-        Write media to file storage
-        :param media: Media
-        """
-        filename = media.sha1 + '.' + media.format
-        await self._file_helper.put(key=filename, buffer=media.bytes_)
-        self._logger.info(f' Downloaded image | sha1: {media.sha1}')
-
     async def _find_same_media(self, media: Media):
         """
         Checks if the url was already downloaded before starting the download
@@ -130,46 +141,11 @@ class MediaDownloader:
             return d_media[0]
         return None
 
-    async def _download_by_type(self, media):
+    def _download_by_type(self, media, callback: Callable):
         """
         Download the media according to type
         """
         if media.type == 'photo' and media.url:
-            return await self._download_photo(media)
-
-    async def _download_photo(self, media: Media):
-        """
-        Download photo
-        @param media: a media with type photo
-        @return: the downloaded media
-        """
-        connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            media_format = media.url.split('.')[-1]
-            try:
-                res = await session.get(media.url)
-
-                bytes_image: bytes = await res.content.read()
-                buffer = io.BytesIO(bytes_image)
-                sha1 = self._compute_signature(bytes_image)
-                format_ = media_format
-                media_key = media.media_key
-
-                downloaded = DownloadedMedia(media_key=media_key, media=media, sha1=sha1, format=format_, bytes_=buffer)
-
-                await self._write_media(downloaded)
-                await self._storage.save_downloaded_medias([downloaded])
-                return downloaded
-            except aiohttp.ClientResponseError as e:
-                self._logger.warning(f"There was an error downloading image {media.url}: " + str(e))
-                # TODO: add an error handler here ?
-                return
-
-    @staticmethod
-    def _compute_signature(buffer: bytes):
-        """
-        Compute sha1 of file
-        @param buffer: byte buffer
-        @return: sha1
-        """
-        return hashlib.sha1(buffer).hexdigest()
+            self._photo_downloader.download(media.url, callback)
+        if media.type == 'video' and media.url:
+            self._video_downloader.download(media.url, callback)
