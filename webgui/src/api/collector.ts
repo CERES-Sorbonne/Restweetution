@@ -89,7 +89,7 @@ export async function streamerDelRules(user:string, ruleIds:number[]) {
 }
 
 export async function streamerSetCollectTasks(user:string, tasks: CollectTasks) {
-    const res = await axios.post(BASE_URL + '/streamer/set/collect_tasks/' + user, tasks)
+    const res = await axios.post(BASE_URL + '/streamer/set/collect_options/' + user, tasks)
     return res.data
 }
 
@@ -146,7 +146,7 @@ export async function searcherSetTimeWindow(user_id: string, time_window:any) {
 }
 
 export async function searcherSetCollectTasks(user:string, tasks: CollectTasks) {
-    const res = await axios.post(BASE_URL + '/searcher/set/collect_tasks/' + user, tasks)
+    const res = await axios.post(BASE_URL + '/searcher/set/collect_options/' + user, tasks)
     return res.data
 }
 
