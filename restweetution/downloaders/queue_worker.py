@@ -57,6 +57,11 @@ class QueueDownloader(ABC):
     def qsize(self):
         return self._queue.qsize()
 
+    async def wait_finish(self):
+        if self._task:
+            await self._task
+        return
+
     async def _execute(self, url: str):
         raise NotImplementedError('Implement _execute(task) function')
 
@@ -68,6 +73,9 @@ class QueueDownloader(ABC):
         """
         while True:
             try:
+                # if nothing to do, end process
+                if self._queue.qsize() == 0:
+                    return
                 task: DownloadTask = await self._queue.get()
                 # Stop if Sentinel is detected
                 if task == SENTINEL:

@@ -24,7 +24,8 @@ ALL_CONFIG: QueryFields = QueryFields(**{
                      "public_metrics", "referenced_tweets", "reply_settings", "source", "withheld"],
     "user_fields": ["created_at", "description", "entities", "location", "pinned_tweet_id", "profile_image_url",
                     "protected", "public_metrics", "url", "verified", "withheld"],
-    "media_fields": ["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url"],
+    "media_fields": ["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url",
+                     "variants"],
     "place_fields": ["contained_within", "country", "country_code", "geo", "name", "place_type"],
     "poll_fields": ["duration_minutes", "end_datetime", "voting_status"]
 })

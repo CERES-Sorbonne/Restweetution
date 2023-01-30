@@ -166,8 +166,8 @@ class Searcher:
                 bulk_data = BulkData()
                 tweets = [Tweet(**t) for t in res.data]
                 bulk_data.add_tweets(tweets)
-
                 includes = Includes(**res.includes)
+
                 bulk_data.add(**parse_includes(includes))
 
                 # set collected tweets to rule
@@ -183,7 +183,6 @@ class Searcher:
                     rule_copy.add_includes_tweets(tweet_ids=includes_ids, collected_at=collected_at)
 
                 bulk_data.add_rules([rule_copy])
-                bulk_data.generate_video_urls()
 
                 logger.info(f'Received: {len(bulk_data.get_tweets())} tweets')
                 await self.storage.save_bulk(bulk_data, callback=self.event_collect)
@@ -208,7 +207,6 @@ class Searcher:
         recent = self._time_window.recent
         query = self._rule.query
         params = self.get_count_time_params()
-        print(params)
         count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
 
         total_count = 0
@@ -225,7 +223,6 @@ class Searcher:
         logger.info('Start Count...')
 
         params = self._build_count_params(start, end, granularity=step)
-        print(params)
         count_func: Callable = self._client.get_recent_tweets_count if recent else self._client.get_all_tweets_count
 
         total_count = 0

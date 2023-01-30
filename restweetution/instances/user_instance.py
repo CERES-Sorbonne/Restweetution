@@ -7,10 +7,9 @@ from restweetution.collectors import Streamer
 from restweetution.collectors.searcher import Searcher
 from restweetution.instances.storage_instance import StorageInstance
 from restweetution.models.bulk_data import BulkData
-from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.config.user_config import UserConfig, RuleConfig, CollectorConfig, CollectOptions
 from restweetution.models.instance_update import InstanceUpdate
-from restweetution.models.searcher import TimeWindow
+from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.utils import AsyncEvent
 
 logger = logging.getLogger('UserInterface')
@@ -39,7 +38,6 @@ class UserInstance:
 
         self.user_config.searcher_state.is_running = self.searcher_is_running()
         self.user_config.searcher_state.time_window = self._searcher.get_time_window()
-        self.user_config.searcher_state.fields = self._searcher.get_fields()
 
         searcher_rule = self._searcher.get_rule()
         if searcher_rule:
@@ -131,7 +129,7 @@ class UserInstance:
         return self.user_config.searcher_state.collect_options
 
     def streamer_start(self):
-        self._streamer.start_collection(fields=self.user_config.streamer_state.fields)
+        self._streamer.start_collection()
 
     def streamer_stop(self):
         self._streamer.stop_collection()
@@ -171,8 +169,8 @@ class UserInstance:
 
         if config.rule:
             await self._searcher.set_rule(config.rule)
-        if config.fields:
-            self._searcher.set_fields(config.fields)
+        # if config.fields:
+        #     self._searcher.set_fields(config.fields)
         if config.time_window:
             self._searcher.load_time_window(config.time_window)
 
@@ -210,7 +208,8 @@ class UserInstance:
     def searcher_set_time_window(self, start: datetime = None, end: datetime = None, recent=True):
         self._searcher.set_time_window(start, end, recent)
 
-    async def searcher_count(self, query: str, start: datetime = None, end: datetime = None, recent=True, step: str = None):
+    async def searcher_count(self, query: str, start: datetime = None, end: datetime = None, recent=True,
+                             step: str = None):
         return await self._searcher.count(query=query, start=start, end=end, recent=recent, step=step)
 
     async def _searcher_update(self):

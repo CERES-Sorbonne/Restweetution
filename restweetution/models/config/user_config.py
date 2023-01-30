@@ -4,8 +4,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from restweetution.models.config.query_fields_preset import ALL_CONFIG
-from restweetution.models.config.query_fields import QueryFields
 from restweetution.models.searcher import TimeWindow
 
 
@@ -23,7 +21,6 @@ class CollectOptions(BaseModel):
 class CollectorConfig(BaseModel, ABC):
     updated_at: datetime
     is_running: bool = False
-    fields: QueryFields = ALL_CONFIG
     collect_options: CollectOptions = CollectOptions()
 
     def __init__(self, **kwargs):

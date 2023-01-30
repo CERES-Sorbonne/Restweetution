@@ -13,7 +13,7 @@ TweetField = Literal["attachments", "author_id", "context_annotations", "convers
 UserField = Literal["created_at", "description", "entities", "location", "pinned_tweet_id", "profile_image_url",
                     "protected", "public_metrics", "url", "verified", "withheld"]
 
-MediaField = Literal["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url"]
+MediaField = Literal["duration_ms", "height", "preview_image_url", "public_metrics", "width", "alt_text", "url", "variants"]
 
 PlaceField = Literal["contained_within", "country", "country_code", "geo", "name", "place_type"]
 
