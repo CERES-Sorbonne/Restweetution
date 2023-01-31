@@ -94,7 +94,8 @@ class UrlDownloader:
             tmp_name = time.time().__str__() + '-' + src_url.split('/')[-1]
         if ext is None:
             if tmp_name.find('.'):
-                ext = tmp_name.split('.')[-1]
+                clean = tmp_name.rsplit('?', 1)[0]
+                ext = clean.split('.')[-1]
             else:
                 ext = 'unknown'
 
