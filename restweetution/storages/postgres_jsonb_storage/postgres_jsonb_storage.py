@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+import time
 from typing import List, TypeVar, Callable, Dict
 
 import asyncpg
@@ -187,10 +188,13 @@ class PostgresJSONBStorage(SystemStorage):
             if data.places:
                 tasks.append(asyncio.create_task(self._upsert_table(conn, PLACE, data.get_places())))
 
+            old = time.time()
             await asyncio.gather(*tasks)
-
+            logger.debug(f'save gather: {time.time()-old}')
+            old = time.time()
             if data.rules:
                 await self._save_collected_refs(conn, data.get_rules())
+            logger.debug(f'save collected: {time.time() - old}')
             # if data.downloaded_medias:
             #     await self._save_downloaded_medias(conn, data.get_downloaded_medias())
 
