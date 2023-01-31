@@ -404,6 +404,9 @@ export const useStore = defineStore("store", () => {
             streamers[update.user_id] = update.data
             // notifySuccess('Streamer Websocket Update','streamer', update.user_id)
         }
+        if(update.source == 'downloader') {
+            Object.assign(downloader, update.data)
+        }
     }
 
     

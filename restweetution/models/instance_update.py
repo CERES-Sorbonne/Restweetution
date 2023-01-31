@@ -5,5 +5,5 @@ from pydantic import BaseModel
 
 class InstanceUpdate(BaseModel):
     source: str
-    user_id: str
+    user_id: str = ''
     data: Optional[Dict]

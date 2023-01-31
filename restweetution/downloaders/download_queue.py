@@ -28,6 +28,7 @@ class DownloadQueueStatus(BaseModel):
     bytes_downloaded: int
     bytes_total: int
     progress_percentage: int
+    downloaded_count: int
 
 
 class DownloadQueue(ABC):
@@ -38,13 +39,14 @@ class DownloadQueue(ABC):
         self._task: asyncio.Task | None = None
         self._actual_media: Media | None = None
         self._downloader = UrlDownloader()
+        self._downloaded_count = 0
 
     def status(self):
         bytes_d, bytes_t = self._downloader.get_progress()
         url = self._downloader.get_url()
         percentage = self._downloader.get_progress_percentage()
         return DownloadQueueStatus(qsize=self.qsize(), current_url=url, bytes_downloaded=bytes_d, bytes_total=bytes_t,
-                                   progress_percentage=percentage)
+                                   progress_percentage=percentage, downloaded_count=self._downloaded_count)
 
     def is_running(self):
         return self._task and not self._task.done()
@@ -73,6 +75,7 @@ class DownloadQueue(ABC):
         await self._storage.save_downloaded_medias([d_media])
 
         logger.info(f'Downloaded {media.type} | sha1: {d_media.sha1}')
+        self._downloaded_count += 1
 
         return d_media
 

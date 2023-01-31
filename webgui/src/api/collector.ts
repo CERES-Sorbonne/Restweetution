@@ -33,6 +33,7 @@ export interface DownloadQueueStatus {
     bytes_downloaded: number
     bytes_total: number
     progress_percentage: number
+    downloaded_count: number
 }
 
 export interface MediaDownloaderStatus {

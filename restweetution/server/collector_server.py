@@ -36,6 +36,8 @@ manager = ConnectionManager()
 
 last_streamer_update = time.time()
 
+logger = logging.getLogger('CollectorServer')
+
 
 class CountRequest(BaseModel):
     query: str
@@ -71,11 +73,24 @@ async def sendUpdates(update: InstanceUpdate):
         await manager.broadcast(json.dumps(update.dict(), default=str))
 
 
+async def sendDownloaderUpdate(interval: int):
+    while True:
+        try:
+            status = restweet.get_media_downloader_status()
+            update = InstanceUpdate(source='downloader', data=status.dict())
+            await manager.broadcast(json.dumps(update.dict(), default=str))
+        except Exception as e:
+            logger.warning(e.__str__())
+        await asyncio.sleep(interval)
+
+
 async def launch():
     global restweet
     restweet = SystemInstance(sys_conf)
     await restweet.load_user_configs()
     restweet.event.add(sendUpdates)
+
+    asyncio.create_task(sendDownloaderUpdate(2))
 
 
 loop.create_task(launch())

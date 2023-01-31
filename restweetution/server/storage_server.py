@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 from time import time
@@ -55,6 +56,7 @@ async def launch():
     global exporter_elastic
 
     exporter_elastic = sys_conf.build_elastic_exporter()
+    asyncio.create_task(sendUpdate(2))
 
 
 async_loop.create_task(launch())
@@ -72,6 +74,17 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+
+async def sendUpdate(interval: int):
+    while True:
+        try:
+            task_update = get_tasks()
+            update = {'source': 'export_tasks', 'data': task_update}
+            await manager.broadcast(json.dumps(update, default=str))
+        except Exception as e:
+            logger.warning(e.__str__())
+        await asyncio.sleep(interval)
 
 
 def register_exception(app_: FastAPI):

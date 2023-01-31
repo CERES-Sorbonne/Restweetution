@@ -22,6 +22,7 @@ const props = defineProps({
                 <li class="list-group-item">In Queue: {{props.queue.qsize}}</li>
                 <li class="list-group-item">Current Task: {{props.queue.current_url}}</li>
                 <li class="list-group-item" v-if="props.queue.bytes_total > 0"><Progress :current="props.queue.bytes_downloaded" :total="props.queue.bytes_total"/></li>
+                <li class="list-group-item">Downloaded: {{props.queue.downloaded_count}}</li>
             </ul>
         </div>
     </div>
