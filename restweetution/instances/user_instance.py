@@ -95,9 +95,9 @@ class UserInstance:
                     media_to_tweet = bulk_data.compute_media_to_tweets()
                     callback = self._on_download_media(collect_config, bulk_data, media_to_tweet)
 
-                    photos = [m for m in medias if m.type =='photo']
-                    videos = [m for m in medias if m.type=='video']
-                    gif = [m for m in medias if m.type == 'gif']
+                    photos = [m for m in medias if m.type == 'photo']
+                    videos = [m for m in medias if m.type == 'video']
+                    gif = [m for m in medias if m.type == 'animated_gif']
 
                     if collect_options.download_photo:
                         media_downloader.download_medias(medias=photos, callback=callback)
