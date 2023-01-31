@@ -175,16 +175,19 @@ class PostgresJSONBStorage(SystemStorage):
 
     async def save_bulk(self, data: BulkData, callback: Callable = None):
         async with self._engine.begin() as conn:
+            tasks = []
             if data.tweets:
-                await self._upsert_table(conn, TWEET, data.get_tweets())
+                tasks.append(asyncio.create_task(self._upsert_table(conn, TWEET, data.get_tweets())))
             if data.medias:
-                await self._upsert_table(conn, MEDIA, data.get_medias())
+                tasks.append(asyncio.create_task(self._upsert_table(conn, MEDIA, data.get_medias())))
             if data.users:
-                await self._upsert_table(conn, USER, data.get_users())
+                tasks.append(asyncio.create_task(self._upsert_table(conn, USER, data.get_users())))
             if data.polls:
-                await self._upsert_table(conn, POLL, data.get_polls())
+                tasks.append(asyncio.create_task(self._upsert_table(conn, POLL, data.get_polls())))
             if data.places:
-                await self._upsert_table(conn, PLACE, data.get_places())
+                tasks.append(asyncio.create_task(self._upsert_table(conn, PLACE, data.get_places())))
+
+            await asyncio.gather(*tasks)
 
             if data.rules:
                 await self._save_collected_refs(conn, data.get_rules())
