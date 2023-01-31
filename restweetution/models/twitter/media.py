@@ -49,3 +49,14 @@ class Media(BaseModel):
     width: Optional[int]
     alt_text: Optional[str]
     variants: Optional[List[Any]]
+
+    def get_url(self):
+        if self.url:
+            return self.url
+        if not self.variants:
+            return None
+        valid = [v for v in self.variants if v['content_type'] == 'video/mp4']
+        if not valid:
+            return None
+        valid = sorted(valid, key=lambda v: int(v['bit_rate']), reverse=True)
+        return valid[0]['url']
