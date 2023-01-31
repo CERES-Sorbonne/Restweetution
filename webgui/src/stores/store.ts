@@ -11,7 +11,9 @@ interface Task {
 }
 
 export interface CollectTasks {
-    download_media: boolean
+    download_photo: boolean
+    download_video: boolean
+    download_gif: boolean
     elastic_dashboard: boolean
     elastic_dashboard_name: String
 }

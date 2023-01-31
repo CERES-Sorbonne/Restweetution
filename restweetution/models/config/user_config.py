@@ -13,9 +13,15 @@ class RuleConfig(BaseModel):
 
 
 class CollectOptions(BaseModel):
-    download_media: bool = False
+    download_photo: bool = False
+    download_video: bool = False
+    download_gif: bool = False
+
     elastic_dashboard: bool = False
     elastic_dashboard_name: str = ''
+
+    def download_media(self):
+        return any([self.download_gif, self.download_photo, self.download_video])
 
 
 class CollectorConfig(BaseModel, ABC):

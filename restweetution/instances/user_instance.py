@@ -83,23 +83,35 @@ class UserInstance:
 
     def _on_collect(self, collect_config: CollectorConfig):
         async def on_collect_event(bulk_data: BulkData):
-            collect_tasks = collect_config.collect_options
+            collect_options = collect_config.collect_options
             media_downloader = self.storage_instance.media_downloader
             elastic_dashboard = self.storage_instance.elastic_dashboard
 
-            if collect_tasks.download_media:
+            if collect_options.download_media():
                 if not media_downloader:
                     logger.warning('No MediaDownloader set, tried to download media')
                 else:
                     medias = bulk_data.get_medias()
                     media_to_tweet = bulk_data.compute_media_to_tweets()
                     callback = self._on_download_media(collect_config, bulk_data, media_to_tweet)
-                    media_downloader.download_medias(medias=medias, callback=callback)
-            if collect_tasks.elastic_dashboard and collect_tasks.elastic_dashboard_name:
+
+                    photos = [m for m in medias if m.type =='photo']
+                    videos = [m for m in medias if m.type=='video']
+                    gif = [m for m in medias if m.type == 'gif']
+
+                    if collect_options.download_photo:
+                        media_downloader.download_medias(medias=photos, callback=callback)
+                    if collect_options.download_video:
+                        media_downloader.download_medias(medias=videos, callback=callback)
+                    if collect_options.download_gif:
+                        media_downloader.download_medias(medias=gif, callback=callback)
+
+
+            if collect_options.elastic_dashboard and collect_options.elastic_dashboard_name:
                 if not elastic_dashboard:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
                 else:
-                    elastic_dashboard.export(bulk_data, collect_tasks.elastic_dashboard_name)
+                    elastic_dashboard.export(bulk_data, collect_options.elastic_dashboard_name)
 
         return on_collect_event
 
@@ -116,14 +128,14 @@ class UserInstance:
                 elastic_dashboard.export(bulk_data, collect_tasks.elastic_dashboard_name, only_ids=only_ids)
         return on_download_event
 
-    def streamer_set_collect_options(self, tasks: CollectOptions):
-        self.user_config.streamer_state.collect_options = tasks
+    def streamer_set_collect_options(self, options: CollectOptions):
+        self.user_config.streamer_state.collect_options = options
 
     def streamer_get_collect_options(self):
         return self.user_config.streamer_state.collect_options
 
-    def searcher_set_collect_options(self, tasks: CollectOptions):
-        self.user_config.searcher_state.collect_options = tasks
+    def searcher_set_collect_options(self, options: CollectOptions):
+        self.user_config.searcher_state.collect_options = options
 
     def searcher_get_collect_options(self):
         return self.user_config.searcher_state.collect_options

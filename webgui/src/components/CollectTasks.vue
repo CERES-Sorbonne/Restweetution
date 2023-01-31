@@ -12,7 +12,9 @@ const props = defineProps({
 })
 
 const editedTasks: CollectTasks = reactive({
-    download_media: props.collectTasks.download_media,
+    download_photo: props.collectTasks.download_photo,
+    download_video: props.collectTasks.download_video,
+    download_gif: props.collectTasks.download_gif,
     elastic_dashboard: props.collectTasks.elastic_dashboard,
     elastic_dashboard_name: props.collectTasks.elastic_dashboard_name
 })
@@ -26,9 +28,13 @@ function submit() {
 }
 
 function reset() {
-    editedTasks.download_media = props.collectTasks.download_media,
+    editedTasks.download_photo = props.collectTasks.download_photo
+    editedTasks.download_video = props.collectTasks.download_video
+    editedTasks.download_gif = props.collectTasks.download_gif
+
     editedTasks.elastic_dashboard = props.collectTasks.elastic_dashboard
     editedTasks.elastic_dashboard_name = props.collectTasks.elastic_dashboard_name
+
     edit.value = false
 }
 
@@ -38,10 +44,22 @@ function reset() {
     <h5>Options</h5>
     <ul class="text-start" style="list-style-type:none; padding-left: 0;">
         <li>
-            Media Download:
-            <span class="text-success" v-if="props.collectTasks.download_media">Yes</span>
+            Download Photo:
+            <span class="text-success" v-if="props.collectTasks.download_photo">Yes</span>
             <span class="text-warning" v-else>No</span>
-            <input class="ms-2" v-if="edit" type="checkbox" v-model="editedTasks.download_media"/>
+            <input class="ms-2" v-if="edit" type="checkbox" v-model="editedTasks.download_photo"/>
+        </li>
+        <li>
+            Download Gif:
+            <span class="text-success" v-if="props.collectTasks.download_gif">Yes</span>
+            <span class="text-warning" v-else>No</span>
+            <input class="ms-2" v-if="edit" type="checkbox" v-model="editedTasks.download_gif"/>
+        </li>
+        <li>
+            Download Video:
+            <span class="text-success" v-if="props.collectTasks.download_video">Yes</span>
+            <span class="text-warning" v-else>No</span>
+            <input class="ms-2" v-if="edit" type="checkbox" v-model="editedTasks.download_video"/>
         </li>
         <li>
             Elastic Dashboard: 
