@@ -180,23 +180,23 @@ class PostgresJSONBStorage(SystemStorage):
             if data.tweets:
                 old = time.time()
                 await self._upsert_table(conn, TWEET, data.get_tweets())
-                logger.info(f'save tweet: {time.time() - old}')
+                logger.debug(f'save tweet: {time.time() - old}')
             if data.medias:
                 old = time.time()
                 await self._upsert_table(conn, MEDIA, data.get_medias())
-                logger.info(f'save media: {time.time() - old}')
+                logger.debug(f'save media: {time.time() - old}')
             if data.users:
                 old = time.time()
                 await self._upsert_table(conn, USER, data.get_users())
-                logger.info(f'save users: {time.time() - old}')
+                logger.debug(f'save users: {time.time() - old}')
             if data.polls:
                 old = time.time()
                 await self._upsert_table(conn, POLL, data.get_polls())
-                logger.info(f'save polls: {time.time() - old}')
+                logger.debug(f'save polls: {time.time() - old}')
             if data.places:
-                old = time.time()
+                # old = time.time()
                 await self._upsert_table(conn, PLACE, data.get_places())
-                logger.info(f'save places: {time.time() - old}')
+                logger.debug(f'save places: {time.time() - old}')
 
             if data.rules:
                 await self._save_collected_refs(conn, data.get_rules())
