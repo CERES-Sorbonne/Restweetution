@@ -414,4 +414,13 @@ async def searcher_count(user_id, req: CountRequest, max_points=60):
         raise HTTPException(400, e.__str__())
 
 
+@app.get("/downloader/info")
+async def downloader_info():
+    try:
+        return restweet.get_media_downloader_status()
+    except Exception as e:
+        print(e)
+        raise HTTPException(400, e.__str__())
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")

@@ -3,7 +3,7 @@
 import { toDatetimeInputString } from '@/utils';
 import { computed, reactive, ref } from '@vue/reactivity';
 import { onMounted, watch } from 'vue';
-import { useStore, type CollectTasks} from '@/stores/store'
+import { useStore } from '@/stores/store'
 import DateInterval from '@/components/DateInterval.vue'
 import CollectionSelection from './CollectionSelection.vue';
 import * as storage_api from '@/api/storage'

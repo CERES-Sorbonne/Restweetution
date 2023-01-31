@@ -53,6 +53,9 @@ class SystemInstance:
     def get_user_list(self):
         return list(self.user_instances.values())
 
+    def get_media_downloader_status(self):
+        return self.storage_instance.media_downloader.status()
+
     async def get_all_rules(self):
         return await self.storage_instance.storage.get_rules(fields=['id', 'tag', 'query', 'created_at'])
 

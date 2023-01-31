@@ -27,6 +27,20 @@ export interface CountResult {
     query: string,
 }
 
+export interface DownloadQueueStatus {
+    qsize: number
+    current_url: number
+    bytes_downloaded: number
+    bytes_total: number
+    progress_percentage: number
+}
+
+export interface MediaDownloaderStatus {
+    photo: DownloadQueueStatus
+    video: DownloadQueueStatus
+    gif: DownloadQueueStatus
+}
+
 export const BASE_URL = '/collector_api'
 let user_id = ''
 
@@ -153,4 +167,9 @@ export async function searcherSetCollectTasks(user:string, tasks: CollectTasks) 
 export async function searcherCount(user: string, countRequest: CountRequest) {
     const res = await axios.post(BASE_URL + '/searcher/count/' + user, countRequest)
     return res.data as CountResult
+}
+
+export async function downloaderInfo() {
+    const res = await axios.get(BASE_URL + '/downloader/info')
+    return res.data as MediaDownloaderStatus
 }

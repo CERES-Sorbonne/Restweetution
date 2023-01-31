@@ -22,6 +22,14 @@ class DownloadTask(BaseModel):
     callback: Optional[Callable]
 
 
+class DownloadQueueStatus(BaseModel):
+    qsize: int
+    current_url: str
+    bytes_downloaded: int
+    bytes_total: int
+    progress_percentage: int
+
+
 class DownloadQueue(ABC):
     def __init__(self, root: str, storage: PostgresJSONBStorage):
         self.root = Path(root)
@@ -30,6 +38,13 @@ class DownloadQueue(ABC):
         self._task: asyncio.Task | None = None
         self._actual_media: Media | None = None
         self._downloader = UrlDownloader()
+
+    def status(self):
+        bytes_d, bytes_t = self._downloader.get_progress()
+        url = self._downloader.get_url()
+        percentage = self._downloader.get_progress_percentage()
+        return DownloadQueueStatus(qsize=self.qsize(), current_url=url, bytes_downloaded=bytes_d, bytes_total=bytes_t,
+                                   progress_percentage=percentage)
 
     def is_running(self):
         return self._task and not self._task.done()

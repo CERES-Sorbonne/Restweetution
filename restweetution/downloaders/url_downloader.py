@@ -17,63 +17,70 @@ class DownloadResult(BaseModel):
 class UrlDownloader:
     def __init__(self):
         self._is_downloading = False
-        self._total = -1
-        self._current = 0
+        self._bytes_total = -1
+        self._bytes_downloaded = 0
+        self._current_url: str = ''
 
-    def progress_percentage(self):
-        if self._total < 1:
+    def _init_download(self, url: str):
+        self._is_downloading = True
+        self._current_url = url
+        self._bytes_downloaded = 0
+        self._bytes_total = -1
+
+    def _stop_download(self):
+        self._is_downloading = False
+
+    def get_progress_percentage(self):
+        if self._bytes_total < 1:
             return 0
-        return math.floor(self._current / self._total * 1000) / 10
+        return math.floor(self._bytes_downloaded / self._bytes_total * 1000) / 10
 
-    def progress(self):
-        return self._current, self._total
+    def get_progress(self):
+        return self._bytes_downloaded, self._bytes_total
+
+    def get_url(self):
+        return self._current_url
 
     def print_progress(self):
-        print(f'[{self.progress_percentage()}%] {self._current} / {self._total} bytes')
+        print(f'[{self.get_progress_percentage()}%] {self._bytes_downloaded} / {self._bytes_total} bytes')
 
     def is_downloading(self):
         return self._is_downloading
 
     def _set_total(self, total: None | int | str):
         if total is None:
-            self._total = -1
+            self._bytes_total = -1
         else:
-            self._total = int(total)
-
-    def _reset(self):
-        self._total = -1
-        self._current = 0
+            self._bytes_total = int(total)
 
     async def download(self, src_url):
-        self._is_downloading = True
-        self._reset()
         try:
             connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
             async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(src_url) as resp:
+                    self._init_download(src_url)
                     self._set_total(resp.headers.get("Content-Length"))
                     data = await resp.content.read()
-                    self._current = self._total
-                    self._is_downloading = False
+                    self._bytes_downloaded = self._bytes_total
+                    self._stop_download()
                     return data
         except Exception as e:
-            self._is_downloading = False
+            self._stop_download()
             raise e
 
     async def download_stream(self, src_url, chunk_size=65536):
-        self._is_downloading = True
-        self._reset()
         try:
             connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
             async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(src_url) as resp:
+                    self._init_download(src_url)
                     self._set_total(resp.headers.get("Content-Length"))
                     async for chunk in resp.content.iter_chunked(chunk_size):
-                        self._current += len(chunk)
+                        self._bytes_downloaded += len(chunk)
                         yield chunk
-            self._is_downloading = False
+            self._stop_download()
         except Exception as e:
-            self._is_downloading = False
+            self._stop_download()
             raise e
 
     async def download_save(self, src_url, dest_file):

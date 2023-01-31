@@ -75,6 +75,7 @@ export const useStore = defineStore("store", () => {
     const searchers: SearcherDict = reactive({})
     const rules: api.RuleInfo[] = reactive([])
     const notifs: Notif[] = reactive([])
+    const downloader = <api.MediaDownloaderStatus >reactive({})
     
     const loadedRules = ref(false)
 
@@ -142,6 +143,7 @@ export const useStore = defineStore("store", () => {
 
     function load() {
         reset_users()
+        downloaderInfo()
         api.getUsers().then((res) => {
             registerUsers(res.data)
         })
@@ -379,6 +381,16 @@ export const useStore = defineStore("store", () => {
         }
     }
 
+    async function downloaderInfo() {
+        try {
+            const res = await api.downloaderInfo()
+            Object.assign(downloader, res)
+        } catch (err: any) {
+            notifyError(err.response.data.detail, 'downloader')
+            throw err
+        }
+    }
+
     function updateFromSocket(event: any) {
         let message = event.data
         let update = JSON.parse(message)
@@ -413,9 +425,13 @@ export const useStore = defineStore("store", () => {
     return {
         users, load, isLoaded, addUser, deleteUsers, selectedUser, hasSelectedUser,
         verifyQuery,
-        streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, streamerVerify, streamerSync, streamerSetCollectTasks,
-        searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow, connection, searcherSetCollectTasks,
+        streamers, streamerInfo, streamerStart, streamerStop, streamerAddRules, streamerDelRules, streamerSetRules, 
+        streamerVerify, streamerSync, streamerSetCollectTasks,
+        searchers, searcherInfo, searcherStart, searcherStop, searcherSetRule, searcherDelRule, searcherSetTimeWindow, 
+        searcherSetCollectTasks,
         rules, loadRules, orderedRules, addRules, rulesOrderId, ruleFromId,
-        notifs, searcherNotifs, streamerNotifs
+        notifs, searcherNotifs, streamerNotifs,
+        downloader, downloaderInfo,
+        connection,
     }
 });

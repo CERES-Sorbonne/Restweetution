@@ -4,16 +4,16 @@ from typing import List, Callable
 
 from pydantic import BaseModel
 
-from restweetution.downloaders.download_queue import DownloadQueue
+from restweetution.downloaders.download_queue import DownloadQueue, DownloadQueueStatus
 from restweetution.models.twitter.media import Media
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.utils import AsyncEvent
 
 
 class MediaDownloaderStatus(BaseModel):
-    qsize_photo: int = None
-    qsize_video: int = None
-    qsize_gif: int = None
+    photo: DownloadQueueStatus
+    video: DownloadQueueStatus
+    gif: DownloadQueueStatus
 
 
 class MediaDownloader:
@@ -39,9 +39,8 @@ class MediaDownloader:
     # Public functions
 
     def status(self):
-        return MediaDownloaderStatus(qsize_photo=self._queue_photo.qsize(),
-                                     qsize_video=self._queue_video.qsize(),
-                                     qsize_gif=self._queue_gif.qsize())
+        return MediaDownloaderStatus(photo=self._queue_photo.status(), video=self._queue_video.status(),
+                                     gif=self._queue_gif.status())
 
     def download_medias(self, medias: List[Media], callback: Callable = None):
         """
