@@ -176,25 +176,30 @@ class PostgresJSONBStorage(SystemStorage):
 
     async def save_bulk(self, data: BulkData, callback: Callable = None):
         async with self._engine.begin() as conn:
-            tasks = []
-            if data.tweets:
-                tasks.append(asyncio.create_task(self._upsert_table(conn, TWEET, data.get_tweets())))
-            if data.medias:
-                tasks.append(asyncio.create_task(self._upsert_table(conn, MEDIA, data.get_medias())))
-            if data.users:
-                tasks.append(asyncio.create_task(self._upsert_table(conn, USER, data.get_users())))
-            if data.polls:
-                tasks.append(asyncio.create_task(self._upsert_table(conn, POLL, data.get_polls())))
-            if data.places:
-                tasks.append(asyncio.create_task(self._upsert_table(conn, PLACE, data.get_places())))
 
-            old = time.time()
-            await asyncio.gather(*tasks)
-            logger.debug(f'save gather: {time.time()-old}')
-            old = time.time()
+            if data.tweets:
+                old = time.time()
+                await self._upsert_table(conn, TWEET, data.get_tweets())
+                logger.debug(f'save tweet: {time.time() - old}')
+            if data.medias:
+                old = time.time()
+                await self._upsert_table(conn, MEDIA, data.get_medias())
+                logger.debug(f'save media: {time.time() - old}')
+            if data.users:
+                old = time.time()
+                await self._upsert_table(conn, USER, data.get_users())
+                logger.debug(f'save users: {time.time() - old}')
+            if data.polls:
+                old = time.time()
+                await self._upsert_table(conn, POLL, data.get_polls())
+                logger.debug(f'save polls: {time.time() - old}')
+            if data.places:
+                old = time.time()
+                await self._upsert_table(conn, PLACE, data.get_places())
+                logger.debug(f'save places: {time.time() - old}')
+
             if data.rules:
                 await self._save_collected_refs(conn, data.get_rules())
-            logger.debug(f'save collected: {time.time() - old}')
             # if data.downloaded_medias:
             #     await self._save_downloaded_medias(conn, data.get_downloaded_medias())
 
