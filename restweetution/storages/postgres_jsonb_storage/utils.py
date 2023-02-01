@@ -1,3 +1,8 @@
+"""
+General Helper functions used to build statements or to convert / search data
+We want to keep specific Table logic out of this file (Don't import TWEET, MEDIA, etc..)
+"""
+
 import datetime
 from typing import List, Tuple
 

@@ -16,6 +16,6 @@ const percentage = computed(() => props.total > 0 ? Math.round(props.current / p
 <template>
     <p class="text-center m-0 p-0">{{ percentage }}%  ({{ current }} / {{ totalCount }})</p>
     <div class="progress">
-        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" :aria-valuenow="Math.round(percentage)" aria-valuemin="0" aria-valuemax="100" :style="'width: ' + Math.round(percentage) +'%'"></div>
+        <div class="progress-bar progress-bar-striped" :class="percentage == 100 ? 'progress-bar-animated' : ''" role="progressbar" :aria-valuenow="Math.round(percentage)" aria-valuemin="0" aria-valuemax="100" :style="'width: ' + Math.round(percentage) +'%'"></div>
     </div>
 </template>

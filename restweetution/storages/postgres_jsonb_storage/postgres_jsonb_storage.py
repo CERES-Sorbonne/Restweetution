@@ -4,7 +4,6 @@ import logging
 import time
 from typing import List, TypeVar, Callable, Dict
 
-import asyncpg
 from pydantic import BaseModel
 from sqlalchemy import update, bindparam, Table, delete, join, func
 from sqlalchemy.dialects.postgresql import insert, array
@@ -17,8 +16,10 @@ from restweetution.models.rule import Rule, CollectedTweet
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.storage.error import ErrorModel
+from restweetution.models.storage.queries import CollectionQuery
 from restweetution.models.twitter import Tweet, Media, User, Poll, Place
-from restweetution.storages.postgres_jsonb_storage.helpers import res_to_dicts, update_dict, where_in_builder, \
+from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_stmt
+from restweetution.storages.postgres_jsonb_storage.utils import res_to_dicts, update_dict, where_in_builder, \
     select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
 from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
     USER, POLL, PLACE, COLLECTED_TWEET, DOWNLOADED_MEDIA
@@ -394,6 +395,45 @@ class PostgresJSONBStorage(SystemStorage):
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             res = [Media(**m) for m in res]
+            return res
+
+    async def get_media_keys_from_collection(self, collection: CollectionQuery):
+        async with self._engine.begin() as conn:
+            stmt = media_keys_stmt(collection)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res: List[str] = [r['media_key'] for r in res]
+            return res
+
+    async def get_medias_from_collection(self, collection: CollectionQuery):
+        async with self._engine.begin() as conn:
+            media_keys = media_keys_stmt(collection)
+            stmt = select(MEDIA).select_from(join(media_keys, MEDIA, media_keys.c.media_key == MEDIA.c.media_key))
+
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [Media(**r) for r in res]
+            return res
+
+    async def get_downloaded_medias_from_collection(self, collection: CollectionQuery, load_media=False):
+        async with self._engine.begin() as conn:
+            media_keys = media_keys_stmt(collection)
+            if not load_media:
+                stmt = select(DOWNLOADED_MEDIA).select_from(
+                    join(media_keys, DOWNLOADED_MEDIA, media_keys.c.media_key == DOWNLOADED_MEDIA.c.media_key)
+                )
+            else:
+                stmt = select(DOWNLOADED_MEDIA, MEDIA).select_from(
+                    join(media_keys, DOWNLOADED_MEDIA, media_keys.c.media_key == DOWNLOADED_MEDIA.c.media_key)
+                    .join(MEDIA, media_keys.c.media_key == MEDIA.c.media_key)
+                )
+
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            if load_media:
+                res = [DownloadedMedia(**r, media=Media(**r)) for r in res]
+            else:
+                res = [DownloadedMedia(**r) for r in res]
             return res
 
     async def get_rules(self,
