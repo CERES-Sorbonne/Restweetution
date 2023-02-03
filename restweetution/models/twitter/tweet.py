@@ -121,6 +121,11 @@ class Tweet(BaseModel):
             return False
         return retweet_id
 
+    def media_keys(self):
+        if not self.attachments:
+            return []
+        return self.attachments.media_keys
+
 
 class Includes(BaseModel):
     media: List[Media] = []

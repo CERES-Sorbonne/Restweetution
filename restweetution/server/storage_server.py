@@ -15,7 +15,8 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from restweetution import config_loader
-from restweetution.data_view.row_view import RowView
+from restweetution.data_view.media_view import MediaView
+from restweetution.data_view.tweet_view import TweetView
 from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery
 from restweetution.server.connection_manager import ConnectionManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
@@ -101,7 +102,6 @@ def register_exception(app_: FastAPI):
 async def get_tweets(query: TweetRowQuery):
     if not query.limit or query.limit > 100 or query.limit < 1:
         query.limit = 100
-
     old = time()
 
     t_query = CollectedTweetQuery(**query.dict())
@@ -111,7 +111,7 @@ async def get_tweets(query: TweetRowQuery):
         inter = time()
         bulk_data = await extractor.expand_collected_tweets(tweets)
         logger.info(f'expand_collected_tweets: {time() - inter} seconds')
-        res = RowView.compute(bulk_data, only_ids=[t.tweet_id for t in tweets], fields=query.row_fields)
+        res = TweetView.compute(bulk_data, only_ids=[t.tweet_id for t in tweets], fields=query.row_fields)
         logger.info(f'get_tweets: {time() - old} seconds')
         return res
     return []
@@ -134,7 +134,7 @@ async def get_tweet_discover(query: TweetRowQuery):
 
 @app.post("/export/tweets")
 async def export_tweets(request: ExportTweetRequest):
-    view = RowView()
+    view = TweetView()
     key = request.id.split('/')[-1]
     on_finish = None
     task: ServerTask | None = None

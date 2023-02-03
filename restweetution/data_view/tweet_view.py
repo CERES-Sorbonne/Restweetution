@@ -89,7 +89,7 @@ required_tweet_fields = {
 tweet_fields = list(required_tweet_fields.keys())
 
 
-class RowView(DataView):
+class TweetView(DataView):
     @staticmethod
     def id_field() -> str:
         return 'id'
@@ -108,7 +108,7 @@ class RowView(DataView):
         tweets = [bulk_data.tweets[i] for i in only_ids] if only_ids else bulk_data.get_tweets()
 
         for t in tweets:
-            datas.append(RowView._tweet_to_row(t, bulk_data, fields=fields))
+            datas.append(TweetView._tweet_to_row(t, bulk_data, fields=fields))
 
         return datas
 

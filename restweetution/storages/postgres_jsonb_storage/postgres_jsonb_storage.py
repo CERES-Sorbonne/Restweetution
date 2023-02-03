@@ -12,13 +12,15 @@ from sqlalchemy.future import select
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.user_config import UserConfig
+from restweetution.models.extended_types import ExtendedMedia, ExtendedTweet
 from restweetution.models.rule import Rule, CollectedTweet
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.storage.error import ErrorModel
-from restweetution.models.storage.queries import CollectionQuery
+from restweetution.models.storage.queries import CollectionQuery, TweetFilter
 from restweetution.models.twitter import Tweet, Media, User, Poll, Place
-from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_stmt
+from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_stmt, media_keys_with_tweet_id_stmt, \
+    stmt_extended_tweets_query, stmt_tweet_media_ids
 from restweetution.storages.postgres_jsonb_storage.utils import res_to_dicts, update_dict, where_in_builder, \
     select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
 from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
@@ -112,6 +114,17 @@ class PostgresJSONBStorage(SystemStorage):
             res = res_to_dicts(res)
             res = [UserConfig(**r) for r in res]
             return res
+
+    async def get_token(self, config_name: str):
+        async with self._engine.begin() as conn:
+            stmt = (
+                select(RESTWEET_USER.c.bearer_token)
+                .where(RESTWEET_USER.c.name == config_name)
+            )
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [r['bearer_token'] for r in res]
+            return res[0]
 
     async def get_custom_datas(self, key: str) -> List[CustomData]:
         async with self._engine.begin() as conn:
@@ -397,12 +410,12 @@ class PostgresJSONBStorage(SystemStorage):
             res = [Media(**m) for m in res]
             return res
 
-    async def get_media_keys_from_collection(self, collection: CollectionQuery):
+    async def get_media_keys_from_collection(self, collection: CollectionQuery) -> List[str]:
         async with self._engine.begin() as conn:
             stmt = media_keys_stmt(collection)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
-            res: List[str] = [r['media_key'] for r in res]
+            res = [r['media_key'] for r in res]
             return res
 
     async def get_medias_from_collection(self, collection: CollectionQuery):
@@ -435,6 +448,77 @@ class PostgresJSONBStorage(SystemStorage):
             else:
                 res = [DownloadedMedia(**r) for r in res]
             return res
+
+    async def get_extended_medias(self, media_keys: List[str], tweet_ids=False, downloaded=True):
+        """
+        Get Extended Media information from Storage by media_key
+        @param media_keys: media_keys to retrieve
+        @param tweet_ids: Default False, set True if you need to know which tweet has this media
+        @param downloaded: Default True, load info about the corresponding downloaded media, if it exists
+        @return: List of extended medias
+        """
+        async with self._engine.begin() as conn:
+            if tweet_ids:
+                tweet_media = stmt_tweet_media_ids(media_keys)
+                media = (
+                    select(MEDIA, tweet_media.c.tweet_ids)
+                    .select_from(MEDIA.join(tweet_media, MEDIA.c.media_key == tweet_media.c.media_key))
+                )
+            else:
+                media = select(MEDIA).where(MEDIA.c.media_key.in_(media_keys))
+
+            if downloaded:
+                media_sub = media.subquery('media_sub')
+                media = (
+                    select(media_sub, DOWNLOADED_MEDIA)
+                    .select_from(media_sub.join(
+                        DOWNLOADED_MEDIA, media_sub.c.media_key == DOWNLOADED_MEDIA.c.media_key, isouter=True)
+                    )
+                )
+
+            res = await conn.execute(media)
+            res = res_to_dicts(res)
+            xmedias = []
+            for r in res:
+                t_ids = r['tweet_ids'].split(',') if tweet_ids else []
+                d_media = DownloadedMedia(**r) if downloaded and r['sha1'] else None
+
+                media = Media(**r)
+                xmedias.append(ExtendedMedia(media=media, downloaded=d_media, tweet_ids=t_ids))
+            return xmedias
+
+
+
+
+    async def query_extended_medias(self, query: CollectionQuery):
+        async with self._engine.begin() as conn:
+            media_keys = media_keys_with_tweet_id_stmt(query)
+            stmt = select(media_keys.c.tweet_ids, MEDIA).select_from(
+                media_keys.join(MEDIA, media_keys.c.media_key == MEDIA.c.media_key))
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [ExtendedMedia(media=Media(**r), tweet_ids=r['tweet_ids'].split(',')) for r in res]
+            return res
+
+    async def query_tweets(self, query: CollectionQuery, filter_: TweetFilter = None):
+        field_source = 'sources'
+        async with self._engine.begin() as conn:
+            if not filter_:
+                filter_ = TweetFilter()
+
+            stmt = stmt_extended_tweets_query(query, filter_, field_source)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+
+            extended_tweets = []
+            for r in res:
+                xtweet = ExtendedTweet(tweet=Tweet(**r))
+                if field_source in r:
+                    xtweet.sources.extend([CollectedTweet(**s) for s in r[field_source]])
+                extended_tweets.append(xtweet)
+
+            return extended_tweets
+
 
     async def get_rules(self,
                         fields: List[str] = None,

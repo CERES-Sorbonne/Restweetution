@@ -32,3 +32,8 @@ class CollectionQuery(BaseModel):
     rule_ids: List[int] = None
     limit: int = None
     offset: int = None
+    order: int = 1
+
+
+class TweetFilter(BaseModel):
+    media: bool = False

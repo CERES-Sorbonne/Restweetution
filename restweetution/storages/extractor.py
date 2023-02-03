@@ -1,12 +1,27 @@
 import asyncio
 import time
+from collections import defaultdict
 from typing import List
 
+from restweetution.collection import Collection
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.event_data import BulkIds
+from restweetution.models.extended_types import ExtendedTweet
 from restweetution.models.rule import CollectedTweet
 from restweetution.models.twitter import Tweet
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
+
+
+def get_media_keys_from_tweet(tweet: Tweet):
+    if tweet.attachments and tweet.attachments.media_keys:
+        return tweet.attachments.media_keys
+    return []
+
+
+def get_media_keys_from_tweets(tweets: List[Tweet]):
+    res = [get_media_keys_from_tweet(t) for t in tweets]
+    res = [k for k in res if k]
+    return res
 
 
 def get_ids_from_tweet(tweet: Tweet):
@@ -34,46 +49,6 @@ class Extractor:
     def __init__(self, storage: PostgresJSONBStorage):
         self.storage = storage
 
-    async def expand_tweets(self, tweets: List[Tweet]):
-        data = BulkData()
-
-        if not tweets or not len(tweets) > 0:
-            return data
-
-        data.add_tweets(tweets)
-
-        ids = sum((get_ids_from_tweet(t) for t in tweets), BulkIds())
-
-        async def get_and_save(get_func, save_func):
-            res = await get_func
-            save_func(res)
-
-        tasks = []
-        if ids.tweets:
-            tasks.append(get_and_save(self.storage.get_tweets(ids=list(ids.tweets)), data.add_tweets))
-        if ids.users:
-            tasks.append(get_and_save(self.storage.get_users(ids=list(ids.users)), data.add_users))
-        if ids.polls:
-            tasks.append(get_and_save(self.storage.get_polls(ids=list(ids.polls)), data.add_polls))
-        if ids.places:
-            tasks.append(get_and_save(self.storage.get_places(ids=list(ids.places)), data.add_places))
-        if ids.medias:
-            tasks.append(get_and_save(self.storage.get_medias(media_keys=list(ids.medias)), data.add_medias))
-
-        old = time.time()
-        await asyncio.gather(*tasks)
-        print(f'gather: {time.time() - old}')
-
-        if data.medias:
-            res_downloaded = await self.storage.get_downloaded_medias(media_keys=list(ids.medias))
-            for r in res_downloaded:
-                r.media = data.medias[r.media_key]
-            data.add_downloaded_medias(res_downloaded)
-
-        res_rule = await self.storage.get_rule_with_collected_tweets(tweet_ids=[t.id for t in data.get_tweets()])
-        data.add_rules(res_rule)
-        return data
-
     async def expand_collected_tweets(self, collected: List[CollectedTweet]):
         data = BulkData()
 
@@ -89,6 +64,7 @@ class Extractor:
         tweets = [c.tweet for c in collected]
         # find ids of objects (tweets, media, polls, etc..) referenced by the tweets
         ref_ids = sum((get_ids_from_tweet(t) for t in tweets), BulkIds())
+
         # print(f'Extract: tweets: {len(ref_ids.tweets)}, users: {len(ref_ids.users)}, medias: {len(ref_ids.medias)} ...')
 
         # utility function to be awaited later with asyncio.gather
@@ -120,3 +96,46 @@ class Extractor:
             data.add_downloaded_medias(res_downloaded)
 
         return data
+
+    async def add_medias_from_tweets(self, collection: Collection, tweets: List[ExtendedTweet]):
+        media_to_tweets = defaultdict(list)
+        for t in tweets:
+            for m in t.tweet.media_keys():
+                media_to_tweets[m].append(t.id)
+
+        media_keys = list(media_to_tweets.keys())
+        if not media_keys:
+            return
+        res = await self.storage.get_extended_medias(media_keys=media_keys, tweet_ids=False, downloaded=True)
+        for r in res:
+            r.tweet_ids = media_to_tweets[r.media_key]
+        collection.add_medias(res)
+
+    async def add_rules_from_tweets(self, collection: Collection, tweets: List[ExtendedTweet]):
+        rule_to_collected = defaultdict(list)
+        for t in tweets:
+            for collected in t.sources:
+                rule_to_collected[collected.rule_id].append(collected)
+
+        rule_ids = list(rule_to_collected.keys())
+        if not rule_ids:
+            return
+        res = await self.storage.get_rules(ids=rule_ids)
+        for rule in res:
+            for collected in rule_to_collected[rule.id]:
+                rule.collected_tweets[collected.tweet_id] = collected
+
+        collection.add_rules(res)
+
+    async def collection_from_tweets(self, tweets: List[ExtendedTweet], rule=True, media=True):
+        collection = Collection()
+        collection.add_tweets(tweets)
+
+        media_task = self.add_medias_from_tweets(collection, tweets)
+        rule_task = self.add_rules_from_tweets(collection, tweets)
+
+        await asyncio.gather(media_task, rule_task)
+
+        return collection
+
+

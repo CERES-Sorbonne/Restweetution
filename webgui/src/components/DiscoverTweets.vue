@@ -96,6 +96,7 @@ async function discover() {
 async function getPage(nb: number) {
     let q = Object.assign({}, query.value)
     q.offset = nb * tweetPerPage.value
+    q.order = 1
     let res = await storage_api.getTweets(q)
     tweetResult.tweets = res
     discoverPage.value = nb

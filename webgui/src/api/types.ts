@@ -21,6 +21,7 @@ export interface TweetQuery extends TweetCountQuery {
     limit?: number
     desc?: boolean
     row_fields?: string[]
+    order?: number
 }
 
 
