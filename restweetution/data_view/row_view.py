@@ -66,6 +66,7 @@ required_tweet_fields = {
     HASHTAGS: 'entities',
     MENTIONS: 'entities',
     URLS: 'entities',
+    URLS_DOMAIN: 'entities',
     COORDINATES: 'geo',
     PLACE_ID: 'geo',
     IN_REPLY_TO_USER_ID: 'in_reply_to_user_id',
