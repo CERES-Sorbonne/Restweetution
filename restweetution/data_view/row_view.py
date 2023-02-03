@@ -1,4 +1,5 @@
 from typing import List
+from urllib.parse import urlparse
 
 from restweetution.data_view.data_view import DataView
 from restweetution.models.bulk_data import BulkData
@@ -23,6 +24,7 @@ CASHTAGS = 'cashtags'
 HASHTAGS = 'hashtags'
 MENTIONS = 'mentions'
 URLS = 'urls'
+URLS_DOMAIN = 'urls_domain'
 COORDINATES = 'coordinates'
 PLACE_ID = 'place_id'
 IN_REPLY_TO_USER_ID = 'in_reply_to_user_id'
@@ -182,8 +184,10 @@ class RowView(DataView):
                 mentions = [t.username for t in tweet.entities.mentions]
                 safe_set(MENTIONS, mentions)
             if tweet.entities.urls:
-                urls = [t.url for t in tweet.entities.urls]
+                urls = [t.expanded_url if t.expanded_url else t.url for t in tweet.entities.urls]
+                urls_domain = [urlparse(u).netloc for u in urls]
                 safe_set(URLS, urls)
+                safe_set(URLS_DOMAIN, urls_domain)
 
         if tweet.geo:
             if tweet.geo.coordinates:
