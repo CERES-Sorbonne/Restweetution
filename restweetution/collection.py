@@ -2,6 +2,7 @@ from typing import Dict, List
 
 from restweetution.models.extended_types import ExtendedTweet, ExtendedMedia
 from restweetution.models.rule import Rule
+from restweetution.models.twitter import Tweet, Media
 
 
 class Collection:
@@ -23,13 +24,14 @@ class Collection:
 
 
 class Node:
-    def __init__(self, tree):
+    def __init__(self, tree, generated=False):
         self._tree: CollectionTree = tree
+        self.generated = generated
 
 
 class TweetNone(Node):
-    def __init__(self, tree, tweet: ExtendedTweet):
-        super().__init__(tree=tree)
+    def __init__(self, tree, tweet: ExtendedTweet, generated=False):
+        super().__init__(tree=tree, generated=generated)
         self._xtweet = tweet
         self.data = tweet.tweet
         self.id = tweet.id
@@ -51,14 +53,15 @@ class TweetNone(Node):
 
 
 class MediaNode(Node):
-    def __init__(self, tree, media: ExtendedMedia):
-        super().__init__(tree)
-        self._xmedia = media
+    def __init__(self, tree, media: ExtendedMedia, generated=False):
+        super().__init__(tree, generated=generated)
+        self.xmedia = media
         self.data = media.media
         self.id = media.media_key
+        self.downloaded = media.downloaded
 
     def tweets(self):
-        tweet_ids = self._xmedia.tweet_ids
+        tweet_ids = self.xmedia.tweet_ids
         if not tweet_ids:
             return []
         tweets = [self._tree.get_tweet(t) for t in tweet_ids]
@@ -74,8 +77,8 @@ class MediaNode(Node):
 
 
 class RuleNode(Node):
-    def __init__(self, tree, rule: Rule):
-        super().__init__(tree)
+    def __init__(self, tree, rule: Rule, generated=False):
+        super().__init__(tree, generated=generated)
         self.data = rule
         self.id = rule.id
 
@@ -86,7 +89,7 @@ class CollectionTree:
 
     def get_tweet(self, tweet_id: str):
         if tweet_id not in self._data.tweets:
-            return None
+            return TweetNone(self._data, ExtendedTweet(Tweet(id=tweet_id)), generated=True)
         return TweetNone(self, self._data.tweets[tweet_id])
 
     def get_tweets(self, tweet_ids: List[str] = None):
@@ -98,7 +101,7 @@ class CollectionTree:
 
     def get_media(self, media_key: str):
         if media_key not in self._data.medias:
-            return None
+            return MediaNode(self._data, ExtendedMedia(Media(media_key=media_key)), generated=True)
         return MediaNode(self, self._data.medias[media_key])
 
     def get_rule(self, rule_id: int):

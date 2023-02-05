@@ -127,7 +127,7 @@ class Extractor:
 
         collection.add_rules(res)
 
-    async def collection_from_tweets(self, tweets: List[ExtendedTweet], rule=True, media=True):
+    async def collection_from_tweets(self, tweets: List[ExtendedTweet]):
         collection = Collection()
         collection.add_tweets(tweets)
 

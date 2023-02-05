@@ -68,7 +68,7 @@ class DownloadQueue(ABC):
         d_media = await self._find_same_media(media)
         if d_media:
             await self._save_duplicate(media, d_media)
-            return
+            return d_media
 
         res = await self._downloader.download_save_sha1(src_url=media.get_url(), dest_folder=self.root)
         d_media = DownloadedMedia(media_key=media.media_key, format=res.ext, sha1=res.sha1, media=media)

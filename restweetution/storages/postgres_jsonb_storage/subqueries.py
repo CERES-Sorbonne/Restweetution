@@ -50,6 +50,8 @@ def stmt_extended_tweets_query(query: CollectionQuery, filter_: TweetFilter, fie
     stmt = stmt.select_from(TWEET.join(COLLECTED_TWEET))
 
     stmt = where_in_builder(stmt, True, (COLLECTED_TWEET.c.rule_id, query.rule_ids))
+    if query.direct_hit:
+        stmt = stmt.where(COLLECTED_TWEET.c.direct_hit.is_(True))
     if filter_.media:
         stmt = stmt.where(func.jsonb_array_length(TWEET.c.attachments['media_keys']) > 0)
 

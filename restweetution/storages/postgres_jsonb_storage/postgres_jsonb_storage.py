@@ -43,6 +43,9 @@ class PostgresJSONBStorage(SystemStorage):
         self._url = url
         self._engine = create_async_engine(url, echo=False)
 
+    def get_engine(self):
+        return self._engine
+
     async def reset_database(self):
         async with self._engine.begin() as conn:
             await conn.run_sync(meta_data.drop_all)
@@ -487,9 +490,6 @@ class PostgresJSONBStorage(SystemStorage):
                 xmedias.append(ExtendedMedia(media=media, downloaded=d_media, tweet_ids=t_ids))
             return xmedias
 
-
-
-
     async def query_extended_medias(self, query: CollectionQuery):
         async with self._engine.begin() as conn:
             media_keys = media_keys_with_tweet_id_stmt(query)
@@ -500,13 +500,13 @@ class PostgresJSONBStorage(SystemStorage):
             res = [ExtendedMedia(media=Media(**r), tweet_ids=r['tweet_ids'].split(',')) for r in res]
             return res
 
-    async def query_tweets(self, query: CollectionQuery, filter_: TweetFilter = None):
+    async def query_xtweets(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
         field_source = 'sources'
         async with self._engine.begin() as conn:
-            if not filter_:
-                filter_ = TweetFilter()
-
-            stmt = stmt_extended_tweets_query(query, filter_, field_source)
+            if not tweet_filter:
+                tweet_filter = TweetFilter()
+            print(tweet_filter)
+            stmt = stmt_extended_tweets_query(query, tweet_filter, field_source)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
 
@@ -518,7 +518,6 @@ class PostgresJSONBStorage(SystemStorage):
                 extended_tweets.append(xtweet)
 
             return extended_tweets
-
 
     async def get_rules(self,
                         fields: List[str] = None,

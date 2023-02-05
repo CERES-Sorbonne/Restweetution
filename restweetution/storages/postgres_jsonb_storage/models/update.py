@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Column, Table, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Table, TIMESTAMP, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import JSONB
 
 from restweetution.storages.postgres_jsonb_storage.models import meta_data
@@ -11,4 +11,11 @@ TWEET_UPDATE = Table(
     Column("tweet_id", ForeignKey("tweet.id"), primary_key=True),
     Column("collected_at", TIMESTAMP(timezone=True), default=datetime.datetime.now),
     Column("data", JSONB)
+)
+
+
+TEST = Table(
+    "test",
+    meta_data,
+    Column("id", Numeric(22))
 )

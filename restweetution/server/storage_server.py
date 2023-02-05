@@ -1,9 +1,10 @@
+
 import asyncio
 import json
 import logging
 import os
 from time import time
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -15,9 +16,11 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from restweetution import config_loader
-from restweetution.data_view.media_view import MediaView
+from restweetution.collection import CollectionTree
+from restweetution.data_view.media_view2 import MediaView2
 from restweetution.data_view.tweet_view import TweetView
-from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery
+from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery, CollectionQuery, \
+    TweetFilter
 from restweetution.server.connection_manager import ConnectionManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.extractor import Extractor
@@ -115,6 +118,26 @@ async def get_tweets(query: TweetRowQuery):
         logger.info(f'get_tweets: {time() - old} seconds')
         return res
     return []
+
+
+@app.post("/view/media")
+async def get_view_media(query: CollectionQuery, tweet_filter: TweetFilter = None):
+    old = time()
+
+    tweet_filter = tweet_filter if tweet_filter else TweetFilter(media=1)
+    tweet_filter.media = tweet_filter.media if tweet_filter.media > 0 else 1
+    query.limit = query.limit if query.limit and 0 < query.limit < 100 else 100
+
+    xtweets = await storage.query_xtweets(query, tweet_filter)
+    collection = await extractor.collection_from_tweets(xtweets)
+    tree = CollectionTree(collection)
+
+    ids = [t.id for t in xtweets]
+    view = MediaView2.compute(tree, ids=ids, all_fields=True)
+
+    logger.info(f'media_view took {round(time() - old, 2)} seconds')
+
+    return view.dict()
 
 
 @app.post("/tweet_count")
