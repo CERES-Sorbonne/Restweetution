@@ -14,6 +14,15 @@ def get_safe_set(data: Dict, fields: List[str]):
     return safe_set
 
 
+def get_any_field(fields: List[str]):
+    def any_field(*field_list):
+        if not fields:
+            return True
+        return any(f in fields for f in field_list)
+
+    return any_field
+
+
 class ViewDict(Dict):
     def __init__(self, id_: int | str, **kwargs):
         super().__init__(**kwargs)

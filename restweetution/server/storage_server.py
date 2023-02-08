@@ -1,10 +1,9 @@
-
 import asyncio
 import json
 import logging
 import os
 from time import time
-from typing import List, Optional
+from typing import List
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -19,8 +18,9 @@ from restweetution import config_loader
 from restweetution.collection import CollectionTree
 from restweetution.data_view.media_view2 import MediaView2
 from restweetution.data_view.tweet_view import TweetView
+from restweetution.data_view.tweet_view2 import TweetView2
 from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery, CollectionQuery, \
-    TweetFilter
+    TweetFilter, ViewQuery
 from restweetution.server.connection_manager import ConnectionManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.extractor import Extractor
@@ -120,6 +120,15 @@ async def get_tweets(query: TweetRowQuery):
     return []
 
 
+@app.post("/view/")
+async def get_view(query: ViewQuery):
+    print(query)
+    if query.view_type == 'medias':
+        return await get_view_media(query.collection)
+    if query.view_type == 'tweets':
+        return await get_view_tweet(query.collection)
+
+
 @app.post("/view/media")
 async def get_view_media(query: CollectionQuery, tweet_filter: TweetFilter = None):
     old = time()
@@ -136,6 +145,25 @@ async def get_view_media(query: CollectionQuery, tweet_filter: TweetFilter = Non
     view = MediaView2.compute(tree, ids=ids, all_fields=True)
 
     logger.info(f'media_view took {round(time() - old, 2)} seconds')
+
+    return view.dict()
+
+
+@app.post("/view/tweet")
+async def get_view_tweet(query: CollectionQuery, tweet_filter: TweetFilter = None):
+    old = time()
+
+    tweet_filter = tweet_filter if tweet_filter else TweetFilter()
+    query.limit = query.limit if query.limit and 0 < query.limit < 100 else 100
+
+    xtweets = await storage.query_xtweets(query, tweet_filter)
+    collection = await extractor.collection_from_tweets(xtweets)
+    tree = CollectionTree(collection)
+
+    ids = [t.id for t in xtweets]
+    view = TweetView2.compute(tree, ids=ids, all_fields=True)
+
+    logger.info(f'tweet_view took {round(time() - old, 2)} seconds')
 
     return view.dict()
 

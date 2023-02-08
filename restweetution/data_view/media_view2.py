@@ -1,27 +1,18 @@
-from abc import ABC
 from typing import List
 
 from restweetution.collection import CollectionTree, MediaNode
 from restweetution.data_view.data_view2 import DataView2, get_safe_set, ViewDict
-
-MEDIA_KEY = 'media_key'
-MEDIA_TYPE = 'media_type'
-
-MEDIA_SHA1 = 'media_sha1'
-MEDIA_FILE = 'media_file'
-MEDIA_FORMAT = 'media_format'
-
-RULE_TAGS = 'rule_tags'
+from restweetution.data_view.fields import MediaFields as MEDIA
 
 
-class MediaView2(DataView2, ABC):
+class MediaView2(DataView2):
     @staticmethod
     def get_fields() -> List[str]:
-        return [MEDIA_KEY, MEDIA_TYPE, MEDIA_SHA1, MEDIA_FORMAT, MEDIA_FORMAT, RULE_TAGS]
+        return [MEDIA.MEDIA_KEY, MEDIA.TYPE, MEDIA.SHA1, MEDIA.FORMAT, MEDIA.FILE]
 
     @staticmethod
     def get_default_fields() -> List[str]:
-        return [MEDIA_KEY, MEDIA_TYPE, MEDIA_FILE]
+        return [MEDIA.MEDIA_KEY, MEDIA.TYPE, MEDIA.FILE]
 
     @classmethod
     def _compute(cls, tree: CollectionTree, fields: List[str], ids: List[str | int] = None, **kwargs) -> List[ViewDict]:
@@ -41,18 +32,13 @@ class MediaView2(DataView2, ABC):
         safe_set = get_safe_set(res, fields)
 
         m = media.data
-        safe_set(MEDIA_KEY, m.media_key)
-        safe_set(MEDIA_TYPE, m.type)
+        safe_set(MEDIA.MEDIA_KEY, m.media_key)
+        safe_set(MEDIA.TYPE, m.type)
 
         dm = media.downloaded
         if dm:
-            safe_set(MEDIA_SHA1, dm.sha1)
-            safe_set(MEDIA_FORMAT, dm.format)
-            safe_set(MEDIA_FILE, dm.sha1 + '.' + dm.format)
-
-        rule_tags = set()
-        for r in media.rules():
-            rule_tags.update(r.data.tag.split(','))
-        safe_set(RULE_TAGS, list(rule_tags))
+            safe_set(MEDIA.SHA1, dm.sha1)
+            safe_set(MEDIA.FORMAT, dm.format)
+            safe_set(MEDIA.FILE, dm.sha1 + '.' + dm.format)
 
         return res

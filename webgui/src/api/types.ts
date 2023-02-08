@@ -1,3 +1,9 @@
+export interface TimeWindow {
+    start_date: String
+    end_date: String
+    recent: Boolean
+}
+
 export interface TaskInfo {
     id: number;
     name: string;
@@ -29,4 +35,32 @@ export interface ExportTweetRequest {
     export_type: string
     id: string
     query: TweetQuery
+}
+
+
+export interface ViewResult {
+    view: Array<Object>
+    fields: Array<string>
+    default_fields: Array<string>
+}
+
+export interface CollectionQuery {
+    date_from?: String
+    date_to?: String
+    rule_ids?: Array<Number>
+    direct_hit?: Boolean
+    limit?: number
+    offset?: number
+    order?: number
+}
+
+export interface CollectionDescription {
+    name: string
+    isGlobal?: boolean
+    rule_ids: number[]
+}
+
+export interface ViewQuery {
+    collection: CollectionQuery
+    view_type: string
 }

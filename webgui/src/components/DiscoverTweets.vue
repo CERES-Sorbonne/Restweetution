@@ -1,21 +1,16 @@
 <script setup lang="ts">
 
-import { toDatetimeInputString } from '@/utils';
 import { computed, reactive, ref } from '@vue/reactivity';
 import { onMounted, watch } from 'vue';
 import { useStore } from '@/stores/store'
-import DateInterval from '@/components/DateInterval.vue'
 import CollectionSelection from './CollectionSelection.vue';
 import * as storage_api from '@/api/storage'
-import TweetTable from './TweetTable.vue';
-import RowFieldSelection from './RowFieldSelection.vue';
-import Exporter from '@/components/Exporter.vue'
-import type { TweetQuery } from '@/api/types';
+import type { TweetQuery, ViewResult } from '@/api/types';
 import TaskList from './TaskList.vue';
 import type { RuleInfo } from '@/api/collector';
-import TimeWindow2 from './TimeWindow2.vue';
 import TimeWindowStorage from './TimeWindowStorage.vue';
-
+import DataView from './DataView.vue';
+import CollectionList from './CollectionList.vue';
 
 const store = useStore()
 const dateInterval = reactive({start: undefined, end: undefined})
@@ -79,9 +74,9 @@ function resetTweetResult() {
 }
 
 function setTab(tab: Tabs) {
-    if(tab == 1 && !hasTweets.value) {
-        return
-    }
+    // if(tab == 1 && !hasTweets.value) {
+    //     return
+    // }
     actualTab.value = tab
 }
 
@@ -107,12 +102,23 @@ async function getCount() {
     tweetResult.count = res
 }
 
+const showMedia = ref(false)
+const mediaView = <ViewResult>reactive({})
+function discoverMedia() {
+    storage_api.viewMedia(query.value).then((res) => {
+        showMedia.value = true
+        Object.assign(mediaView, res)
+        setTab(Tabs.Discover)
+    })
+}
+
 watch(selectedRules, resetTweetResult)
+
 
 </script>
 
 <template >
-
+    
     <ul class="nav nav-tabs mb-5">
         <li class="nav-item" @click="setTab(Tabs.Collection)">
             <a class="nav-link" :class="(actualTab == Tabs.Collection ? 'active' : '')" href="#">Collection Settings</a>
@@ -136,7 +142,7 @@ watch(selectedRules, resetTweetResult)
             <hr/>
             <div class="text-center">
                 <button @click="getCount" type="button" class="btn btn-outline-primary me-2">Count</button>
-                <button @click="discover" type="button" class="btn btn-outline-primary me-2">Discover</button>
+                <button @click="discoverMedia" type="button" class="btn btn-outline-primary me-2">Discover</button>
                 <br />
                 <br />
                 <div v-if="(tweetResult.count != -1)">
@@ -147,7 +153,8 @@ watch(selectedRules, resetTweetResult)
         </div>
     </div>
     <div v-if="(actualTab == Tabs.Discover)" class="row">
-        <div class="col-3">
+        <DataView :data-view="mediaView"/>
+        <!-- <div class="col-3">
             <RowFieldSelection :fields="selectedFields"/>
         </div>
         <div class="col-9">
@@ -171,9 +178,9 @@ watch(selectedRules, resetTweetResult)
             </div>
             <div class="row mt-3">
                 <TweetTable :tweets="tweetResult.tweets" :fields="selectedFields"/>
-            </div>
+            </div> -->
             
-        </div>
+        <!-- </div> -->
     </div>
     <div v-if="(actualTab == Tabs.Tasks)">
         <TaskList />

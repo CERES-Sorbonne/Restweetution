@@ -1,9 +1,10 @@
 <script setup lang="ts">
 
-import { computed } from '@vue/reactivity';
+import { computed, ref } from '@vue/reactivity';
 import { useStore } from '@/stores/store'
 import RuleSelectionTable from './RuleSelectionTable.vue';
 import type { RuleInfo } from '@/api/collector';
+import { watch } from 'vue';
 
 
 const store = useStore()
@@ -31,19 +32,19 @@ function removeRule(rule: RuleInfo) {
     }
 }
 
+
 </script>
 
 <template>
     <div class="row">
         <div class="col">
-            <h5 class="text-center">Available</h5>
-            <RuleSelectionTable :rules="availableRules" action-name="add" @select="selectRule"/>
-        </div>
-        <div class="col">
             <h5 class="text-center">Selected</h5>
             <RuleSelectionTable :rules="props.selectedRules" action-name="del" @select="removeRule"/>
             <h4 v-if="(props.selectedRules.length == 0)" class="text-center">All Rules</h4>
-
+        </div>
+        <div class="col">
+            <h5 class="text-center">Available</h5>
+            <RuleSelectionTable :rules="availableRules" action-name="add" @select="selectRule"/>
         </div>
     </div>
 </template>

@@ -36,5 +36,10 @@ class CollectionQuery(BaseModel):
     order: int = 1
 
 
+class ViewQuery(BaseModel):
+    collection: CollectionQuery
+    view_type: str
+
+
 class TweetFilter(BaseModel):
     media: int = 0

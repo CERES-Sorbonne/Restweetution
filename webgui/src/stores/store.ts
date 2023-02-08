@@ -79,7 +79,7 @@ export const useStore = defineStore("store", () => {
     
     const loadedRules = ref(false)
 
-    const ruleFromId: {[id: string]: RuleInfo} = {}
+    const ruleFromId: {[id: number]: RuleInfo} = {}
 
     const searcherNotifs = computed(() => {
         return notifs.filter(n => n.source == 'searcher').filter(n => n.user_id == selectedUser.value)
@@ -394,7 +394,7 @@ export const useStore = defineStore("store", () => {
     function updateFromSocket(event: any) {
         let message = event.data
         let update = JSON.parse(message)
-        console.log(update)
+        // console.log(update)
         if(update.source == 'searcher') {
             console.log('searcher update')
             updateSearcherInfo(update.user_id, update.data)

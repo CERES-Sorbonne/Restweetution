@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { CollectionQuery, ViewQuery } from './types';
 
 export const BASE_URL = '/storage_api'
 
@@ -25,5 +26,10 @@ export async function getTasks() {
 
 export async function exportTweets(exportQuery: any) {
     let res = await axios.post(BASE_URL + '/export/tweets', exportQuery)
+    return res.data
+}
+
+export async function viewMedia(query: ViewQuery) {
+    let res = await axios.post(BASE_URL + '/view/', query)
     return res.data
 }

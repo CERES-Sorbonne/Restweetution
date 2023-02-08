@@ -28,8 +28,8 @@ class UserEntity(BaseModel):
 
 class User(BaseModel):
     id: str
-    name: str
-    username: str
+    name: Optional[str]
+    username: Optional[str]
     created_at: Optional[datetime]
     description: Optional[str]
     entities: Optional[UserEntity]

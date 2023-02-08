@@ -97,6 +97,9 @@ class Extractor:
 
         return data
 
+    async def add_users_from_tweets(self, collection: Collection, tweets: List[ExtendedTweet]):
+        pass
+
     async def add_medias_from_tweets(self, collection: Collection, tweets: List[ExtendedTweet]):
         media_to_tweets = defaultdict(list)
         for t in tweets:
@@ -137,5 +140,3 @@ class Extractor:
         await asyncio.gather(media_task, rule_task)
 
         return collection
-
-
