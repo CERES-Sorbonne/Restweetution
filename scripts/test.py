@@ -1,47 +1,82 @@
 import asyncio
 import os
 import time
+from collections import defaultdict
 from typing import List
 
+import aiohttp
+import tweepy
+from aiopath import Path
 from gallery_dl import config
 from gallery_dl.job import DownloadJob, UrlJob
-from sqlalchemy import text
+from sqlalchemy import text, insert
+from tweepy.asynchronous import AsyncClient
 
 from restweetution import config_loader
-from restweetution.downloaders.photo_downloader import PhotoDownloader
-from restweetution.downloaders.video_downloader import VideoDownloader
-from restweetution.models.bulk_data import BulkData
-from restweetution.models.config.query_fields_preset import ALL_CONFIG
-from restweetution.models.storage.downloaded_media import DownloadedMedia
+from restweetution.collection import CollectionTree
+from restweetution.collectors.clients.client import Client
+from restweetution.models.storage.queries import CollectionQuery, TweetFilter
 from restweetution.models.twitter import Media
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
+from restweetution.storages.extractor import Extractor
+from restweetution.storages.postgres_jsonb_storage.models import TEST
 from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
+import sqlite3
 
 elastic: ElasticStorage
 
 
-class UrlJob2(UrlJob):
-    def __init__(self, url, res: List):
-        super().__init__(url)
-        self.res = res
-
-    def handle_url(self, url, kwargs):
-        self.res.append(url)
-
-
 async def main():
     global elastic
+
     conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
-    print(ALL_CONFIG.media_fields)
-    print(ALL_CONFIG.twitter_format())
-    # # res = []
-    # config.set(*[(), 'image-range', '2'])
-    # job = UrlJob(url='https://twitter.com/CedricMas/status/1609578666312318977')
-    # job.run()
-    # config.set(*[(), 'image-range', '3'])
-    # job = UrlJob(url='https://twitter.com/CedricMas/status/1609578666312318977')
-    # job.run()
+    storage = conf.build_storage()
+    token = await storage.get_token('debug')
+
+    res = await storage.get_tweets(ids=['1127580291600662530'])
+    print(res[0].context_annotations)
+
+    # async with storage.get_engine().begin() as conn:
+    #     stmt = insert(TEST)
+    #     await conn.execute(stmt, [{'id': 945678901234567891}])
+    #     await conn.commit()
+    #
+    # if True:
+    #     return
+
+    # await storage.build_tables()
+
+    # client = Client(bearer_token=token, return_type=aiohttp.ClientResponse)
+    #
+    # await client.get_quote_tweets(exclude='retweets', id='1616893127310315525')
+    # [print(r, r.time_to_reset()) for r in list(client.rates.values())]
     # # print(res)
+
+    # query = CollectionQuery()
+    # # query.rule_ids = [1201, 1200]
+    # filter_ = TweetFilter(media=True)
+    # res = await storage.query_tweets(query=query, filter_=filter_)
+    #
+    # extractor = Extractor(storage)
+    # collection = await extractor.collection_from_tweets(res)
+    #
+    # print(len(collection.tweets), len(collection.medias), len(collection.rules))
+    # # print(collection.rules)
+    # tree = CollectionTree(collection=collection)
+    #
+    # for k, m in collection.medias.items():
+    #     media = tree.get_media(k)
+    #     for r in media.rules():
+    #         print(r.id)
+
+    # print(res[0].tweet.attachments.media_keys)
+    # ids = [r.tweet_id for r in res]
+    # id_count = defaultdict(int)
+    # for i in ids:
+    #     id_count[i] += 1
+    #
+    # print(len(res))
+    # print(len(id_count.keys()))
 
     # dd = PhotoDownloader(root='/Users/david/Movies')
     # dd.download(url='https://video.twimg.com/ext_tw_video/1609578504491831297/pu/vid/1280x720/MhDCilqRHCo5ztI7.mp4?tag=12')
@@ -84,7 +119,7 @@ async def main():
     # res = await postgres.get_collected_tweets(rule_ids=rule_ids)
     # bulk = await extractor.expand_collected_tweets(res)
     #
-    # view_exporter = ViewExporter(RowView(), csv)
+    # view_exporter = ViewExporter(TweetView(), csv)
     # await view_exporter.export(bulk_data=bulk, key='felix-sha1s', only_ids=[r.tweet_id for r in res], fields=['media_sha1s'])
 
 

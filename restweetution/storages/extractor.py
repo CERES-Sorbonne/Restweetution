@@ -98,6 +98,8 @@ class Extractor:
         return data
 
     async def add_users_from_tweets(self, collection: Collection, tweets: List[ExtendedTweet]):
+        # TODO: write expansion code.
+        # TODO: remember every id link to user (author_of, mention_by, replied_by)
         pass
 
     async def add_medias_from_tweets(self, collection: Collection, tweets: List[ExtendedTweet]):
