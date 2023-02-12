@@ -4,7 +4,6 @@ import logging
 import time
 from typing import List, TypeVar, Callable, Dict
 
-import asyncpg
 from pydantic import BaseModel
 from sqlalchemy import update, bindparam, Table, delete, join, func
 from sqlalchemy.dialects.postgresql import insert, array
@@ -249,6 +248,7 @@ class PostgresJSONBStorage(SystemStorage):
                          offset: int = None,
                          limit: int = None,
                          rule_ids: List[int] = None,
+                         direct_hit: bool = False,
                          desc: bool = False) -> List[Tweet]:
         res = await self.get_tweets_raw(fields=fields,
                                         ids=ids,
@@ -295,12 +295,16 @@ class PostgresJSONBStorage(SystemStorage):
                                    date_from: datetime.datetime = None,
                                    date_to: datetime.datetime = None,
                                    rule_ids: List[int] = None,
+                                   direct_hit: bool = False,
                                    order: int = 0,
                                    offset: int = None,
                                    limit: int = None):
         stmt = select_join_builder((TWEET, tweet_fields), (COLLECTED_TWEET, collected_fields))
 
         stmt = where_in_builder(stmt, True, (TWEET.c.id, ids), (COLLECTED_TWEET.c.rule_id, rule_ids))
+        if direct_hit:
+            stmt = stmt.where(COLLECTED_TWEET.c.direct_hit)
+
         stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
         stmt = offset_limit(stmt, offset, limit)
         if order < 0:
@@ -316,12 +320,13 @@ class PostgresJSONBStorage(SystemStorage):
                                    date_from: datetime.datetime = None,
                                    date_to: datetime.datetime = None,
                                    rule_ids: List[int] = None,
+                                   direct_hit: bool = False,
                                    order: int = 0,
                                    offset: int = None,
                                    limit: int = None) -> List[CollectedTweet]:
         async with self._engine.begin() as conn:
             stmt = self._get_collected_tweets_stmt(tweet_fields, collected_fields, ids, date_from, date_to, rule_ids,
-                                                   order, offset, limit)
+                                                   direct_hit, order, offset, limit)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             res = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
@@ -334,13 +339,14 @@ class PostgresJSONBStorage(SystemStorage):
                                           date_from: datetime.datetime = None,
                                           date_to: datetime.datetime = None,
                                           rule_ids: List[int] = None,
+                                          direct_hit: bool = False,
                                           order: int = 0,
                                           offset: int = None,
                                           limit: int = None,
                                           chunk_size=1000):
         async with self._engine.begin() as conn:
             stmt = self._get_collected_tweets_stmt(tweet_fields, collected_fields, ids, date_from, date_to, rule_ids,
-                                                   order, offset, limit)
+                                                   direct_hit, order, offset, limit)
             conn = await conn.execution_options(yield_per=chunk_size, stream_results=True)
             conn = await conn.stream(stmt)
             async for res in conn.partitions(chunk_size):

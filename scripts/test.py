@@ -8,8 +8,6 @@ from gallery_dl.job import DownloadJob, UrlJob
 from sqlalchemy import text
 
 from restweetution import config_loader
-from restweetution.downloaders.photo_downloader import PhotoDownloader
-from restweetution.downloaders.video_downloader import VideoDownloader
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.query_fields_preset import ALL_CONFIG
 from restweetution.models.storage.downloaded_media import DownloadedMedia
