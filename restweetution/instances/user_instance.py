@@ -106,7 +106,6 @@ class UserInstance:
                     if collect_options.download_gif:
                         media_downloader.download_medias(medias=gif, callback=callback)
 
-
             if collect_options.elastic_dashboard and collect_options.elastic_dashboard_name:
                 if not elastic_dashboard:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
@@ -126,6 +125,7 @@ class UserInstance:
                 bulk_data.add_downloaded_medias([d_media])
                 only_ids = media_to_tweet[d_media.media_key]
                 elastic_dashboard.export(bulk_data, collect_tasks.elastic_dashboard_name, only_ids=only_ids)
+
         return on_download_event
 
     def streamer_set_collect_options(self, options: CollectOptions):

@@ -59,7 +59,7 @@ class Error(HTTPException):
         super().__init__(status_code=400, detail=value)
 
 
-async def sendUpdates(update: InstanceUpdate):
+async def send_updates(update: InstanceUpdate):
     global last_streamer_update
     if update.source == 'searcher':
         update.data = await searcher_info(update.user_id)
@@ -73,7 +73,7 @@ async def sendUpdates(update: InstanceUpdate):
         await manager.broadcast(json.dumps(update.dict(), default=str))
 
 
-async def sendDownloaderUpdate(interval: int):
+async def send_downloader_update(interval: int):
     while True:
         try:
             status = restweet.get_media_downloader_status()
@@ -88,9 +88,9 @@ async def launch():
     global restweet
     restweet = SystemInstance(sys_conf)
     await restweet.load_user_configs()
-    restweet.event.add(sendUpdates)
+    restweet.event.add(send_updates)
 
-    asyncio.create_task(sendDownloaderUpdate(2))
+    asyncio.create_task(send_downloader_update(2))
 
 
 loop.create_task(launch())
@@ -127,7 +127,7 @@ async def add_user(user_config: UserConfig):
         await restweet.save_user_config(user_config.name)
         return await all_users()
     except Exception as e:
-        print(e)
+        raise e
         raise HTTPException(400, e.__str__())
 
 

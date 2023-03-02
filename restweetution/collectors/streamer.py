@@ -83,7 +83,6 @@ class Streamer:
     async def sync_rules_from_api(self):
         self._clear_rule_cache()
         api_rules = await self.get_api_rules()
-
         if api_rules:
             rules = [StreamerRule(query=r.value, tag=r.tag, api_id=r.id) for r in api_rules]
             rules = await self._storage.request_rules(rules)
