@@ -54,6 +54,9 @@ class Streamer:
         self.event_update = AsyncEvent()
         self.event_collect = AsyncEvent()
 
+        self._parse_task: Optional[asyncio.Task] = None
+        self._parse_queue = asyncio.Queue()
+
     async def verify_api_sync(self):
         api_rules = await self.get_api_rules()
         active_rules = self.get_rules()
@@ -390,7 +393,8 @@ class Streamer:
         logger.info('\n'.join([f'{r.query}, tag: {r.tag} id: {r.id}' for r in self.get_rules()]))
 
         async for line in self._client.connect_tweet_stream(fields=fields):
-            asyncio.create_task(self._handle_line_response(line))
+            await self._parse_queue.put(line)
+            self._start_parsing()
 
     def start_collection(self, rules: List[StreamerRule] = None, fields: QueryFields = None):
         if self._conflict:
@@ -407,3 +411,18 @@ class Streamer:
 
     def is_running(self):
         return self._collect_task is not None and not self._collect_task.done()
+
+    def _is_parsing(self):
+        return self._parse_task is not None and not self._parse_task.done()
+
+    async def _parse_loop(self):
+        while True:
+            try:
+                line = await self._parse_queue.get()
+                await self._handle_line_response(line)
+            except Exception as e:
+                print(e)
+
+    def _start_parsing(self):
+        if not self._is_parsing():
+            self._parse_task = asyncio.create_task(self._parse_loop())
