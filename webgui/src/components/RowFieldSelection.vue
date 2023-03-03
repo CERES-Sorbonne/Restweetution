@@ -14,7 +14,7 @@ const props = defineProps({
     }
 })
 
-const possibleFields = ['id', 'text', 'media_keys', 'media_sha1s', 'media_format', 'media_files', 'media_types', 'poll_ids', 'author_id', 'author_username', 'context_domains', 'context_entities', 'conversation_id', 'created_at', 'annotations', 'cashtags', 'hashtags', 'mentions', 'urls', 'coordinates', 'place_id', 'in_reply_to_user_id', 'in_reply_to_username', 'lang', 'possibly_sensitive', 'retweet_count', 'reply_count', 'like_count', 'quote_count', 'referenced_tweets_types', 'referenced_tweets_ids', 'referenced_tweets_authors', 'referenced_tweets_authors_usernames', 'reply_settings', 'source', 'withheld_copyright', 'withheld_country_codes', 'withheld_scope', 'rule_tags']
+const possibleFields = ['id', 'text', 'media_keys', 'media_sha1s', 'media_format', 'media_files', 'media_types', 'poll_ids', 'author_id', 'author_username', 'context_domains', 'context_entities', 'conversation_id', 'created_at', 'annotations', 'cashtags', 'hashtags', 'mentions', 'urls', 'urls_domain', 'coordinates', 'place_id', 'in_reply_to_user_id', 'in_reply_to_username', 'lang', 'possibly_sensitive', 'retweet_count', 'reply_count', 'like_count', 'quote_count', 'referenced_tweets_types', 'referenced_tweets_ids', 'referenced_tweets_authors', 'referenced_tweets_authors_usernames', 'reply_settings', 'source', 'withheld_copyright', 'withheld_country_codes', 'withheld_scope', 'rule_tags']
 
 function check(field: string) {
     if(props.fields.includes(field)) {

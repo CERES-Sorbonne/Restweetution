@@ -19,5 +19,4 @@ MEDIA = Table(
     Column("organic_metrics", JSONB),
     Column("promoted_metrics", JSONB),
     Column("public_metrics", JSONB),
-    Column("promoted_metrics", JSONB),
 )
