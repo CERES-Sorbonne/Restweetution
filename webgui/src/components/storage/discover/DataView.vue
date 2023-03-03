@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import FieldSelection from './FieldSelection.vue';
+import FieldSelection from '../../FieldSelection.vue';
 import type { ViewResult } from '@/api/types'
 import { reactive } from 'vue';
-import DataTable from './DataTable.vue';
+import DataTable from '../../DataTable.vue';
 
 const props = defineProps({
     dataView: { type: Object as () => ViewResult, required: true}

@@ -5,7 +5,7 @@ import time
 from typing import List, TypeVar, Callable, Dict
 
 from pydantic import BaseModel
-from sqlalchemy import update, bindparam, Table, delete, join, func
+from sqlalchemy import update, bindparam, Table, delete, join, func, true
 from sqlalchemy.dialects.postgresql import insert, array
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import select
@@ -368,12 +368,15 @@ class PostgresJSONBStorage(SystemStorage):
     async def get_tweets_count(self,
                                date_from: datetime.datetime = None,
                                date_to: datetime.datetime = None,
-                               rule_ids: List[int] = None, ) -> int:
+                               rule_ids: List[int] = None,
+                               direct_hit: bool = False) -> int:
         async with self._engine.begin() as conn:
             stmt = select(func.count().label('count'))
             if rule_ids:
                 stmt = stmt.select_from(join(TWEET, COLLECTED_TWEET))
                 stmt = stmt.where(COLLECTED_TWEET.c.rule_id.in_(rule_ids))
+                if direct_hit and rule_ids:
+                    stmt = stmt.where(COLLECTED_TWEET.c.direct_hit == true())
             else:
                 stmt = stmt.select_from(TWEET)
             stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)

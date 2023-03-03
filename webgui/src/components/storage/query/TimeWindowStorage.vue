@@ -1,10 +1,11 @@
 <script setup lang="ts">
 
+import type { TimeWindow } from '@/api/types';
 import { toDatetimeInputString } from '@/utils';
 import { computed, reactive, ref } from '@vue/reactivity';
 
 const props = defineProps({
-    time_window: { type: Object, required: true},
+    time_window: { type: Object as () => TimeWindow, required: true},
     edit: Boolean
 })
 

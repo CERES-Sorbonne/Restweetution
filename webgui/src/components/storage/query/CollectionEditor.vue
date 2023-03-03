@@ -3,7 +3,7 @@ import { onMounted, reactive, ref, watch } from 'vue';
 import type { CollectionDescription } from '@/api/types';
 import type { RuleInfo } from '@/api/collector';
 import { useStore } from '@/stores/store';
-import CollectionSelection from '../CollectionSelection.vue';
+import CollectionSelection from '../../CollectionSelection.vue';
 
 const props = defineProps({
     collection: {type: Object as () => CollectionDescription, required: true}

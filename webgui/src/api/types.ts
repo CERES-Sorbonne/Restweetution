@@ -1,7 +1,7 @@
 export interface TimeWindow {
-    start_date: String
-    end_date: String
-    recent: Boolean
+    start?: String
+    end?: String
+    recent?: Boolean
 }
 
 export interface TaskInfo {
@@ -42,6 +42,10 @@ export interface ViewResult {
     view: Array<Object>
     fields: Array<string>
     default_fields: Array<string>
+}
+
+export interface ViewCountResult {
+    tweets?: number
 }
 
 export interface CollectionQuery {

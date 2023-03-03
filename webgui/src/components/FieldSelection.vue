@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { computed } from '@vue/reactivity';
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 
 const props = defineProps({
     possibleFields: {
@@ -47,6 +47,15 @@ function checkDefault(){
 }
 
 onMounted(() => {
+    if(hasDefault.value) {
+        checkDefault()
+    }
+    else {
+        checkAll()
+    }
+})
+
+watch(() => props.possibleFields, () => {
     if(hasDefault.value) {
         checkDefault()
     }

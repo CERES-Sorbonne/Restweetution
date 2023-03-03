@@ -2,53 +2,60 @@
 
 import type {CollectionDescription, CollectionQuery, TimeWindow, ViewQuery} from '@/api/types'
 import { computed, reactive, ref, watch } from 'vue';
-import CollectionList from '../CollectionList.vue';
-import Dropdown from '../Dropdown.vue';
-import TimeWindowStorage from '../TimeWindowStorage.vue';
+import CollectionList from './CollectionList.vue';
+import Dropdown from './Dropdown.vue';
+import TimeWindowStorage from './TimeWindowStorage.vue';
 import {useStorageStore} from '@/stores/storageStore'
-import CollectionSelection from '../CollectionSelection.vue';
+import CollectionSelection from '../../CollectionSelection.vue';
 import type { RuleInfo } from '@/api/collector';
 import { useStore } from '@/stores/store';
 import CollectionEditor from './CollectionEditor.vue';
 import { storeToRefs } from 'pinia';
 import * as storage_api from '@/api/storage'
+import ExpandedOption from './ExpandedOption.vue';
 
-const emits = defineEmits(['discover'])
+const emits = defineEmits(['discover', 'count', 'reset'])
 
 const storageStore = useStorageStore()
-const collectorStore = useStore()
 
-const timeWindow = reactive(<TimeWindow>{})
+const timeWindow = <TimeWindow>reactive({})
 
 const query = reactive({ 
     collection: <CollectionDescription>{}
 })
 
-const viewTypes = ['tweets', 'medias', 'users']
+const viewTypes = [
+    'tweets',
+    // 'medias', 'users'
+]
 const selectedViewType = ref('')
 
 const orderTypes = ['No Order', 'ascending', 'descending']
 const selectedOrderType = ref('')
 
+const expanded = ref(false)
+
 const editCollection = ref(false)
-const actualQuery = computed(() => {
+
+function buildQuery() {
     let q: CollectionQuery = {}
     q.rule_ids = query.collection.rule_ids
-    q.date_from = timeWindow.start_date
-    q.date_to = timeWindow.end_date
+    q.date_from = timeWindow.start
+    q.date_to = timeWindow.end
     q.order = selectedOrderType.value == 'ascending' ? 1 : selectedOrderType.value == 'descending' ? -1 : 0
+    q.direct_hit = !expanded.value
 
     let viewQuery: ViewQuery = {collection: q, view_type: selectedViewType.value}
     return viewQuery
-})
+}
 
 function createAndSelectCollection() {
     let res = storageStore.createLocalCollection()
     query.collection = res
+    startEdit()
 }
 
 function startEdit() {
-    console.log(query)
     editCollection.value = true
 }
 
@@ -58,13 +65,23 @@ function saveLocal() {
 }
 
 function discover() {
-    emits('discover', actualQuery.value)
+    emits('discover', buildQuery())
+}
+
+function count() {
+    emits('count', buildQuery())
 }
 
 const collectionName = computed(() => query.collection.name)
-watch(collectionName, () => {
+// watch(collectionName, () => {
+//     editCollection.value = false
+// })
+
+
+function reset() {
     editCollection.value = false
-})
+    emits('reset')
+}
 
 </script>
 
@@ -75,14 +92,17 @@ watch(collectionName, () => {
             v-model:selectedCollection="query.collection"
             @createCollection="createAndSelectCollection"
             @deleteCollection="storageStore.deleteLocalCollection"
-            @edit="startEdit"/>
+            @edit="startEdit"
+            @reset="reset"/>
         <!-- <label class="input-group-text" style="width: 42px;"></label> -->
         <Dropdown :options="viewTypes" v-model="selectedViewType" width="100"/>
+        <ExpandedOption v-model="expanded"/>
         <!-- <label class="input-group-text" style="width: 42px;"></label> -->
         <div class="ms-2"></div>
         <TimeWindowStorage :time_window="timeWindow" :edit="true"/>
         <Dropdown :options="orderTypes" v-model="selectedOrderType" width="120"/>
-        <button class="btn btn-primary ms-2">Count</button>
+        
+        <button class="btn btn-primary ms-2" @click="count">Count</button>
         <button class="btn btn-primary ms-2" @click="discover">Discover</button>
     </div>
     <div class="card mt-3" v-if="editCollection">

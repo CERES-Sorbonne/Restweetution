@@ -15,6 +15,7 @@ export async function getTweets(query = {}) {
 }
 
 export async function getTweetCount(query = {}) {
+    console.log(query)
     let res = await axios.post(BASE_URL + '/tweet_count', query)
     return res.data
 }
@@ -29,7 +30,12 @@ export async function exportTweets(exportQuery: any) {
     return res.data
 }
 
-export async function viewMedia(query: ViewQuery) {
+export async function getView(query: ViewQuery) {
     let res = await axios.post(BASE_URL + '/view/', query)
+    return res.data
+}
+
+export async function getViewCount(query: ViewQuery) {
+    let res = await axios.post(BASE_URL + '/count/', query)
     return res.data
 }

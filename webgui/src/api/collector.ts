@@ -27,6 +27,8 @@ export interface CountResult {
     query: string,
 }
 
+
+
 export interface DownloadQueueStatus {
     qsize: number
     current_url: number

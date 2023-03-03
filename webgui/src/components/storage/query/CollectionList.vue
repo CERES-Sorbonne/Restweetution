@@ -13,17 +13,23 @@ const props = defineProps({
     selectedCollection: {type: Object as () => LocalCollection, required: true}
 })
 
-const emits = defineEmits(['createCollection', 'deleteCollection', 'update:selectedCollection', 'edit'])
+const emits = defineEmits(['createCollection', 'deleteCollection', 'update:selectedCollection', 'edit', 'reset'])
 
 const actionName = computed(() => props.selectedCollection.name ? props.selectedCollection.name : 'Select')
 
 
 function selectCollection(collection: LocalCollection) {
     emits('update:selectedCollection', collection)
+    resetEdit()
+}
+
+function resetEdit() {
+    emits('reset')
 }
 
 function selectAll() {
     selectCollection({name: 'Complete DB', all: true, rule_ids: []})
+    resetEdit()
 }
 
 function deleteCollection(name: String) {

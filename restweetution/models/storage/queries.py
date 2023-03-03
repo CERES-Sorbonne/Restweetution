@@ -26,11 +26,14 @@ class TweetRowQuery(CollectedTweetQuery):
     row_fields: List[str] = None
 
 
-class CollectionQuery(BaseModel):
+class CollectionCountQuery(BaseModel):
     date_from: datetime = None
     date_to: datetime = None
     rule_ids: List[int] = None
     direct_hit = False
+
+
+class CollectionQuery(CollectionCountQuery):
     limit: int = None
     offset: int = None
     order: int = 1

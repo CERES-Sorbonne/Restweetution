@@ -20,7 +20,7 @@ from restweetution.data_view.media_view2 import MediaView2
 from restweetution.data_view.tweet_view import TweetView
 from restweetution.data_view.tweet_view2 import TweetView2
 from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery, CollectionQuery, \
-    TweetFilter, ViewQuery
+    TweetFilter, ViewQuery, CollectionCountQuery
 from restweetution.server.connection_manager import ConnectionManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.extractor import Extractor
@@ -120,6 +120,11 @@ async def get_tweets(query: TweetRowQuery):
     return []
 
 
+@app.post("/count/")
+async def get_count(query: ViewQuery):
+    if query.view_type == 'tweets':
+        return await get_tweet_count(query.collection)
+
 @app.post("/view/")
 async def get_view(query: ViewQuery):
     print(query)
@@ -169,18 +174,20 @@ async def get_view_tweet(query: CollectionQuery, tweet_filter: TweetFilter = Non
 
 
 @app.post("/tweet_count")
-async def get_tweet_count(query: TweetCountQuery):
+async def get_tweet_count(query: CollectionQuery):
+    query = CollectionCountQuery(**query.dict())
+
     logger.info(f'Start get_tweets_count {query}')
     count = await storage.get_tweets_count(**query.dict())
     return count
 
-
-@app.post("/tweet_discover")
-async def get_tweet_discover(query: TweetRowQuery):
-    query.offset = None
-
-    count, tweets = await asyncio.gather(get_tweet_count(TweetCountQuery(**query.dict())), get_tweets(query))
-    return {"count": count, "tweets": tweets}
+#
+# @app.post("/tweet_discover")
+# async def get_tweet_discover(query: TweetRowQuery):
+#     query.offset = None
+#
+#     count, tweets = await asyncio.gather(get_tweet_count(TweetCountQuery(**query.dict())), get_tweets(query))
+#     return {"count": count, "tweets": tweets}
 
 
 @app.post("/export/tweets")

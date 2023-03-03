@@ -7,8 +7,6 @@ from typing import List
 import aiohttp
 import tweepy
 from aiopath import Path
-from gallery_dl import config
-from gallery_dl.job import DownloadJob, UrlJob
 from sqlalchemy import text, insert
 from tweepy.asynchronous import AsyncClient
 
@@ -29,12 +27,14 @@ elastic: ElasticStorage
 async def main():
     global elastic
 
-    conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
-    storage = conf.build_storage()
-    token = await storage.get_token('debug')
 
-    res = await storage.get_tweets(ids=['1127580291600662530'])
-    print(res[0].context_annotations)
+
+    # conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
+    # storage = conf.build_storage()
+    # token = await storage.get_token('debug')
+    #
+    # res = await storage.get_tweets(ids=['1127580291600662530'])
+    # print(res[0].context_annotations)
 
     # async with storage.get_engine().begin() as conn:
     #     stmt = insert(TEST)

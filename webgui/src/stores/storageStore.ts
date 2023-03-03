@@ -50,8 +50,12 @@ export const useStorageStore = defineStore("storageStore", () => {
 
     function updateLocalCollection() {
         let colls = collections.filter(c => !c.isGlobal)
+        console.log(colls)
         if(colls) {
             localStorage.setItem('local_collections', JSON.stringify(colls))
+        }
+        else {
+            localStorage.setItem('local_collections', '')
         }
     }
 
@@ -62,6 +66,7 @@ export const useStorageStore = defineStore("storageStore", () => {
         let coll = collections[collIndex]
         if(coll.isGlobal) return
         collections.splice(collIndex, 1)
+        updateLocalCollection()
     }
 
     loadTasks()
@@ -86,6 +91,6 @@ export const useStorageStore = defineStore("storageStore", () => {
 
     return {
         tasks, tasksReversed, loadTasks, exportTweets,
-        collections, createLocalCollection, updateLocalCollection ,deleteLocalCollection,
+        collections, createLocalCollection, updateLocalCollection , deleteLocalCollection,
     }
 })
