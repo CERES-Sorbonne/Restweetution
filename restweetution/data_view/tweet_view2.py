@@ -1,7 +1,8 @@
 from typing import List
 
 from restweetution.collection import CollectionTree, TweetNode
-from restweetution.data_view.data_view2 import DataView2, ViewDict, get_safe_set, get_any_field
+from restweetution.data_view.data_view2 import DataView2, ViewDict, get_safe_set, get_any_field, get_deep_set
+from restweetution.models.linked.linked_tweet import LinkedTweet
 
 ID = 'id'
 TEXT = 'text'
@@ -99,23 +100,25 @@ class TweetView2(DataView2):
         return [ID, AUTHOR_USERNAME, CREATED_AT, TEXT, HASHTAGS]
 
     @classmethod
-    def _compute(cls, tree: CollectionTree, fields: List[str], ids: List[str | int] = None, **kwargs) -> List[ViewDict]:
-        res = []
+    def compute(cls, tweets: List[LinkedTweet], fields: List[str] = None) -> List[ViewDict]:
+        fields = cls.all_if_empty(fields)
 
-        tweets = tree.get_tweets(ids)
+        res = []
         for tweet in tweets:
             res.append(cls._tweet_to_view(tweet, fields=fields))
 
         return res
 
     @classmethod
-    def _tweet_to_view(cls, tweet_node: TweetNode, fields: List[str]):
-        res = ViewDict(id_=tweet_node.id)
+    def _tweet_to_view(cls, link_tweet: LinkedTweet, fields: List[str]):
+        tweet = link_tweet.tweet
+        res = ViewDict(id_=tweet.id)
 
+        # utility functions to avoid writing if statement in front of every assignement
+        # safe_set only sets value if the field is present in the arguments
+        # any_ tests if any of the fields are present in the arguments
         safe_set = get_safe_set(res, fields)
         any_ = get_any_field(fields)
-
-        tweet = tweet_node.data
 
         safe_set(ID, tweet.id)
         safe_set(TEXT, tweet.text)
@@ -125,10 +128,19 @@ class TweetView2(DataView2):
         if tweet.attachments and tweet.attachments.poll_ids:
             safe_set(POLL_IDS, tweet.attachments.poll_ids)
 
-        author = tweet_node.author()
+        medias = link_tweet.get_media()
+        if medias:
+            safe_set(MEDIA_KEYS, [m.media.media_key for m in medias])
+            safe_set(MEDIA_TYPES, [m.media.type for m in medias])
+
+            safe_set(MEDIA_SHA1S, [m.downloaded.sha1 for m in medias if m.downloaded])
+            safe_set(MEDIA_FILES, [m.downloaded.sha1 + '.' + m.downloaded.format for m in medias if m.downloaded])
+            safe_set(MEDIA_FORMAT, [m.downloaded.format for m in medias if m.downloaded])
+
+        author = link_tweet.get_author_user()
         if author:
             safe_set(AUTHOR_ID, author.id)
-            safe_set(AUTHOR_USERNAME, author.data.username)
+            safe_set(AUTHOR_USERNAME, author.username)
 
         if any_(CONTEXT_DOMAINS, CONTEXT_ENTITIES):
             if tweet.context_annotations:
@@ -137,22 +149,16 @@ class TweetView2(DataView2):
                 safe_set(CONTEXT_DOMAINS, domains)
                 safe_set(CONTEXT_ENTITIES, entities)
 
-        if tweet.entities:
-            if tweet.entities.annotations:
-                annotations = [a.normalized_text for a in tweet.entities.annotations]
-                safe_set(ANNOTATIONS, annotations)
-            if tweet.entities.cashtags:
-                tags = [t.tag for t in tweet.entities.cashtags]
-                safe_set(CASHTAGS, tags)
-            if tweet.entities.hashtags:
-                tags = [t.tag for t in tweet.entities.hashtags]
-                safe_set(HASHTAGS, tags)
-            if tweet.entities.mentions:
-                mentions = [t.username for t in tweet.entities.mentions]
-                safe_set(MENTIONS, mentions)
-            if tweet.entities.urls:
-                urls = [t.url for t in tweet.entities.urls]
-                safe_set(URLS, urls)
+        if tweet.get_annotations():
+            safe_set(ANNOTATIONS, [a.normalized_text for a in tweet.get_annotations()])
+        if tweet.get_cashtags():
+            safe_set(CASHTAGS, [t.tag for t in tweet.get_cashtags()])
+        if tweet.get_hashtags():
+            safe_set(HASHTAGS, [t.tag for t in tweet.get_hashtags()])
+        if tweet.get_mentions():
+            safe_set(MENTIONS, [t.username for t in tweet.get_mentions()])
+        if tweet.get_urls():
+            safe_set(URLS, [t.url for t in tweet.get_urls()])
 
         if tweet.geo:
             if tweet.geo.coordinates:
@@ -160,9 +166,9 @@ class TweetView2(DataView2):
             safe_set(PLACE_ID, tweet.geo.place_id)
 
         if tweet.in_reply_to_user_id:
-            safe_set(IN_REPLY_TO_USER_ID, tweet.in_reply_to_user_id)
-            # if tweet.in_reply_to_user_id in bulk_data.users:
-            #     safe_set(IN_REPLY_TO_USERNAME, bulk_data.users[tweet.in_reply_to_user_id].username)
+            replied_user = link_tweet.get_replied_user()
+            safe_set(IN_REPLY_TO_USER_ID, replied_user.id)
+            safe_set(IN_REPLY_TO_USERNAME, replied_user.username)
 
         safe_set(LANG, tweet.lang)
         safe_set(POSSIBLY_SENSITIVE, tweet.possibly_sensitive)

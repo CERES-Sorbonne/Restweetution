@@ -39,12 +39,13 @@ class LookupResponseUnit(BaseModel):
     missing: Set[str]
 
 
-class LookupResponse(BaseModel):
-    missing: Set[str] = set()
-    requested: List[str] = []
-    bulk_data: BulkData = BulkData()
-    errors: List = []
-    meta: Dict = {}
+class LookupResponse:
+    def __init__(self):
+        self.missing: Set[str] = set()
+        self.requested: List[str] = []
+        self.bulk_data: BulkData = BulkData()
+        self.errors: List = []
+        self.meta: Dict = {}
 
     def __add__(self, other):
         self.missing.update(other.missing)

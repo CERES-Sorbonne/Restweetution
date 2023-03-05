@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from restweetution.models.linked.storage_collection import StorageCollection
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.exporter.csv_exporter import CSVExporter
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
@@ -21,13 +22,18 @@ class SystemConfig(BaseModel):
     resource_root_dir: Optional[str]
     public_base_path: Optional[str]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         if not self.public_base_path:
             self.public_base_path = self.resource_root_dir
 
     def build_storage(self):
         return PostgresJSONBStorage(url=self.postgres_url)
+
+    def build_storage_collection(self):
+        storage = self.build_storage()
+        collection = StorageCollection(storage)
+        return collection
 
     def build_elastic_exporter(self):
         return ElasticStorage('', self.elastic.url, self.elastic.user, self.elastic.pwd)

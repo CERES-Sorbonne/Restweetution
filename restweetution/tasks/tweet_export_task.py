@@ -4,7 +4,6 @@ from restweetution.data_view.data_view import DataView
 from restweetution.data_view.view_exporter import ViewExporter
 from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery
 from restweetution.storages.exporter.exporter import Exporter, FileExporter
-from restweetution.storages.extractor import Extractor
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.tasks.server_task import ServerTask
 
@@ -21,7 +20,6 @@ class TweetExportTask(ServerTask):
         self.query = query
 
         self.exporter = exporter
-        self.extractor = Extractor(self.storage)
         self.view_exporter = ViewExporter(view=view, exporter=exporter)
         self.key = key
 

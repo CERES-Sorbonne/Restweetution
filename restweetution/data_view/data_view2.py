@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Callable
 
 from pydantic import BaseModel
 
@@ -12,6 +12,14 @@ def get_safe_set(data: Dict, fields: List[str]):
             data[field] = value
 
     return safe_set
+
+
+def get_deep_set(safe_set: Callable, deep: bool):
+    def deep_set(field: str, value: Any):
+        if not deep:
+            return
+        safe_set(field, value)
+    return deep_set
 
 
 def get_any_field(fields: List[str]):
@@ -36,19 +44,6 @@ class ViewResult(BaseModel):
 
 
 class DataView2(ABC):
-    @classmethod
-    def compute(cls, tree: CollectionTree, ids: List[str | int] = None, fields: List[str] = None, all_fields=False,
-                **kwargs) -> ViewResult:
-        if not fields:
-            fields = cls.get_default_fields() if not all_fields else cls.get_fields()
-
-        view = cls._compute(tree=tree, ids=ids, fields=fields, **kwargs)
-        return ViewResult(view=view, fields=cls.get_fields(), default_fields=cls.get_default_fields())
-
-    @classmethod
-    def _compute(cls, tree: CollectionTree, fields: List[str], ids: List[str | int] = None, **kwargs) -> List[ViewDict]:
-        raise NotImplementedError('compute not implemented')
-
     @staticmethod
     def get_fields() -> List[str]:
         """
@@ -64,3 +59,9 @@ class DataView2(ABC):
         @return:
         """
         raise NotImplementedError('get_default_fields not implemented')
+
+    @classmethod
+    def all_if_empty(cls, fields: List[str]):
+        if not fields:
+            return cls.get_fields()
+        return fields

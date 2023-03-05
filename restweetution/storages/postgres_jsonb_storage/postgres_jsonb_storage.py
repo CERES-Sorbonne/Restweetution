@@ -14,20 +14,19 @@ from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.user_config import UserConfig
 from restweetution.models.extended_types import ExtendedMedia, ExtendedTweet
 from restweetution.models.linked.linked_bulk_data import LinkedBulkData
-from restweetution.models.linked.linked_tweet import LinkedTweet
 from restweetution.models.rule import Rule, RuleMatch
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.storage.error import ErrorModel
 from restweetution.models.storage.queries import CollectionQuery, TweetFilter
 from restweetution.models.twitter import Tweet, Media, User, Poll, Place
+from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
+    USER, POLL, PLACE, RULE_MATCH, DOWNLOADED_MEDIA
+from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_stmt, media_keys_with_tweet_id_stmt, \
     stmt_extended_tweets_query, stmt_tweet_media_ids
 from restweetution.storages.postgres_jsonb_storage.utils import res_to_dicts, update_dict, where_in_builder, \
     select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
-from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
-    USER, POLL, PLACE, RULE_MATCH, DOWNLOADED_MEDIA
-from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.system_storage import SystemStorage
 from restweetution.utils import clean_dict, safe_dict
 
@@ -217,8 +216,9 @@ class PostgresJSONBStorage(SystemStorage):
                 await self._upsert_table(conn, PLACE, data.get_places())
                 logger.debug(f'save places: {time.time() - old}')
 
-            if data.rules:
-                await self._save_collected_refs(conn, data.get_rules())
+            matches = data.get_matches()
+            if matches:
+                await self._save_rule_match(conn, matches)
             # if data.downloaded_medias:
             #     await self._save_downloaded_medias(conn, data.get_downloaded_medias())
 
@@ -226,16 +226,14 @@ class PostgresJSONBStorage(SystemStorage):
                 asyncio.create_task(callback(data))
 
     @staticmethod
-    async def _save_collected_refs(conn, rules: List[Rule]):
+    async def _save_rule_match(conn, matches: List[RuleMatch]):
         direct_hits = []
         includes = []
-        for r in rules:
-            coll = r.collected_tweets_list()
-            for c in coll:
-                if c.direct_hit:
-                    direct_hits.append(c)
-                else:
-                    includes.append(c)
+        for match in matches:
+            if match.direct_hit:
+                direct_hits.append(match)
+            else:
+                includes.append(match)
         if direct_hits:
             stmt = insert(RULE_MATCH)
             stmt = stmt.on_conflict_do_update(
@@ -332,8 +330,6 @@ class PostgresJSONBStorage(SystemStorage):
         elif order > 0:
             stmt = stmt.order_by(TWEET.c.created_at.asc())
         return stmt
-
-
 
     async def get_collected_tweets(self,
                                    tweet_fields: List[str] = None,
@@ -533,7 +529,7 @@ class PostgresJSONBStorage(SystemStorage):
 
             return extended_tweets
 
-    async def get_linked_tweets(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
+    async def get_tweets2(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
         async with self._engine.begin() as conn:
             if not tweet_filter:
                 tweet_filter = TweetFilter()
@@ -542,7 +538,23 @@ class PostgresJSONBStorage(SystemStorage):
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
 
-            linked_data = LinkedBulkData()
+            tweets = [Tweet(**r['tweet']) for r in res]
+            matches = [r['rule_match'] for r in res]
+            rule_matches = []
+            for m in matches:
+                rule_matches.extend(m)
+            rule_matches = [RuleMatch(**m) for m in rule_matches]
+
+            return tweets, rule_matches
+
+    async def get_tweets_stream(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
+        async with self._engine.begin() as conn:
+            if not tweet_filter:
+                tweet_filter = TweetFilter()
+
+            stmt = stmt_extended_tweets_query(query, tweet_filter)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
 
             tweets = [Tweet(**r['tweet']) for r in res]
             matches = [r['rule_match'] for r in res]
@@ -550,13 +562,12 @@ class PostgresJSONBStorage(SystemStorage):
             for m in matches:
                 rule_matches.extend(m)
             rule_matches = [RuleMatch(**m) for m in rule_matches]
-            rules = await self.get_rules(ids=list({r.rule_id for r in rule_matches}))
 
-            linked_data.add_rules(rules)
-            linked_data.add_rule_matches(rule_matches)
-            linked_data.add_tweets(tweets)
+            res_data = LinkedBulkData()
+            res_data.add_tweets(tweets)
+            res_data.add_rule_matches(rule_matches)
 
-            return linked_data.get_linked_tweets()
+            return res_data
 
     async def get_rules(self,
                         fields: List[str] = None,

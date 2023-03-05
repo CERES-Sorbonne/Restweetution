@@ -45,11 +45,18 @@ def media_keys_with_tweet_id_stmt(collection: CollectionQuery):
     return media_keys
 
 
-def stmt_extended_tweets_query(query: CollectionQuery, filter_: TweetFilter):
-    stmt = select(
-        func.to_json(text('tweet.*')).label('tweet'),
-        func.json_agg(func.to_json(text('collected_tweet.*'))).label('rule_match')
-    )
+def stmt_extended_tweets_query(query: CollectionQuery, filter_: TweetFilter, only_ids=False):
+    if only_ids:
+        stmt = select(
+            TWEET.c.id,
+            func.json_agg(func.to_json(text('collected_tweet.rule_id'))).label('rule_ids')
+        )
+    else:
+        stmt = select(
+            func.to_json(text('tweet.*')).label('tweet'),
+            func.json_agg(func.to_json(text('collected_tweet.*'))).label('rule_match')
+        )
+
     stmt = stmt.select_from(TWEET.join(RULE_MATCH))
 
     if query.rule_ids:

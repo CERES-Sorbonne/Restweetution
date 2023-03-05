@@ -1,8 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import List, Dict
-
-from pydantic import BaseModel
+from typing import List, Dict, DefaultDict, Set
 
 from restweetution.models.rule import Rule, RuleMatch
 from restweetution.models.storage.custom_data import CustomData
@@ -14,16 +12,18 @@ from restweetution.models.twitter.tweet import Tweet
 from restweetution.models.twitter.user import User
 
 
-class BulkData(BaseModel):
-    rules: Dict[int, Rule] = {}
-    users: Dict[str, User] = {}
-    tweets: Dict[str, Tweet] = {}
-    places: Dict[str, Place] = {}
-    medias: Dict[str, Media] = {}
-    downloaded_medias: Dict[str, DownloadedMedia] = {}
-    polls: Dict[str, Poll] = {}
-    custom_datas: Dict[str, CustomData] = {}
-    timestamp: datetime = None
+class BulkData:
+    def __init__(self):
+        self.rules: Dict[int, Rule] = {}
+        self.users: Dict[str, User] = {}
+        self.tweets: Dict[str, Tweet] = {}
+        self.places: Dict[str, Place] = {}
+        self.medias: Dict[str, Media] = {}
+        self.downloaded_medias: Dict[str, DownloadedMedia] = {}
+        self.polls: Dict[str, Poll] = {}
+        self.rule_matches: DefaultDict[str, Dict[int, RuleMatch]] = defaultdict(dict)
+        self.custom_datas: Dict[str, CustomData] = {}
+        self.timestamp: datetime | None = None
 
     def __add__(self, other):
         for k in other.tweets:
@@ -103,15 +103,11 @@ class BulkData(BaseModel):
             else:
                 for collected in rule.collected_tweets_list():
                     self.rules[rule.id].matches[collected.tweet_id] = collected
+            self.add_rule_matches(list(rule.matches.values()))
 
-    def add_rule_matches(self, collected: List[RuleMatch]):
-        try:
-            for c in collected:
-                self.rules[c.rule_id].matches[c.tweet_id] = c
-                if c.tweet:
-                    self.tweets[c.tweet_id] = c.tweet
-        except KeyError as e:
-            raise KeyError('Tried to insert CollectedTweets to a rule not present in the BulkData object', e.__str__())
+    def add_rule_matches(self, matches: List[RuleMatch]):
+        for match in matches:
+            self.rule_matches[match.tweet_id][match.rule_id] = match
 
     def add_tweets(self, tweets: List[Tweet]):
         self.set_from_list(self.tweets, tweets)
@@ -154,6 +150,12 @@ class BulkData(BaseModel):
 
     def get_downloaded_medias(self):
         return list(self.downloaded_medias.values())
+
+    def get_tweet_matches(self, tweet_id: str):
+        return list(self.rule_matches[tweet_id].values())
+
+    def get_matches(self):
+        return sum([list(match_list.values()) for match_list in self.rule_matches.values()], [])
 
     def compute_media_to_tweets(self):
         res = defaultdict(set)

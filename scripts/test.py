@@ -1,24 +1,10 @@
 import asyncio
 import os
-import time
-from collections import defaultdict
-from typing import List
-
-import aiohttp
-import tweepy
-from aiopath import Path
-from sqlalchemy import text, insert
-from tweepy.asynchronous import AsyncClient
 
 from restweetution import config_loader
-from restweetution.collection import CollectionTree
-from restweetution.collectors.clients.client import Client
-from restweetution.models.storage.queries import CollectionQuery, TweetFilter, TweetQuery
-from restweetution.models.twitter import Media
+from restweetution.models.linked.storage_collection import StorageCollection
+from restweetution.models.storage.queries import CollectionQuery
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
-from restweetution.storages.extractor import Extractor
-from restweetution.storages.postgres_jsonb_storage.models import TEST
-import sqlite3
 
 elastic: ElasticStorage
 
@@ -27,25 +13,24 @@ async def main():
     global elastic
 
     conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
-    storage = conf.build_storage()
-    extractor = Extractor(storage)
+
+    collection = conf.build_storage_collection()
+    storage = collection._storage
+
+
     query = CollectionQuery()
-    query.offset = 0
+    # query.rule_ids = [47]
     query.direct_hit = True
-    res = await storage.get_linked_tweets(query)
-    await extractor.tweet_load_all(res)
+
+    res = await storage.get_tweets_stream(query)
+
+    coll = StorageCollection(storage, res)
+    await coll.load_rules_from_tweets()
+
+    for r in coll.data.get_linked_tweets():
+        print([m.query for m in r.get_rules()])
 
 
-    for tweet in res:
-        if tweet.tweet.get_media_keys():
-            print([m.get_url() for m in tweet.get_media()])
-    #     if tweet.get_quoted_tweet():
-    #         print('=========')
-    #         print(tweet.get_quoted_tweet().id, tweet.get_quoted_tweet().text)
-    #         print(tweet.tweet.id, tweet.tweet.text)
-    print(len([t for t in res if t.tweet.get_media_keys()]))
-    # print(len(new))
-    # print(new)
 
     # async with storage.get_engine().begin() as conn:
     #     stmt = insert(TEST)

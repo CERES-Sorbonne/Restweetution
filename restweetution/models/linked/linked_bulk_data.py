@@ -1,6 +1,8 @@
-from typing import List
+from collections import defaultdict
+from typing import List, DefaultDict
 
 from restweetution.models.bulk_data import BulkData
+from restweetution.models.linked.linked_media import LinkedMedia
 from restweetution.models.linked.linked_tweet import LinkedTweet
 from restweetution.models.rule import Rule
 from restweetution.models.storage.custom_data import CustomData
@@ -9,6 +11,18 @@ from restweetution.models.twitter import User, Tweet, Place, Media, Poll
 
 
 class LinkedBulkData(BulkData):
+    media_to_tweets: DefaultDict[str, set]
+
+    def __init__(self):
+        super().__init__()
+        self.media_to_tweets = defaultdict(set)
+
+    def add_tweets(self, tweets: List[Tweet]):
+        super().add_tweets(tweets)
+        for tweet in tweets:
+            for media_key in tweet.get_media_keys():
+                self.media_to_tweets[media_key].add(tweet.id)
+
     def get_or_create_rule(self, rule: Rule) -> Rule:
         if rule.id in self.rules:
             return self.rules[rule.id]
@@ -87,12 +101,13 @@ class LinkedBulkData(BulkData):
             return None
 
     def get_linked_tweets(self, tweet_ids: List[str] = None):
-        if not tweet_ids:
+        if tweet_ids is None:
             tweet_ids = self.tweets.keys()
 
         tweets = [self.get_linked_tweet(t_id) for t_id in tweet_ids]
         tweets = [t for t in tweets if t]
         return tweets
+
     #
     # def get_linked_places(self, place_id: str):
     #     place = self.places.get(place_id)
@@ -101,12 +116,20 @@ class LinkedBulkData(BulkData):
     #     else:
     #         return None
     #
-    # def get_linked_medias(self, media_id: str):
-    #     media = self.medias.get(media_id)
-    #     if media:
-    #         return LinkedMedia(data=self, media=media)
-    #     else:
-    #         return None
+    def get_linked_media(self, media_id: str):
+        media = self.medias.get(media_id)
+        if media:
+            return LinkedMedia(data=self, media=media)
+        else:
+            return None
+
+    def get_linked_medias(self, media_keys: List[str] = None):
+        if media_keys is None:
+            media_keys = self.medias.keys()
+
+        medias = [self.get_linked_media(m) for m in media_keys]
+        medias = [m for m in medias if m]
+        return medias
     #
     # def get_linked_polls(self, poll_id: str):
     #     poll = self.polls.get(poll_id)

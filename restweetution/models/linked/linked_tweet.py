@@ -1,6 +1,8 @@
 from typing import Optional, List
 
 from restweetution.models.linked.linked import Linked
+from restweetution.models.linked.linked_media import LinkedMedia
+from restweetution.models.rule import Rule
 from restweetution.models.twitter import Tweet, Media, Poll, User
 
 
@@ -9,9 +11,9 @@ class LinkedTweet(Linked):
         super().__init__(data)
         self.tweet = tweet
 
-    def get_media(self) -> List[Media]:
+    def get_media(self) -> List[LinkedMedia]:
         media_keys = self.tweet.get_media_keys()
-        return [self.data.get_or_create_media(Media(media_key=key)) for key in media_keys]
+        return [LinkedMedia(self.data, self.data.get_or_create_media(Media(media_key=key))) for key in media_keys]
 
     def get_polls(self) -> List[Poll]:
         poll_ids = self.tweet.get_poll_ids()
@@ -54,11 +56,11 @@ class LinkedTweet(Linked):
         return self.data.get_or_create_user(User(id=user_id))
 
     def get_rule_matches(self):
-        matches = []
-        for rule in self.data.get_rules():
-            match = rule.matches.get(self.tweet.id)
-            if match:
-                matches.append(match)
-        return matches
+        return self.data.get_tweet_matches(self.tweet.id)
+
+    def get_rules(self):
+        matches = self.get_rule_matches()
+        rules = [self.data.get_or_create_rule(Rule(id=m.rule_id)) for m in matches]
+        return rules
 
 
