@@ -30,20 +30,22 @@ async def main():
     storage = conf.build_storage()
     extractor = Extractor(storage)
     query = CollectionQuery()
-    query.offset = 40
-    query.rule_ids = [44]
+    query.offset = 0
     query.direct_hit = True
     res = await storage.get_linked_tweets(query)
-    new = await extractor.tweet_load_referenced_tweets(res)
+    await extractor.tweet_load_all(res)
 
-    # for tweet in res:
+
+    for tweet in res:
+        if tweet.tweet.get_media_keys():
+            print([m.get_url() for m in tweet.get_media()])
     #     if tweet.get_quoted_tweet():
     #         print('=========')
     #         print(tweet.get_quoted_tweet().id, tweet.get_quoted_tweet().text)
     #         print(tweet.tweet.id, tweet.tweet.text)
-
-    print(len(new))
-    print(new)
+    print(len([t for t in res if t.tweet.get_media_keys()]))
+    # print(len(new))
+    # print(new)
 
     # async with storage.get_engine().begin() as conn:
     #     stmt = insert(TEST)

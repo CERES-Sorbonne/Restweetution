@@ -148,11 +148,16 @@ class Extractor:
 
     async def tweet_load_medias(self, tweets: List[LinkedTweet]):
         if not tweets:
-            return
+            return []
         data = tweets[0].data
 
         media_keys = []
         [media_keys.extend(t.tweet.get_media_keys()) for t in tweets]
+        media_keys = [m for m in media_keys if m and m not in self._loaded.medias]
+
+        if not media_keys:
+            return []
+        self._loaded.medias.update(media_keys)
 
         get_medias = self.storage.get_medias(media_keys=media_keys)
         get_downloaded_medias = self.storage.get_downloaded_medias(media_keys=media_keys)
@@ -166,42 +171,68 @@ class Extractor:
             d_media.media = data.medias[d_media.media_key]
         data.add_downloaded_medias(d_medias)
 
-        return
+        loaded = []
+        loaded.extend(medias)
+        loaded.extend(d_medias)
+        return loaded
 
-    async def tweet_load_authors(self, tweets: List[LinkedTweet]):
+    async def tweet_load_polls(self, tweets: List[LinkedTweet]):
         if not tweets:
-            return
+            return []
+        data = tweets[0].data
+
+        poll_ids = []
+        [poll_ids.extend(t.tweet.get_poll_ids()) for t in tweets]
+        poll_ids = [p for p in poll_ids if p and p not in self._loaded.polls]
+        if not poll_ids:
+            return []
+        self._loaded.polls.update(poll_ids)
+
+        polls = await self.storage.get_polls(ids=poll_ids)
+        data.add_polls(polls)
+        return polls
+
+    async def tweet_load_author_user(self, tweets: List[LinkedTweet]):
+        if not tweets:
+            return []
         data = tweets[0].data
 
         user_ids = [t.tweet.author_id for t in tweets if t.tweet.author_id]
+        user_ids = [u for u in user_ids if u and u not in self._loaded.users]
         if not user_ids:
-            return
+            return []
+        self._loaded.users.update(user_ids)
 
         users = await self.storage.get_users(ids=user_ids)
         data.add_users(users)
-        return
+        return users
 
     async def tweet_load_replied_user(self, tweets: List[LinkedTweet]):
         if not tweets:
-            return
+            return []
         data = tweets[0].data
 
-        user_ids = [t.tweet.in_reply_to_user_id for t in tweets if t.tweet.in_reply_to_user_id]
+        user_ids = [t.tweet.in_reply_to_user_id for t in tweets]
+        user_ids = [u for u in user_ids if u and u not in self._loaded.users]
         if not user_ids:
-            return
+            return []
+        self._loaded.users.update(user_ids)
 
         users = await self.storage.get_users(ids=user_ids)
         data.add_users(users)
-        return
+        return users
 
     async def tweet_load_users(self, tweets: List[LinkedTweet]):
         if not tweets:
             return
 
-        await asyncio.gather(
+        loaded = []
+        res = await asyncio.gather(
             self.tweet_load_replied_user(tweets),
-            self.tweet_load_authors(tweets)
+            self.tweet_load_author_user(tweets)
         )
+        [loaded.extend(r) for r in res]
+        return loaded
 
     async def tweet_load_replied_tweet(self, tweets: List[LinkedTweet]):
         return await self.tweet_load_tweet(tweets, id_fn=lambda t: t.tweet.get_replied_to_id())
@@ -212,14 +243,18 @@ class Extractor:
     async def tweet_load_quoted_tweet(self, tweets: List[LinkedTweet]):
         return await self.tweet_load_tweet(tweets, id_fn=lambda t: t.tweet.get_quoted_id())
 
+    async def tweet_load_conversation_tweet(self, tweets: List[LinkedTweet]):
+        return await self.tweet_load_tweet(tweets, id_fn=lambda t: t.tweet.conversation_id)
+
     async def tweet_load_referenced_tweets(self, tweets: List[LinkedTweet]):
         loaded = []
-        retweeted, replied, quoted = await asyncio.gather(
+        retweeted, replied, quoted, conv = await asyncio.gather(
             self.tweet_load_retweeted_tweet(tweets),
             self.tweet_load_replied_tweet(tweets),
-            self.tweet_load_quoted_tweet(tweets)
+            self.tweet_load_quoted_tweet(tweets),
+            self.tweet_load_conversation_tweet(tweets)
         )
-        [loaded.extend(t) for t in [retweeted, replied, quoted] if t]
+        [loaded.extend(t) for t in [retweeted, replied, quoted, conv] if t]
         return loaded
 
     async def tweet_load_tweet(self, tweets: List[LinkedTweet], id_fn: Callable):
@@ -236,15 +271,18 @@ class Extractor:
             return []
 
         tweet_res = await self.storage.get_tweets(ids=tweet_ids)
-        print('search tweet_ids len: ', len(tweet_ids))
-        print('find tweet_ids len: ', len(tweet_res))
+        # print('search tweet_ids len: ', len(tweet_ids))
+        # print('find tweet_ids len: ', len(tweet_res))
 
         data.add_tweets(tweet_res)
         linked_tweets = data.get_linked_tweets([t.id for t in tweet_res])
         return linked_tweets
 
-
-
-
-
-
+    async def tweet_load_all(self, tweets: List[LinkedTweet]):
+        res = await asyncio.gather(
+            self.tweet_load_referenced_tweets(tweets),
+            self.tweet_load_users(tweets),
+            self.tweet_load_medias(tweets),
+            self.tweet_load_polls(tweets)
+        )
+        return res

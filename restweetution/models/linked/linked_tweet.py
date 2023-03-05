@@ -35,6 +35,12 @@ class LinkedTweet(Linked):
             return None
         return self.data.get_or_create_tweet(Tweet(id=replied_to_id))
 
+    def get_conversation_tweet(self) -> Optional[Tweet]:
+        tweet_id = self.tweet.conversation_id
+        if not tweet_id:
+            return None
+        return self.data.get_or_create_tweet(Tweet(id=tweet_id))
+
     def get_author_user(self) -> Optional[User]:
         author_id = self.tweet.author_id
         if not author_id:
