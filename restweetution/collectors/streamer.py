@@ -290,7 +290,7 @@ class Streamer:
                 tweet_ids = [t.id for t in includes.tweets]
                 rule.add_includes_tweets(tweet_ids=tweet_ids, collected_at=collected_at)
 
-        # print(rules[0].collected_tweets)
+        # print(rules[0].matches)
         # Add rules to bulk data
         bulk_data.add_rules(rules)
         return bulk_data

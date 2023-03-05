@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Column, Table, String, TIMESTAMP, Boolean, ForeignKey, Sequence, Integer
+from sqlalchemy import Column, Table, String, TIMESTAMP, Boolean, ForeignKey, Integer
 
 from restweetution.storages.postgres_jsonb_storage.models import meta_data
 
@@ -13,7 +13,7 @@ RULE = Table(
     Column("created_at", TIMESTAMP(timezone=True), default=datetime.datetime.now, nullable=False),
 )
 
-COLLECTED_TWEET = Table(
+RULE_MATCH = Table(
     "collected_tweet",
     meta_data,
     Column("rule_id", ForeignKey("rule.id"), primary_key=True),

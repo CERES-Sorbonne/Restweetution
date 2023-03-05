@@ -42,7 +42,7 @@ class TweetNode(Node):
         self.id = tweet.id
 
     def medias(self):
-        keys = self.data.media_keys()
+        keys = self.data.get_media_keys()
         if not keys:
             return []
         medias = [self._tree.get_media(k) for k in keys]

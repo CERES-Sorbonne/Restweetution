@@ -13,12 +13,11 @@ from tweepy.asynchronous import AsyncClient
 from restweetution import config_loader
 from restweetution.collection import CollectionTree
 from restweetution.collectors.clients.client import Client
-from restweetution.models.storage.queries import CollectionQuery, TweetFilter
+from restweetution.models.storage.queries import CollectionQuery, TweetFilter, TweetQuery
 from restweetution.models.twitter import Media
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.extractor import Extractor
 from restweetution.storages.postgres_jsonb_storage.models import TEST
-from restweetution.storages.postgres_storage.postgres_storage import PostgresStorage
 import sqlite3
 
 elastic: ElasticStorage
@@ -27,14 +26,24 @@ elastic: ElasticStorage
 async def main():
     global elastic
 
+    conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
+    storage = conf.build_storage()
+    extractor = Extractor(storage)
+    query = CollectionQuery()
+    query.offset = 40
+    query.rule_ids = [44]
+    query.direct_hit = True
+    res = await storage.get_linked_tweets(query)
+    new = await extractor.tweet_load_referenced_tweets(res)
 
+    # for tweet in res:
+    #     if tweet.get_quoted_tweet():
+    #         print('=========')
+    #         print(tweet.get_quoted_tweet().id, tweet.get_quoted_tweet().text)
+    #         print(tweet.tweet.id, tweet.tweet.text)
 
-    # conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
-    # storage = conf.build_storage()
-    # token = await storage.get_token('debug')
-    #
-    # res = await storage.get_tweets(ids=['1127580291600662530'])
-    # print(res[0].context_annotations)
+    print(len(new))
+    print(new)
 
     # async with storage.get_engine().begin() as conn:
     #     stmt = insert(TEST)

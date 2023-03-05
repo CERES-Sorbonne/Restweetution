@@ -13,7 +13,9 @@ from sqlalchemy.future import select
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.user_config import UserConfig
 from restweetution.models.extended_types import ExtendedMedia, ExtendedTweet
-from restweetution.models.rule import Rule, CollectedTweet
+from restweetution.models.linked.linked_bulk_data import LinkedBulkData
+from restweetution.models.linked.linked_tweet import LinkedTweet
+from restweetution.models.rule import Rule, RuleMatch
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.storage.error import ErrorModel
@@ -24,7 +26,7 @@ from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_
 from restweetution.storages.postgres_jsonb_storage.utils import res_to_dicts, update_dict, where_in_builder, \
     select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
 from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, meta_data, RESTWEET_USER, TWEET, MEDIA, \
-    USER, POLL, PLACE, COLLECTED_TWEET, DOWNLOADED_MEDIA
+    USER, POLL, PLACE, RULE_MATCH, DOWNLOADED_MEDIA
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.system_storage import SystemStorage
 from restweetution.utils import clean_dict, safe_dict
@@ -139,8 +141,8 @@ class PostgresJSONBStorage(SystemStorage):
 
     async def get_rules_tweet_count(self):
         async with self._engine.begin() as conn:
-            stmt = select(RULE, func.count(COLLECTED_TWEET.c.tweet_id).label('tweet_count')).select_from(
-                join(RULE, COLLECTED_TWEET, isouter=True))
+            stmt = select(RULE, func.count(RULE_MATCH.c.tweet_id).label('tweet_count')).select_from(
+                join(RULE, RULE_MATCH, isouter=True))
             stmt = stmt.group_by(RULE.c.id)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
@@ -235,16 +237,16 @@ class PostgresJSONBStorage(SystemStorage):
                 else:
                     includes.append(c)
         if direct_hits:
-            stmt = insert(COLLECTED_TWEET)
+            stmt = insert(RULE_MATCH)
             stmt = stmt.on_conflict_do_update(
-                index_elements=primary_keys(COLLECTED_TWEET),
+                index_elements=primary_keys(RULE_MATCH),
                 set_=dict(direct_hit=stmt.excluded.direct_hit)
             )
             values = [r.dict() for r in direct_hits]
             await conn.execute(stmt, values)
         if includes:
-            stmt = insert(COLLECTED_TWEET)
-            stmt = stmt.on_conflict_do_nothing(index_elements=primary_keys(COLLECTED_TWEET))
+            stmt = insert(RULE_MATCH)
+            stmt = stmt.on_conflict_do_nothing(index_elements=primary_keys(RULE_MATCH))
             values = [r.dict() for r in includes]
             await conn.execute(stmt, values)
 
@@ -292,8 +294,8 @@ class PostgresJSONBStorage(SystemStorage):
             stmt = select_builder(TWEET, ['id'], fields)
 
             if rule_ids:
-                stmt = stmt.select_from(join(TWEET, COLLECTED_TWEET))
-                stmt = stmt.where(COLLECTED_TWEET.c.rule_id.in_(rule_ids))
+                stmt = stmt.select_from(join(TWEET, RULE_MATCH))
+                stmt = stmt.where(RULE_MATCH.c.rule_id.in_(rule_ids))
 
             stmt = where_in_builder(stmt, True, (TWEET.c.id, ids))
             stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
@@ -317,11 +319,11 @@ class PostgresJSONBStorage(SystemStorage):
                                    order: int = 0,
                                    offset: int = None,
                                    limit: int = None):
-        stmt = select_join_builder((TWEET, tweet_fields), (COLLECTED_TWEET, collected_fields))
+        stmt = select_join_builder((TWEET, tweet_fields), (RULE_MATCH, collected_fields))
 
-        stmt = where_in_builder(stmt, True, (TWEET.c.id, ids), (COLLECTED_TWEET.c.rule_id, rule_ids))
+        stmt = where_in_builder(stmt, True, (TWEET.c.id, ids), (RULE_MATCH.c.rule_id, rule_ids))
         if direct_hit:
-            stmt = stmt.where(COLLECTED_TWEET.c.direct_hit)
+            stmt = stmt.where(RULE_MATCH.c.direct_hit)
 
         stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
         stmt = offset_limit(stmt, offset, limit)
@@ -330,6 +332,8 @@ class PostgresJSONBStorage(SystemStorage):
         elif order > 0:
             stmt = stmt.order_by(TWEET.c.created_at.asc())
         return stmt
+
+
 
     async def get_collected_tweets(self,
                                    tweet_fields: List[str] = None,
@@ -341,13 +345,13 @@ class PostgresJSONBStorage(SystemStorage):
                                    direct_hit: bool = False,
                                    order: int = 0,
                                    offset: int = None,
-                                   limit: int = None) -> List[CollectedTweet]:
+                                   limit: int = None) -> List[RuleMatch]:
         async with self._engine.begin() as conn:
             stmt = self._get_collected_tweets_stmt(tweet_fields, collected_fields, ids, date_from, date_to, rule_ids,
                                                    direct_hit, order, offset, limit)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
-            res = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
+            res = [RuleMatch(**r, tweet=Tweet(**r)) for r in res]
             return res
 
     async def get_collected_tweets_stream(self,
@@ -369,7 +373,7 @@ class PostgresJSONBStorage(SystemStorage):
             conn = await conn.stream(stmt)
             async for res in conn.partitions(chunk_size):
                 res = res_to_dicts(res)
-                collected = [CollectedTweet(**r, tweet=Tweet(**r)) for r in res]
+                collected = [RuleMatch(**r, tweet=Tweet(**r)) for r in res]
                 yield collected
 
     async def get_tweets_count(self,
@@ -380,10 +384,10 @@ class PostgresJSONBStorage(SystemStorage):
         async with self._engine.begin() as conn:
             stmt = select(func.count().label('count'))
             if rule_ids:
-                stmt = stmt.select_from(join(TWEET, COLLECTED_TWEET))
-                stmt = stmt.where(COLLECTED_TWEET.c.rule_id.in_(rule_ids))
+                stmt = stmt.select_from(join(TWEET, RULE_MATCH))
+                stmt = stmt.where(RULE_MATCH.c.rule_id.in_(rule_ids))
                 if direct_hit and rule_ids:
-                    stmt = stmt.where(COLLECTED_TWEET.c.direct_hit == true())
+                    stmt = stmt.where(RULE_MATCH.c.direct_hit == true())
             else:
                 stmt = stmt.select_from(TWEET)
             stmt = date_from_to(stmt, TWEET.c.created_at, date_from, date_to)
@@ -524,10 +528,35 @@ class PostgresJSONBStorage(SystemStorage):
             for r in res:
                 xtweet = ExtendedTweet(tweet=Tweet(**r))
                 if field_source in r:
-                    xtweet.sources.extend([CollectedTweet(**s) for s in r[field_source]])
+                    xtweet.sources.extend([RuleMatch(**s) for s in r[field_source]])
                 extended_tweets.append(xtweet)
 
             return extended_tweets
+
+    async def get_linked_tweets(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
+        async with self._engine.begin() as conn:
+            if not tweet_filter:
+                tweet_filter = TweetFilter()
+
+            stmt = stmt_extended_tweets_query(query, tweet_filter)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+
+            linked_data = LinkedBulkData()
+
+            tweets = [Tweet(**r['tweet']) for r in res]
+            matches = [r['rule_match'] for r in res]
+            rule_matches = []
+            for m in matches:
+                rule_matches.extend(m)
+            rule_matches = [RuleMatch(**m) for m in rule_matches]
+            rules = await self.get_rules(ids=list({r.rule_id for r in rule_matches}))
+
+            linked_data.add_rules(rules)
+            linked_data.add_rule_matches(rule_matches)
+            linked_data.add_tweets(tweets)
+
+            return linked_data.get_linked_tweets()
 
     async def get_rules(self,
                         fields: List[str] = None,
@@ -546,21 +575,21 @@ class PostgresJSONBStorage(SystemStorage):
                                              ids: List[int] = None,
                                              is_and=True) -> List[Rule]:
         async with self._engine.begin() as conn:
-            stmt = select(COLLECTED_TWEET)
+            stmt = select(RULE_MATCH)
             stmt = where_in_builder(stmt,
                                     is_and,
-                                    (COLLECTED_TWEET.c.rule_id, ids),
-                                    (COLLECTED_TWEET.c.tweet_id, tweet_ids))
+                                    (RULE_MATCH.c.rule_id, ids),
+                                    (RULE_MATCH.c.tweet_id, tweet_ids))
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
-            collected = [CollectedTweet(**r) for r in res]
+            collected = [RuleMatch(**r) for r in res]
 
             rule_ids = {c.rule_id for c in collected}
             rules = await self.get_rules(ids=list(rule_ids))
             rule_dict: Dict[int, Rule] = {r.id: r for r in rules}
 
             for c in collected:
-                rule_dict[c.rule_id].collected_tweets[c.tweet_id] = c
+                rule_dict[c.rule_id].matches[c.tweet_id] = c
 
             return rules
 

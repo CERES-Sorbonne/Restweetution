@@ -4,7 +4,7 @@ from typing import List, Dict
 
 from pydantic import BaseModel
 
-from restweetution.models.rule import Rule, CollectedTweet
+from restweetution.models.rule import Rule, RuleMatch
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.twitter import Media
@@ -42,8 +42,8 @@ class BulkData(BaseModel):
             if k not in self.rules:
                 self.rules[k] = other.rules[k]
             else:
-                for c in other.rules[k].collected_tweets:
-                    self.rules[k].collected_tweets[c] = other.rules[k].collected_tweets[c]
+                for c in other.rules[k].matches:
+                    self.rules[k].matches[c] = other.rules[k].matches[c]
         for k in other.downloaded_medias:
             self.downloaded_medias[k] = other.downloaded_medias[k]
 
@@ -102,12 +102,12 @@ class BulkData(BaseModel):
                 self.rules[rule.id] = rule
             else:
                 for collected in rule.collected_tweets_list():
-                    self.rules[rule.id].collected_tweets[collected.tweet_id] = collected
+                    self.rules[rule.id].matches[collected.tweet_id] = collected
 
-    def add_collected_tweets(self, collected: List[CollectedTweet]):
+    def add_rule_matches(self, collected: List[RuleMatch]):
         try:
             for c in collected:
-                self.rules[c.rule_id].collected_tweets[c.tweet_id] = c
+                self.rules[c.rule_id].matches[c.tweet_id] = c
                 if c.tweet:
                     self.tweets[c.tweet_id] = c.tweet
         except KeyError as e:

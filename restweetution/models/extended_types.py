@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from restweetution.models.rule import CollectedTweet
+from restweetution.models.rule import RuleMatch
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.twitter import Media, Tweet, User
 
@@ -10,7 +10,7 @@ from restweetution.models.twitter import Media, Tweet, User
 class ExtendedTweet(BaseModel):
     id: str
     tweet: Tweet
-    sources: List[CollectedTweet] = []
+    sources: List[RuleMatch] = []
 
     def __init__(self, tweet: Tweet, **kwargs):
         super().__init__(tweet=tweet, id=tweet.id, **kwargs)

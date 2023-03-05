@@ -78,5 +78,5 @@ rule_fields = [
     'tag',
     'query',
     'created_at',
-    'collected_tweets',
+    'matches',
 ]

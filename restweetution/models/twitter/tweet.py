@@ -16,11 +16,11 @@ class Attachments(BaseModel):
 
 
 class Entities(BaseModel):
-    annotations: Optional[List[Annotation]]
-    cashtags: Optional[List[Tag]]
-    hashtags: Optional[List[Tag]]
-    mentions: Optional[List[Mention]]
-    urls: Optional[List[Url]]
+    annotations: Optional[List[Annotation]] = []
+    cashtags: Optional[List[Tag]] = []
+    hashtags: Optional[List[Tag]] = []
+    mentions: Optional[List[Mention]] = []
+    urls: Optional[List[Url]] = []
 
 
 class PublicMetrics(BaseModel):
@@ -113,18 +113,84 @@ class Tweet(BaseModel):
     source: Optional[str]
     withheld: Optional[Withheld]
 
-    def retweet_id(self):
-        if not self.referenced_tweets:
-            return False
-        retweet_id = next((ref.id for ref in self.referenced_tweets if ref.type == 'retweeted'), None)
-        if not retweet_id:
-            return False
-        return retweet_id
-
-    def media_keys(self):
+    def get_media_keys(self):
         if not self.attachments:
             return []
         return self.attachments.media_keys
+
+    def get_poll_ids(self):
+        if not self.attachments:
+            return []
+        return self.attachments.poll_ids
+
+    def get_hashtags(self):
+        if not self.entities:
+            return []
+        return self.entities.hashtags
+
+    def get_cashtags(self):
+        if not self.entities:
+            return []
+        return self.entities.cashtags
+
+    def get_mentions(self):
+        if not self.entities:
+            return []
+        return self.entities.mentions
+
+    def get_annotations(self):
+        if not self.entities:
+            return []
+        return self.entities.annotations
+
+    def get_urls(self):
+        if not self.entities:
+            return []
+        return self.entities.urls
+
+    def get_quote_count(self):
+        if not self.public_metrics:
+            return None
+        return self.public_metrics.quote_count
+
+    def get_retweet_count(self):
+        if not self.public_metrics:
+            return None
+        return self.public_metrics.retweet_count
+
+    def get_reply_count(self):
+        if not self.public_metrics:
+            return None
+        return self.public_metrics.reply_count
+
+    def get_like_count(self):
+        if not self.public_metrics:
+            return None
+        return self.public_metrics.like_count
+
+    def get_retweeted_id(self):
+        if not self.referenced_tweets:
+            return None
+        retweet_id = next((ref.id for ref in self.referenced_tweets if ref.type == 'retweeted'), None)
+        if not retweet_id:
+            return None
+        return retweet_id
+
+    def get_quoted_id(self):
+        if not self.referenced_tweets:
+            return None
+        quoted_id = next((ref.id for ref in self.referenced_tweets if ref.type == 'quoted'), None)
+        if not quoted_id:
+            return False
+        return quoted_id
+
+    def get_replied_to_id(self):
+        if not self.referenced_tweets:
+            return None
+        replied_to_id = next((ref.id for ref in self.referenced_tweets if ref.type == 'replied_to'), None)
+        if not replied_to_id:
+            return None
+        return replied_to_id
 
 
 class Includes(BaseModel):

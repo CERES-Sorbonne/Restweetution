@@ -135,7 +135,7 @@ class TweetView(DataView):
         if RULE_TAGS in fields:
             tags = set()
             for r in bulk_data.get_rules():
-                if tweet.id in r.collected_tweets:
+                if tweet.id in r.matches:
                     tags.update(r.tag.split(','))
             data[RULE_TAGS] = list(tags)
 

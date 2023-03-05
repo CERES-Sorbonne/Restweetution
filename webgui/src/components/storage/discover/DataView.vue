@@ -14,10 +14,10 @@ const selectedFields: Array<string> = reactive([])
 
 <template>
    <div class="row" v-if="dataView.view">
-        <div class="col-3">
+        <div class="col-2">
             <FieldSelection :selected-fields="selectedFields" :possible-fields="dataView.fields" :default-fields="dataView.default_fields"/>
         </div>
-        <div class="col-9">
+        <div class="col-10">
             <DataTable :data="props.dataView.view" :fields="selectedFields"/>
         </div>
    </div>

@@ -15,7 +15,7 @@ class StreamAPIRule(BaseModel):
         return hash(self.value)
 
 
-class CollectedTweet(BaseModel):
+class RuleMatch(BaseModel):
     collected_at: datetime = None
     direct_hit: bool = False
     tweet_id: str
@@ -29,7 +29,7 @@ class Rule(BaseModel):
     query: Optional[str]  # Query string (streamer or searcher) Can also be used to describe custom rules
     created_at: Optional[datetime]
     # tweet_ids: Set[str] = set()  # Set of collected tweet ids
-    collected_tweets: Dict[str, CollectedTweet] = {}
+    matches: Dict[str, RuleMatch] = {}
 
     def __init__(self, tag: str = None, **kwargs):
         if not tag:
@@ -39,21 +39,21 @@ class Rule(BaseModel):
     def config(self):
         return {"query": self.query, "tag": self.tag}
 
-    def collected_tweets_list(self) -> List[CollectedTweet]:
-        return list(self.collected_tweets.values())
+    def collected_tweets_list(self) -> List[RuleMatch]:
+        return list(self.matches.values())
 
     def add_collected_tweets(self, tweet_ids, collected_at, direct_hit=False):
         for tweet_id in tweet_ids:
-            collected = CollectedTweet(
+            collected = RuleMatch(
                 tweet_id=tweet_id,
                 collected_at=collected_at,
                 direct_hit=direct_hit,
                 rule_id=self.id)
-            if collected.tweet_id in self.collected_tweets:
+            if collected.tweet_id in self.matches:
                 if direct_hit:
-                    self.collected_tweets[collected.tweet_id].direct_hit = True
+                    self.matches[collected.tweet_id].direct_hit = True
             else:
-                self.collected_tweets[collected.tweet_id] = collected
+                self.matches[collected.tweet_id] = collected
 
     def add_direct_tweets(self, tweet_ids, collected_at):
         self.add_collected_tweets(tweet_ids, collected_at, direct_hit=True)
@@ -62,7 +62,7 @@ class Rule(BaseModel):
         self.add_collected_tweets(tweet_ids, collected_at, direct_hit=False)
 
     # def collected_ids(self):
-    #     return [c.tweet_id for c in self.collected_tweets]
+    #     return [c.tweet_id for c in self.matches]
 
     def copy(self, **kwargs):
         return super().copy(deep=True, **kwargs)
