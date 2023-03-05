@@ -26,7 +26,8 @@ const query = reactive({
 
 const viewTypes = [
     'tweets',
-    // 'medias', 'users'
+    'medias', 
+    //'users'
 ]
 const selectedViewType = ref('')
 

@@ -19,6 +19,7 @@ from restweetution.collection import CollectionTree
 from restweetution.data_view.media_view2 import MediaView2
 from restweetution.data_view.tweet_view import TweetView
 from restweetution.data_view.tweet_view2 import TweetView2
+from restweetution.models.linked.storage_collection import StorageCollection
 from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery, CollectionQuery, \
     TweetFilter, ViewQuery, CollectionCountQuery
 from restweetution.server.connection_manager import ConnectionManager
@@ -142,12 +143,10 @@ async def get_view_media(query: CollectionQuery, tweet_filter: TweetFilter = Non
     tweet_filter.media = tweet_filter.media if tweet_filter.media > 0 else 1
     query.limit = query.limit if query.limit and 0 < query.limit < 100 else 100
 
-    xtweets = await storage.query_xtweets(query, tweet_filter)
-    collection = await extractor.collection_from_tweets(xtweets)
-    tree = CollectionTree(collection)
+    coll = StorageCollection(storage)
+    medias = await coll.load_media_from_query(query)
 
-    ids = [t.id for t in xtweets]
-    view = MediaView2.compute(tree, ids=ids, all_fields=True)
+    view = MediaView2.compute(medias)
 
     logger.info(f'media_view took {round(time() - old, 2)} seconds')
 
@@ -161,12 +160,11 @@ async def get_view_tweet(query: CollectionQuery, tweet_filter: TweetFilter = Non
     tweet_filter = tweet_filter if tweet_filter else TweetFilter()
     query.limit = query.limit if query.limit and 0 < query.limit < 100 else 100
 
-    xtweets = await storage.query_xtweets(query, tweet_filter)
-    collection = await extractor.collection_from_tweets(xtweets)
-    tree = CollectionTree(collection)
+    coll = StorageCollection(storage)
+    await coll.load_tweet_from_query(query)
+    await coll.load_all_from_tweets()
 
-    ids = [t.id for t in xtweets]
-    view = TweetView2.compute(tree, ids=ids, all_fields=True)
+    view = TweetView2.compute(coll.data.get_linked_tweets())
 
     logger.info(f'tweet_view took {round(time() - old, 2)} seconds')
 

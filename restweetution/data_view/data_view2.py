@@ -3,8 +3,6 @@ from typing import List, Dict, Any, Callable
 
 from pydantic import BaseModel
 
-from restweetution.collection import CollectionTree
-
 
 def get_safe_set(data: Dict, fields: List[str]):
     def safe_set(field: str, value: Any):
@@ -65,3 +63,7 @@ class DataView2(ABC):
         if not fields:
             return cls.get_fields()
         return fields
+
+    @classmethod
+    def _result(cls, view_list: List[ViewDict], fields):
+        return ViewResult(view=view_list, fields=fields, default_fields=cls.get_default_fields())

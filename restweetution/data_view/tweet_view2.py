@@ -1,7 +1,6 @@
 from typing import List
 
-from restweetution.collection import CollectionTree, TweetNode
-from restweetution.data_view.data_view2 import DataView2, ViewDict, get_safe_set, get_any_field, get_deep_set
+from restweetution.data_view.data_view2 import DataView2, ViewDict, get_safe_set, get_any_field, ViewResult
 from restweetution.models.linked.linked_tweet import LinkedTweet
 
 ID = 'id'
@@ -100,14 +99,14 @@ class TweetView2(DataView2):
         return [ID, AUTHOR_USERNAME, CREATED_AT, TEXT, HASHTAGS]
 
     @classmethod
-    def compute(cls, tweets: List[LinkedTweet], fields: List[str] = None) -> List[ViewDict]:
+    def compute(cls, tweets: List[LinkedTweet], fields: List[str] = None) -> ViewResult:
         fields = cls.all_if_empty(fields)
 
-        res = []
+        res_tweets = []
         for tweet in tweets:
-            res.append(cls._tweet_to_view(tweet, fields=fields))
+            res_tweets.append(cls._tweet_to_view(tweet, fields=fields))
 
-        return res
+        return cls._result(view_list=res_tweets, fields=fields)
 
     @classmethod
     def _tweet_to_view(cls, link_tweet: LinkedTweet, fields: List[str]):

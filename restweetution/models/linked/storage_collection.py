@@ -5,7 +5,7 @@ from typing import List
 from restweetution.models.event_data import BulkIds
 from restweetution.models.linked.linked_bulk_data import LinkedBulkData
 from restweetution.models.linked.linked_tweet import LinkedTweet
-from restweetution.models.storage.queries import CollectionQuery
+from restweetution.models.storage.queries import CollectionQuery, TweetFilter
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 
 
@@ -98,7 +98,8 @@ class StorageCollection:
             d.media = self.data.medias[d.media_key]
         self.data.add_downloaded_medias(d_medias)
 
-        return medias
+        linked_medias = self.data.get_linked_medias([m.media_key for m in medias])
+        return linked_medias
 
     async def load_polls(self, ids: List[str]):
         if not ids:
@@ -129,6 +130,21 @@ class StorageCollection:
 
         res_tweets = self.data.get_linked_tweets(tweet_ids)
         return res_tweets
+
+    async def load_media_from_query(self, query: CollectionQuery):
+        tweets, matches = await self._storage.get_tweets2(query, TweetFilter(media=True))
+
+        self.data.add_tweets(tweets)
+        tweet_ids = [t.id for t in tweets]
+        self.loaded.tweets.update(tweet_ids)
+
+        rule_ids = list({m.rule_id for m in matches})
+        await self.load_rules(rule_ids)
+        self.data.add_rule_matches(matches)
+
+        res_medias = await self.load_medias_from_tweets()
+        return res_medias
+
 
     '''
     Load from Tweets functions
@@ -219,7 +235,7 @@ class StorageCollection:
         tweet_res = await self.load_tweets(tweet_ids)
         return tweet_res
 
-    async def load_all_from_tweets(self, tweets: List[LinkedTweet]):
+    async def load_all_from_tweets(self, tweets: List[LinkedTweet] = None):
         if not tweets:
             tweets = self.data.get_linked_tweets(list(self.data.tweets.keys()))
 
