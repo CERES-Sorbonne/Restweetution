@@ -4,6 +4,7 @@ from typing import List
 
 from restweetution.models.event_data import BulkIds
 from restweetution.models.linked.linked_bulk_data import LinkedBulkData
+from restweetution.models.linked.linked_media import LinkedMedia
 from restweetution.models.linked.linked_tweet import LinkedTweet
 from restweetution.models.storage.queries import CollectionQuery, TweetFilter
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
@@ -18,15 +19,15 @@ class StorageCollection:
         self.data = linked_data
         self.loaded = BulkIds()
 
-        self._populate_loaded()
+        self._populate_loaded(self.data)
 
-    def _populate_loaded(self):
-        self.loaded.rules.update(self.data.rules.keys())
-        self.loaded.users.update(self.data.users.keys())
-        self.loaded.tweets.update(self.data.tweets.keys())
-        self.loaded.places.update(self.data.places.keys())
-        self.loaded.medias.update(self.data.medias.keys())
-        self.loaded.polls.update(self.data.polls.keys())
+    def _populate_loaded(self, data):
+        self.loaded.rules.update(data.rules.keys())
+        self.loaded.users.update(data.users.keys())
+        self.loaded.tweets.update(data.tweets.keys())
+        self.loaded.places.update(data.places.keys())
+        self.loaded.medias.update(data.medias.keys())
+        self.loaded.polls.update(data.polls.keys())
 
     '''
     Base functions for loading from storage
@@ -118,38 +119,52 @@ class StorageCollection:
     '''
 
     async def load_tweet_from_query(self, query: CollectionQuery):
-        tweets, matches = await self._storage.get_tweets2(query)
+        data = await self._storage.query_tweets(query)
 
-        self.data.add_tweets(tweets)
-        tweet_ids = [t.id for t in tweets]
-        self.loaded.tweets.update(tweet_ids)
+        self.data.add_tweets(data.get_tweets())
+        self.data.add_rule_matches(data.get_rule_matches())
 
-        rule_ids = list({m.rule_id for m in matches})
-        await self.load_rules(rule_ids)
-        self.data.add_rule_matches(matches)
+        tweets = self.data.get_linked_tweets(data.tweets.keys())
+        await self.load_rules_from_tweets(tweets)
 
-        res_tweets = self.data.get_linked_tweets(tweet_ids)
-        return res_tweets
+        self._populate_loaded(data)
 
-    async def load_media_from_query(self, query: CollectionQuery):
-        tweets, matches = await self._storage.get_tweets2(query, TweetFilter(media=True))
+        return tweets
 
-        self.data.add_tweets(tweets)
-        tweet_ids = [t.id for t in tweets]
-        self.loaded.tweets.update(tweet_ids)
+    async def load_media_from_query(self, query: CollectionQuery, load_rules=True, load_tweets=True):
+        data = await self._storage.query_medias(query)
 
-        rule_ids = list({m.rule_id for m in matches})
-        await self.load_rules(rule_ids)
-        self.data.add_rule_matches(matches)
+        self.data.add_medias(data.get_medias())
+        self.data.add_downloaded_medias(data.get_downloaded_medias())
+        self.data.add_media_to_tweets(data.media_to_tweets)
 
-        res_medias = await self.load_medias_from_tweets()
-        return res_medias
+        medias = self.data.get_linked_medias()
 
+
+        if load_tweets:
+            await self.load_tweets_from_medias()
+
+        if load_rules:
+            tweet_ids = self.data.get_media_to_tweet_tweet_ids() if not load_tweets else None
+            tweets = self.data.get_linked_tweets(tweet_ids=tweet_ids)
+            await self.load_rule_matches_from_tweets(tweets=tweets, rule_ids=query.rule_ids)
+            await self.load_rules_from_tweets()
+
+        self._populate_loaded(data)
+
+        return medias
 
     '''
     Load from Tweets functions
     Used to expand data around a set of tweets
     '''
+
+    async def load_rule_matches_from_tweets(self, tweets: List[LinkedTweet] = None, rule_ids: List[int] = None):
+        if not tweets:
+            tweets = self.data.get_linked_tweets(list(self.data.tweets.keys()))
+        matches = await self._storage.get_rule_matches(tweet_ids=[t.tweet.id for t in tweets], rule_ids=rule_ids)
+        self.data.add_rule_matches(matches)
+        return matches
 
     async def load_medias_from_tweets(self, tweets: List[LinkedTweet] = None):
         if not tweets:
@@ -183,7 +198,7 @@ class StorageCollection:
         users = await self.load_users(ids=user_ids)
         return users
 
-    async def load_users_from_tweets(self, tweets: List[LinkedTweet]):
+    async def load_users_from_tweets(self, tweets: List[LinkedTweet] = None):
         if not tweets:
             tweets = self.data.get_linked_tweets(list(self.data.tweets.keys()))
 
@@ -246,3 +261,14 @@ class StorageCollection:
             self.load_polls_from_tweets(tweets)
         )
         return res
+
+    async def load_tweets_from_medias(self, medias: List[LinkedMedia] = None):
+        if not medias:
+            medias = self.data.get_linked_medias(list(self.data.medias.keys()))
+
+        tweet_ids = sum([list(self.data.media_to_tweets[m.media.media_key]) for m in medias], [])
+        tweet_ids = self.loaded.only_new_tweets(tweet_ids)
+        tweets = await self.load_tweets(tweet_ids)
+
+        return tweets
+

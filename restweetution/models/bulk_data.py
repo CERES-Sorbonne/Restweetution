@@ -154,7 +154,7 @@ class BulkData:
     def get_tweet_matches(self, tweet_id: str):
         return list(self.rule_matches[tweet_id].values())
 
-    def get_matches(self):
+    def get_rule_matches(self):
         return sum([list(match_list.values()) for match_list in self.rule_matches.values()], [])
 
     def compute_media_to_tweets(self):

@@ -14,4 +14,6 @@ class LinkedMedia(Linked):
         tweet_ids = list(self.data.media_to_tweets[self.media.media_key])
         if not tweet_ids:
             return []
+
         return self.data.get_linked_tweets(tweet_ids=tweet_ids)
+

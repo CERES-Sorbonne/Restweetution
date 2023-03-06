@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List, DefaultDict
+from typing import List, DefaultDict, Dict, Set
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.linked.linked_media import LinkedMedia
@@ -22,6 +22,13 @@ class LinkedBulkData(BulkData):
         for tweet in tweets:
             for media_key in tweet.get_media_keys():
                 self.media_to_tweets[media_key].add(tweet.id)
+
+    def add_media_to_tweets(self, media_to_tweets: Dict[str, Set[str]]):
+        for media_key in media_to_tweets:
+            if media_key in self.media_to_tweets:
+                self.media_to_tweets[media_key].update(media_to_tweets[media_key])
+            else:
+                self.media_to_tweets[media_key] = media_to_tweets[media_key]
 
     def get_or_create_rule(self, rule: Rule) -> Rule:
         if rule.id in self.rules:
@@ -98,7 +105,7 @@ class LinkedBulkData(BulkData):
         if tweet:
             return LinkedTweet(data=self, tweet=tweet)
         else:
-            return None
+            return LinkedTweet(data=self, tweet=self.get_or_create_tweet(Tweet(id=tweet_id)))
 
     def get_linked_tweets(self, tweet_ids: List[str] = None):
         if tweet_ids is None:
@@ -137,3 +144,9 @@ class LinkedBulkData(BulkData):
     #         return LinkedPoll(data=self, poll=poll)
     #     else:
     #         return None
+
+    def get_media_to_tweet_tweet_ids(self):
+        res = set()
+        for ids in self.media_to_tweets.values():
+            res.update(ids)
+        return list(res)

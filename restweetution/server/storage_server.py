@@ -125,6 +125,9 @@ async def get_tweets(query: TweetRowQuery):
 async def get_count(query: ViewQuery):
     if query.view_type == 'tweets':
         return await get_tweet_count(query.collection)
+    if query.view_type == 'medias':
+        return await get_media_count(query.collection)
+
 
 @app.post("/view/")
 async def get_view(query: ViewQuery):
@@ -173,11 +176,17 @@ async def get_view_tweet(query: CollectionQuery, tweet_filter: TweetFilter = Non
 
 @app.post("/tweet_count")
 async def get_tweet_count(query: CollectionQuery):
-    query = CollectionCountQuery(**query.dict())
-
     logger.info(f'Start get_tweets_count {query}')
-    count = await storage.get_tweets_count(**query.dict())
+    count = await storage.query_count_tweets(query)
     return count
+
+
+@app.post("/media_count")
+async def get_media_count(query: CollectionQuery):
+    logger.info(f'Start get_media_count {query}')
+    count = await storage.query_count_medias(query)
+    return count
+
 
 #
 # @app.post("/tweet_discover")

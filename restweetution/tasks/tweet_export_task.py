@@ -2,7 +2,7 @@ import asyncio
 
 from restweetution.data_view.data_view import DataView
 from restweetution.data_view.view_exporter import ViewExporter
-from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery
+from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery, ExportQuery
 from restweetution.storages.exporter.exporter import Exporter, FileExporter
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.tasks.server_task import ServerTask
@@ -11,7 +11,7 @@ from restweetution.tasks.server_task import ServerTask
 class TweetExportTask(ServerTask):
     def __init__(self,
                  storage: PostgresJSONBStorage,
-                 query: TweetRowQuery,
+                 query: ExportQuery,
                  view: DataView,
                  exporter: Exporter,
                  key: str):
@@ -25,12 +25,11 @@ class TweetExportTask(ServerTask):
 
     async def _task_routine(self):
         print('start task routine')
-        count_query = TweetCountQuery(**self.query.dict())
-        count = await self.storage.get_tweets_count(**count_query.dict())
+        count = await self.storage.get_tweets_count(self.query)
         self._max_progress = count
         tweet_query = CollectedTweetQuery(**self.query.dict())
 
-        async for res in self.storage.get_collected_tweets_stream(**tweet_query.dict()):
+        async for res in self.storage.get_tweets_stream(**tweet_query.dict()):
             tweet_ids = set([c.tweet_id for c in res])
             print(f'receive {len(tweet_ids)}')
             bulk = await self.extractor.expand_collected_tweets(res)

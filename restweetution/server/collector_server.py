@@ -127,7 +127,7 @@ async def add_user(user_config: UserConfig):
         await restweet.save_user_config(user_config.name)
         return await all_users()
     except Exception as e:
-        raise e
+        # raise e
         raise HTTPException(400, e.__str__())
 
 

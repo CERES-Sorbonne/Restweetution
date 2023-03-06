@@ -44,5 +44,9 @@ class ViewQuery(BaseModel):
     view_type: str
 
 
+class ExportQuery(ViewQuery):
+    export_fields: List[str] | None
+
+
 class TweetFilter(BaseModel):
     media: int = 0

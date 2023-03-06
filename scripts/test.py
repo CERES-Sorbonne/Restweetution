@@ -15,22 +15,28 @@ async def main():
     conf = config_loader.load_system_config(os.getenv('SYSTEM_CONFIG'))
 
     collection = conf.build_storage_collection()
-    storage = collection._storage
-
+    storage = conf.build_storage()
 
     query = CollectionQuery()
-    # query.rule_ids = [47]
-    query.direct_hit = True
+    query.rule_ids = [47]
+    query.limit = 10
 
-    res = await storage.get_tweets_stream(query)
+    coll = StorageCollection(storage)
+    medias = await coll.load_media_from_query(query)
 
-    coll = StorageCollection(storage, res)
-    await coll.load_rules_from_tweets()
+    print(medias[0].get_tweets()[0].get_rules()[0].query)
+    print(medias[0].get_tweets()[0].tweet.text)
+    print(len(medias))
 
-    for r in coll.data.get_linked_tweets():
-        print([m.query for m in r.get_rules()])
+    # res = await storage.get_tweets_stream(query)
 
-
+    # coll = StorageCollection(storage)
+    # medias = await coll.load_media_from_query(query)
+    #
+    # for m in medias:
+    #     print([r.tweet.id for r in m.get_tweets()])
+    # for r in coll.data.get_linked_tweets():
+    #     print([m.query for m in r.get_rules()])
 
     # async with storage.get_engine().begin() as conn:
     #     stmt = insert(TEST)

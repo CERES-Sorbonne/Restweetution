@@ -24,7 +24,7 @@ from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, me
     USER, POLL, PLACE, RULE_MATCH, DOWNLOADED_MEDIA
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_stmt, media_keys_with_tweet_id_stmt, \
-    stmt_extended_tweets_query, stmt_tweet_media_ids
+    stmt_query_count_tweets, stmt_tweet_media_ids, stmt_query_tweets, stmt_query_medias, stmt_query_count_medias
 from restweetution.storages.postgres_jsonb_storage.utils import res_to_dicts, update_dict, where_in_builder, \
     select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
 from restweetution.storages.system_storage import SystemStorage
@@ -216,7 +216,7 @@ class PostgresJSONBStorage(SystemStorage):
                 await self._upsert_table(conn, PLACE, data.get_places())
                 logger.debug(f'save places: {time.time() - old}')
 
-            matches = data.get_matches()
+            matches = data.get_rule_matches()
             if matches:
                 await self._save_rule_match(conn, matches)
             # if data.downloaded_medias:
@@ -392,6 +392,15 @@ class PostgresJSONBStorage(SystemStorage):
             res = res[0]['count']
             return res
 
+    async def get_rule_matches(self, tweet_ids: List[str], rule_ids: List[int]):
+        async with self._engine.begin() as conn:
+            stmt = select(RULE_MATCH)
+            stmt = where_in_builder(stmt, (RULE_MATCH.c.tweet_id, tweet_ids), (RULE_MATCH.c.rule_id, rule_ids))
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+            res = [RuleMatch(**r) for r in res]
+            return res
+
     async def get_users(self, fields: List[str] = None, ids: List[str] = None) -> List[User]:
         res = await self.get_users_raw(fields=fields, ids=ids)
         res = [User(**r) for r in res]
@@ -510,49 +519,51 @@ class PostgresJSONBStorage(SystemStorage):
             res = [ExtendedMedia(media=Media(**r), tweet_ids=r['tweet_ids'].split(',')) for r in res]
             return res
 
-    async def query_xtweets(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
-        field_source = 'sources'
+    # async def query_xtweets(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
+    #     field_source = 'sources'
+    #     async with self._engine.begin() as conn:
+    #         if not tweet_filter:
+    #             tweet_filter = TweetFilter()
+    #         print(tweet_filter)
+    #         stmt = stmt_query_count_tweets(query, tweet_filter)
+    #         res = await conn.execute(stmt)
+    #         res = res_to_dicts(res)
+    #
+    #         extended_tweets = []
+    #         for r in res:
+    #             xtweet = ExtendedTweet(tweet=Tweet(**r))
+    #             if field_source in r:
+    #                 xtweet.sources.extend([RuleMatch(**s) for s in r[field_source]])
+    #             extended_tweets.append(xtweet)
+    #
+    #         return extended_tweets
+
+    async def query_count_tweets(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
         async with self._engine.begin() as conn:
             if not tweet_filter:
                 tweet_filter = TweetFilter()
-            print(tweet_filter)
-            stmt = stmt_extended_tweets_query(query, tweet_filter, field_source)
+
+            stmt = stmt_query_count_tweets(query, tweet_filter)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
+            return res[0]['count']
 
-            extended_tweets = []
-            for r in res:
-                xtweet = ExtendedTweet(tweet=Tweet(**r))
-                if field_source in r:
-                    xtweet.sources.extend([RuleMatch(**s) for s in r[field_source]])
-                extended_tweets.append(xtweet)
-
-            return extended_tweets
-
-    async def get_tweets2(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
+    async def query_count_medias(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
         async with self._engine.begin() as conn:
             if not tweet_filter:
                 tweet_filter = TweetFilter()
 
-            stmt = stmt_extended_tweets_query(query, tweet_filter)
+            stmt = stmt_query_count_medias(query, tweet_filter)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
+            return res[0]['count']
 
-            tweets = [Tweet(**r['tweet']) for r in res]
-            matches = [r['rule_match'] for r in res]
-            rule_matches = []
-            for m in matches:
-                rule_matches.extend(m)
-            rule_matches = [RuleMatch(**m) for m in rule_matches]
-
-            return tweets, rule_matches
-
-    async def get_tweets_stream(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
+    async def query_tweets(self, query: CollectionQuery, tweet_filter: TweetFilter = None):
         async with self._engine.begin() as conn:
             if not tweet_filter:
                 tweet_filter = TweetFilter()
 
-            stmt = stmt_extended_tweets_query(query, tweet_filter)
+            stmt = stmt_query_tweets(query, tweet_filter)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
 
@@ -567,7 +578,56 @@ class PostgresJSONBStorage(SystemStorage):
             res_data.add_tweets(tweets)
             res_data.add_rule_matches(rule_matches)
 
+            # linked_tweets = res_data.get_linked_tweets()
+
             return res_data
+
+    async def get_tweets_stream(self, query: CollectionQuery, tweet_filter: TweetFilter = None, chunk_size=10):
+        async with self._engine.begin() as conn:
+            if not tweet_filter:
+                tweet_filter = TweetFilter()
+
+            stmt = stmt_query_tweets(query, tweet_filter)
+            conn = await conn.stream(stmt)
+            async for res in conn.partitions(chunk_size):
+                res = res_to_dicts(res)
+
+                tweets = [Tweet(**r['tweet']) for r in res]
+                matches = [r['rule_match'] for r in res]
+                rule_matches = []
+                for m in matches:
+                    rule_matches.extend(m)
+                rule_matches = [RuleMatch(**m) for m in rule_matches]
+
+                res_data = LinkedBulkData()
+                res_data.add_tweets(tweets)
+                res_data.add_rule_matches(rule_matches)
+
+                yield res_data
+
+    async def query_medias(self, query: CollectionQuery, downloaded=True):
+        async with self._engine.begin() as conn:
+            stmt = stmt_query_medias(query, TweetFilter(media=True))
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+
+            media_to_tweets = {}
+            medias = []
+            for r in res:
+                media = Media(**r['media'])
+                medias.append(media)
+                tweet_ids = r['tweet_ids']
+                media_to_tweets[media.media_key] = set(tweet_ids)
+
+            data = LinkedBulkData()
+            data.media_to_tweets = media_to_tweets
+            data.add_medias(medias)
+
+            if downloaded:
+                d_medias = await self.get_downloaded_medias(media_keys=[m.media_key for m in medias])
+                data.add_downloaded_medias(d_medias)
+
+            return data
 
     async def get_rules(self,
                         fields: List[str] = None,
