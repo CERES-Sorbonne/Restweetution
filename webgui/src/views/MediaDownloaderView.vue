@@ -6,7 +6,7 @@ import { ref, reactive } from "vue";
 import { downloadMedias } from "@/api/collector";
 
 const mediaKeys = ref('')
-const result = <Array<any>>reactive([])
+const result: any = reactive([])
 const store = useStore()
 
 async function triggerDownload() {
