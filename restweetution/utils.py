@@ -1,5 +1,6 @@
+import asyncio
 import json
-from typing import Dict
+from typing import Dict, List
 
 
 class AsyncEvent(set):
@@ -10,6 +11,7 @@ class AsyncEvent(set):
     Use like a function et execute
     ex: event(*args, **kwargs)
     """
+    tasks: List[asyncio.Task] = []
 
     async def __call__(self, *args, **kwargs):
         for f in self:
@@ -34,6 +36,16 @@ class Event(set):
 
     def __repr__(self):
         return "Event(%s)" % list.__repr__(self)
+
+
+global_task_list = []
+
+
+def fire_and_forget(coro):
+    task = asyncio.create_task(coro)
+    global_task_list.append(task)
+    task.add_done_callback(global_task_list.remove)
+    return task
 
 
 def get_full_class_name(obj):

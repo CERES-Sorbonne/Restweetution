@@ -23,7 +23,7 @@ from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, me
     USER, POLL, PLACE, COLLECTED_TWEET, DOWNLOADED_MEDIA
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.system_storage import SystemStorage
-from restweetution.utils import clean_dict, safe_dict
+from restweetution.utils import clean_dict, safe_dict, fire_and_forget
 
 STORAGE_TYPE = 'postgres'
 logger = logging.getLogger('PostgresJSONBStorage')
@@ -203,7 +203,7 @@ class PostgresJSONBStorage(SystemStorage):
             #     await self._save_downloaded_medias(conn, data.get_downloaded_medias())
 
             if callback:
-                asyncio.create_task(callback(data))
+                fire_and_forget(callback(data))
 
     @staticmethod
     async def _save_collected_refs(conn, rules: List[Rule]):

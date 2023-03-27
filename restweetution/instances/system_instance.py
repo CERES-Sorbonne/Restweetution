@@ -5,7 +5,7 @@ from restweetution.instances.storage_instance import StorageInstance
 from restweetution.instances.user_instance import UserInstance
 from restweetution.models.config.system_config import SystemConfig
 from restweetution.models.config.user_config import UserConfig
-from restweetution.utils import AsyncEvent
+from restweetution.utils import AsyncEvent, fire_and_forget
 
 
 class SystemInstance:
@@ -19,7 +19,7 @@ class SystemInstance:
         self.storage_instance = StorageInstance(system_config)
 
     async def emit_event(self, update):
-        asyncio.create_task(self.event(update))
+        fire_and_forget(self.event(update))
 
     async def save_user_config(self, user_id):
         user = self.user_instances[user_id]

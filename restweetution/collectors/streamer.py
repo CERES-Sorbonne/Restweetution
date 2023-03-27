@@ -17,7 +17,7 @@ from restweetution.models.storage.error import ErrorModel
 from restweetution.models.twitter.tweet import TweetResponse
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.collectors.clients.streamer_client import StreamerClient
-from restweetution.utils import AsyncEvent
+from restweetution.utils import AsyncEvent, fire_and_forget
 
 logger = logging.getLogger('Streamer')
 
@@ -236,7 +236,7 @@ class Streamer:
 
     def _log_tweets(self, tweet: TweetResponse):
         self._tweet_count += 1
-        asyncio.create_task(self.event_update())
+        fire_and_forget(self.event_update())
         if self._verbose:
             text = tweet.data.text.split('\n')[0]
             if len(text) > 80:
@@ -254,7 +254,7 @@ class Streamer:
         # self._logger.warning(f'Error: {type(error)}')
         if isinstance(error, RESTweetutionError):
             error_data = ErrorModel(error=error, traceback=trace)
-            asyncio.create_task(self._storage.save_error(error_data))
+            fire_and_forget(self._storage.save_error(error_data))
 
     async def _tweet_response_to_bulk_data(self, tweet_res: TweetResponse):
         """
@@ -363,7 +363,7 @@ class Streamer:
         # send data to storage_manager
         try:
             bulk_data.timestamp = datetime.datetime.now()
-            asyncio.create_task(self._storage.save_bulk(bulk_data, callback=self.event_collect))
+            fire_and_forget(self._storage.save_bulk(bulk_data, callback=self.event_collect))
         except Exception as e:
             raise StorageError('Unexpected StorageManager bulk_save function error') from e
 

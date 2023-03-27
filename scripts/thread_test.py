@@ -7,6 +7,8 @@ from typing import Dict
 import youtube_dl
 from pydantic import BaseModel
 
+from restweetution.utils import fire_and_forget
+
 
 class VideoDownloadResult(BaseModel):
     error: Dict = None
@@ -69,7 +71,7 @@ async def simulate():
 async def main():
     url = 'https://twitter.com/Shanna_917/status/1615433017819815943'
     with ProcessPoolExecutor(max_workers=2) as pool:
-        asyncio.create_task(simulate())
+        fire_and_forget(simulate())
         task = asyncio.get_event_loop().run_in_executor(pool, download_video, url)
         await task
         print(task.result())

@@ -22,6 +22,7 @@ from restweetution.storages.elastic_storage.elastic_storage import ElasticStorag
 from restweetution.storages.extractor import Extractor
 from restweetution.tasks.server_task import ServerTask
 from restweetution.tasks.tweet_export_task import TweetExportTask, TweetExportFileTask
+from restweetution.utils import fire_and_forget
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -56,7 +57,7 @@ async def launch():
     global exporter_elastic
 
     exporter_elastic = sys_conf.build_elastic_exporter()
-    asyncio.create_task(sendUpdate(2))
+    fire_and_forget(send_update(2))
 
 
 async_loop.create_task(launch())
@@ -76,7 +77,7 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
-async def sendUpdate(interval: int):
+async def send_update(interval: int):
     while True:
         try:
             task_update = get_tasks()

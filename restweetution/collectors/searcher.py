@@ -1,9 +1,9 @@
 import asyncio
-from datetime import datetime
 import logging
 import math
 import time
 import traceback
+from datetime import datetime
 from typing import Callable, List, Optional
 
 import aiohttp
@@ -20,7 +20,7 @@ from restweetution.models.searcher import CountResponse, LookupResponseUnit, Loo
     TimeWindow
 from restweetution.models.twitter import Tweet, Includes, User
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
-from restweetution.utils import AsyncEvent
+from restweetution.utils import AsyncEvent, fire_and_forget
 
 logger = logging.getLogger('Searcher')
 
@@ -191,14 +191,14 @@ class Searcher:
                     oldest = min([bulk_data.tweets[id_].created_at for id_ in direct_ids])
                     self._time_window.cursor = oldest
                 self._time_window.collected_count += len(direct_ids)
-                asyncio.create_task(self.event_update())
+                fire_and_forget(self.event_update())
 
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 logger.warning(e)
 
         self._running = False
-        asyncio.create_task(self.event_update())
+        fire_and_forget(self.event_update())
 
     async def get_collect_count(self):
         if not self._rule:
@@ -215,7 +215,7 @@ class Searcher:
             total_count += count.meta.total_tweet_count
 
         self._time_window.total_count = total_count
-        asyncio.create_task(self.event_update())
+        fire_and_forget(self.event_update())
         logger.info(f'Found {total_count} tweets to collect')
         return total_count
 
