@@ -443,4 +443,21 @@ async def downloader_info():
         raise HTTPException(400, e.__str__())
 
 
+@app.post("/download/medias")
+async def download_medias(media_keys: List[str]):
+    if not media_keys:
+        return HTTPException(400, 'No media_keys given')
+    storage = restweet.storage_instance.storage
+    downloader = restweet.storage_instance.media_downloader
+
+    medias = await storage.get_medias(media_keys=media_keys)
+    if not medias:
+        return HTTPException(400, 'No medias found in DB with given media_keys')
+
+    downloader.download_medias(medias)
+
+    return f'Trigger download for {len(medias)} medias'
+
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
