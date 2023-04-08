@@ -15,18 +15,18 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from restweetution import config_loader
-from restweetution.collection import CollectionTree
 from restweetution.data_view.media_view2 import MediaView2
 from restweetution.data_view.tweet_view import TweetView
 from restweetution.data_view.tweet_view2 import TweetView2
 from restweetution.models.linked.storage_collection import StorageCollection
-from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery, CollectionQuery, \
-    TweetFilter, ViewQuery, CollectionCountQuery
+from restweetution.models.storage.queries import TweetRowQuery, CollectedTweetQuery, CollectionQuery, \
+    TweetFilter, ViewQuery, ExportQuery
+from restweetution.models.view_types import ViewType
 from restweetution.server.connection_manager import ConnectionManager
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 from restweetution.storages.extractor import Extractor
 from restweetution.tasks.server_task import ServerTask
-from restweetution.tasks.tweet_export_task import TweetExportTask, TweetExportFileTask
+from restweetution.tasks.tweet_export_task import ViewExportTask, ViewExportFileTask
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -46,10 +46,11 @@ manager = ConnectionManager()
 tasks: List[ServerTask] = []
 
 
-class ExportTweetRequest(BaseModel):
+class ExportRequest(BaseModel):
     export_type: str  # type of exporter (elastic, csv, etc..)
     id: str  # id of the exported data for future identification
-    query: TweetRowQuery
+    fields: List[str]
+    query: ViewQuery
 
 
 class Error(HTTPException):
@@ -132,10 +133,11 @@ async def get_count(query: ViewQuery):
 @app.post("/view/")
 async def get_view(query: ViewQuery):
     print(query)
-    if query.view_type == 'medias':
+    if query.view_type == ViewType.MEDIA:
         return await get_view_media(query.collection)
-    if query.view_type == 'tweets':
+    if query.view_type == ViewType.TWEET:
         return await get_view_tweet(query.collection)
+    raise ValueError(f'{query.view_type} is not valid')
 
 
 @app.post("/view/media")
@@ -197,9 +199,10 @@ async def get_media_count(query: CollectionQuery):
 #     return {"count": count, "tweets": tweets}
 
 
-@app.post("/export/tweets")
-async def export_tweets(request: ExportTweetRequest):
-    view = TweetView()
+@app.post("/export/")
+async def export_tweets(request: ExportRequest):
+    print('export: ', request)
+
     key = request.id.split('/')[-1]
     on_finish = None
     task: ServerTask | None = None
@@ -218,14 +221,15 @@ async def export_tweets(request: ExportTweetRequest):
 
         if not key.endswith('.csv'):
             key = key + '.csv'
-
-        task = TweetExportFileTask(storage=storage, query=request.query, view=view, exporter=exporter, key=key)
+        export_query = ExportQuery(key=key, query=request.query, fields=request.fields)
+        task = ViewExportFileTask(storage=storage, query=export_query, exporter=exporter)
         task.name = 'CSV Export'
         on_finish = convert_path
 
     if request.export_type == 'elastic':
         exporter = exporter_elastic
-        task = TweetExportTask(storage=storage, query=request.query, view=view, exporter=exporter, key=key)
+        export_query = ExportQuery(key=key, query=request.query, fields=request.fields)
+        task = ViewExportTask(storage=storage, query=export_query, exporter=exporter)
         task.name = 'Elastic Export'
 
     if task:

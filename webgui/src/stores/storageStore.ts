@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, reactive } from "vue";
 import * as storage from '@/api/storage'
-import type { CollectionDescription, ExportTweetRequest, TaskInfo } from "@/api/types";
+import type { CollectionDescription, ExportRequest, TaskInfo } from "@/api/types";
 
 
 export const useStorageStore = defineStore("storageStore", () => {
@@ -22,7 +22,7 @@ export const useStorageStore = defineStore("storageStore", () => {
         storage.getTasks().then(updateTasks)
     }
 
-    function exportTweets(request: ExportTweetRequest) {
+    function exportTweets(request: ExportRequest) {
         storage.exportTweets(request).then(updateTasks)
     }
 

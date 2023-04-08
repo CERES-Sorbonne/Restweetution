@@ -17,6 +17,7 @@ def get_deep_set(safe_set: Callable, deep: bool):
         if not deep:
             return
         safe_set(field, value)
+
     return deep_set
 
 
@@ -33,6 +34,9 @@ class ViewDict(Dict):
     def __init__(self, id_: int | str, **kwargs):
         super().__init__(**kwargs)
         self['__id__'] = id_
+
+    def id(self):
+        return self['__id__']
 
 
 class ViewResult(BaseModel):
@@ -67,3 +71,7 @@ class DataView2(ABC):
     @classmethod
     def _result(cls, view_list: List[ViewDict], fields):
         return ViewResult(view=view_list, fields=fields, default_fields=cls.get_default_fields())
+
+    @classmethod
+    def compute(cls, *args, **kwargs) -> ViewResult:
+        raise NotImplementedError()

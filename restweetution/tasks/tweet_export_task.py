@@ -1,41 +1,58 @@
 import asyncio
 
-from restweetution.data_view.data_view import DataView
+from restweetution import data_view
 from restweetution.data_view.view_exporter import ViewExporter
-from restweetution.models.storage.queries import TweetCountQuery, TweetRowQuery, CollectedTweetQuery, ExportQuery
+from restweetution.models.linked.storage_collection import StorageCollection
+from restweetution.models.storage.custom_data import CustomData
+from restweetution.models.storage.queries import ExportQuery
+from restweetution.models.view_types import ViewType
 from restweetution.storages.exporter.exporter import Exporter, FileExporter
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.tasks.server_task import ServerTask
 
 
-class TweetExportTask(ServerTask):
+class ViewExportTask(ServerTask):
     def __init__(self,
                  storage: PostgresJSONBStorage,
                  query: ExportQuery,
-                 view: DataView,
-                 exporter: Exporter,
-                 key: str):
-        super().__init__(name='TweetExporter')
+                 exporter: Exporter):
+        super().__init__(name='Exporter')
         self.storage = storage
         self.query = query
-
         self.exporter = exporter
+        self.view_type = query.query.view_type
+        view = data_view.get_view(query.query.view_type)
         self.view_exporter = ViewExporter(view=view, exporter=exporter)
-        self.key = key
+        self.key = query.key
 
     async def _task_routine(self):
         print('start task routine')
-        count = await self.storage.get_tweets_count(self.query)
+        count = await self.storage.query_count(self.query.query)
         self._max_progress = count
-        tweet_query = CollectedTweetQuery(**self.query.dict())
 
-        async for res in self.storage.get_tweets_stream(**tweet_query.dict()):
-            tweet_ids = set([c.tweet_id for c in res])
-            print(f'receive {len(tweet_ids)}')
-            bulk = await self.extractor.expand_collected_tweets(res)
-            await self.view_exporter.export(bulk_data=bulk, key=self.key, only_ids=list(tweet_ids),
-                                            fields=self.query.row_fields)
-            self._progress += len(tweet_ids)
+        # define query function according to view type
+        if self.view_type == ViewType.TWEET:
+            storage_stream_function = self.storage.query_tweets_stream
+        elif self.view_type == ViewType.MEDIA:
+            storage_stream_function = self.storage.query_count_medias
+        else:
+            raise ValueError(f'<<{self.view_type}>> view is not valid')
+
+        async for res in storage_stream_function(self.query.query.collection):
+            coll = StorageCollection(self.storage, res)
+            # view specific steps
+            # save count of result
+            if self.view_type == ViewType.TWEET:
+                count = len(res.tweets)
+                await coll.load_all_from_tweets()
+            elif self.view_type == ViewType.MEDIA:
+                count = len(res.medias)
+
+            view = coll.build_view(self.view_type)
+            datas = [CustomData(key=self.key, id=d.id(), data=d) for d in view.view]
+            await self.exporter.save_custom_datas(datas)
+
+            self._progress += count
             await asyncio.sleep(0)
 
     def get_info(self):
@@ -44,17 +61,15 @@ class TweetExportTask(ServerTask):
         return info
 
 
-class TweetExportFileTask(TweetExportTask):
+class ViewExportFileTask(ViewExportTask):
     exporter: FileExporter
 
     def __init__(self,
                  storage: PostgresJSONBStorage,
-                 query: TweetRowQuery,
-                 view: DataView,
-                 exporter: FileExporter,
-                 key: str):
-        super().__init__(storage=storage, query=query, view=view, exporter=exporter, key=key)
-        self.name = 'TweetExportFile'
+                 query: ExportQuery,
+                 exporter: FileExporter):
+        super().__init__(storage=storage, query=query, exporter=exporter)
+        self.name = 'FileExporter'
 
     async def _task_routine(self):
         await self.exporter.clear_key(self.key)

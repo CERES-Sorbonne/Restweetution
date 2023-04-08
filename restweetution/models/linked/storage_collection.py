@@ -2,11 +2,14 @@ import asyncio
 from typing import Callable
 from typing import List
 
+from restweetution.data_view import TweetView, MediaView2
+from restweetution.data_view.tweet_view2 import TweetView2
 from restweetution.models.event_data import BulkIds
 from restweetution.models.linked.linked_bulk_data import LinkedBulkData
 from restweetution.models.linked.linked_media import LinkedMedia
 from restweetution.models.linked.linked_tweet import LinkedTweet
 from restweetution.models.storage.queries import CollectionQuery, TweetFilter
+from restweetution.models.view_types import ViewType
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 
 
@@ -140,7 +143,6 @@ class StorageCollection:
 
         medias = self.data.get_linked_medias()
 
-
         if load_tweets:
             await self.load_tweets_from_medias()
 
@@ -272,3 +274,9 @@ class StorageCollection:
 
         return tweets
 
+    def build_view(self, view_type: ViewType, fields: List[str] = None):
+        if view_type == ViewType.TWEET:
+            return TweetView2.compute(self.data.get_linked_tweets(), fields=fields)
+        elif view_type == ViewType.MEDIA:
+            return MediaView2.compute(self.data.get_linked_medias(), fields=fields)
+        raise ValueError(f'View <<{view_type}>> is not valid')

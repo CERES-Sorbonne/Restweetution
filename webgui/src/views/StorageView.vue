@@ -17,10 +17,13 @@ import type { CountResult } from "@/api/collector";
 
 import Paginator from '@/components/storage/discover/Paginator.vue'
 
+interface StorageResult { query?: ViewQuery, view?: ViewResult, count?: number}
+
 const store = useStore()
 
-interface StorageResult { query?: ViewQuery, view?: ViewResult, count?: number}
+const query = <ViewQuery>reactive({})
 const storageResult = <StorageResult>reactive({})
+const selectedFields: string[] = reactive([]) 
 
 const hasCount = computed(() => storageResult.count && storageResult.count >= 0)
 const hasResult = computed(() => storageResult.view)
@@ -66,7 +69,7 @@ function reset() {
                 </div>
             </div> -->
             <div class="col">
-                <QueryInput @discover="discover" @count="count" @reset="reset"/>
+                <QueryInput @discover="discover" @count="count" @reset="reset" @change="q => Object.assign(query, q)"/>
             </div>
         </div>
         <div class="row mt-2">
@@ -78,14 +81,14 @@ function reset() {
                 <Paginator :api-fn="storage_api.getView" :storage-result="storageResult" :page-size=20 v-if="hasCountAndResult && storageResult.count" @on-page="setPage"/>
             </div>
             <div class="col-6">
-                <!-- <Exporter v-if="showExporter"/> -->
+                <Exporter :query="query" :fields="selectedFields" v-if="showExporter" />
             </div>
             
         </div>
         <hr />
         <div class="row mt-3">
             <div class="col">
-                <DataView v-if="storageResult.view" :data-view="storageResult.view"/>
+                <DataView v-if="storageResult.view" :data-view="storageResult.view" :selected-fields="selectedFields"/>
             </div>
         </div>
     </div>

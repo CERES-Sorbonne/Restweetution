@@ -31,10 +31,11 @@ export interface TweetQuery extends TweetCountQuery {
 }
 
 
-export interface ExportTweetRequest {
+export interface ExportRequest {
     export_type: string
     id: string
-    query: TweetQuery
+    fields: string[]
+    query: ViewQuery
 }
 
 

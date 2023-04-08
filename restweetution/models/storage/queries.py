@@ -3,6 +3,8 @@ from typing import List
 
 from pydantic import BaseModel
 
+from restweetution.models.view_types import ViewType
+
 
 class TweetCountQuery(BaseModel):
     date_from: datetime = None
@@ -41,12 +43,14 @@ class CollectionQuery(CollectionCountQuery):
 
 class ViewQuery(BaseModel):
     collection: CollectionQuery
-    view_type: str
-
-
-class ExportQuery(ViewQuery):
-    export_fields: List[str] | None
+    view_type: ViewType
 
 
 class TweetFilter(BaseModel):
     media: int = 0
+
+
+class ExportQuery(BaseModel):
+    key: str
+    fields: List[str]
+    query: ViewQuery

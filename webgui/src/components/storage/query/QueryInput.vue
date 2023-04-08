@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import type {CollectionDescription, CollectionQuery, TimeWindow, ViewQuery} from '@/api/types'
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watchEffect } from 'vue';
 import CollectionList from './CollectionList.vue';
 import Dropdown from './Dropdown.vue';
 import TimeWindowStorage from './TimeWindowStorage.vue';
@@ -14,9 +14,11 @@ import { storeToRefs } from 'pinia';
 import * as storage_api from '@/api/storage'
 import ExpandedOption from './ExpandedOption.vue';
 
-const emits = defineEmits(['discover', 'count', 'reset'])
-
 const storageStore = useStorageStore()
+
+const emits = defineEmits(['discover', 'count', 'reset', 'change'])
+
+
 
 const timeWindow = <TimeWindow>reactive({})
 
@@ -73,6 +75,10 @@ function count() {
     emits('count', buildQuery())
 }
 
+function change() {
+    emits('change', buildQuery())
+}
+
 const collectionName = computed(() => query.collection.name)
 // watch(collectionName, () => {
 //     editCollection.value = false
@@ -83,6 +89,11 @@ function reset() {
     editCollection.value = false
     emits('reset')
 }
+
+watchEffect(() => {
+    change()
+    console.log('change')
+})
 
 </script>
 
