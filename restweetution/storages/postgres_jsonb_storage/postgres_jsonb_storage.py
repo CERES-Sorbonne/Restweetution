@@ -151,10 +151,13 @@ class PostgresJSONBStorage(SystemStorage):
     async def del_custom_datas(self, key: str):
         pass
 
-    async def save_custom_datas(self, datas: List[CustomData]):
+    async def save_custom_datas(self, datas: List[CustomData], override=True):
         async with self._engine.begin() as conn:
             stmt = insert(DATA)
-            stmt = stmt.on_conflict_do_update(index_elements=['id', 'key'], set_=dict(stmt.excluded))
+            if override:
+                stmt = stmt.on_conflict_do_update(index_elements=['id', 'key'], set_=dict(stmt.excluded))
+            else:
+                stmt = stmt.on_conflict_do_nothing(index_elements=['id', 'key'])
             values = [dict(id=d.id, key=d.key, data=safe_dict(d.data)) for d in datas]
 
             await conn.execute(stmt, values)
