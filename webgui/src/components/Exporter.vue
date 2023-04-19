@@ -3,6 +3,7 @@ import { useStorageStore } from '@/stores/storageStore';
 import { computed, ref } from '@vue/reactivity';
 import type { TweetQuery, ExportRequest, ViewQuery } from '@/api/types'
 import { onMounted } from 'vue';
+import TaskList from './TaskList.vue';
 
 
 const props = defineProps({
@@ -63,6 +64,13 @@ onMounted(() => {
     <!-- <div class="col"> -->
     <!-- <form class="row justify-content-md-center"> -->
     <div class="input-group">
+        <button class="btn btn-outline-secondary dropdown-toggle me-2" type="button" data-bs-toggle="dropdown"
+            data-bs-auto-close="outside" aria-expanded="false">
+            Tasks
+        </button>
+        <div class="dropdown-menu" style="min-width: 500px;">
+            <div class="m-4"><TaskList /></div>
+        </div>
         <!-- <label class="input-group-text" for="inputGroupSelect01">Exporter</label> -->
         <select class="form-select" id="inputGroupSelect01" v-model="selectedExporter" style="max-width: 150px;">
             <option value="csv">CSV</option>

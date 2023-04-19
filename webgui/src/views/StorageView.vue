@@ -42,6 +42,7 @@ function discover(query: ViewQuery) {
 
 function count(query: ViewQuery) {
     return storage_api.getViewCount(query).then((res: number) => {
+        console.log(res)
         storageResult.query = query
         storageResult.count = res
     })
@@ -77,10 +78,10 @@ function reset() {
                 <CountView :view="storageResult.query.view_type" :count="storageResult.count" v-if="storageResult.count && storageResult.query"/>
                 <!-- <StorageError /> -->
             </div>
-            <div class="col-3">
+            <div class="col">
                 <Paginator :api-fn="storage_api.getView" :storage-result="storageResult" :page-size=20 v-if="hasCountAndResult && storageResult.count" @on-page="setPage"/>
             </div>
-            <div class="col-6">
+            <div class="col-7">
                 <Exporter :query="query" :fields="selectedFields" v-if="showExporter" />
             </div>
             

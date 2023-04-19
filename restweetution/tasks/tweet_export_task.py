@@ -34,7 +34,7 @@ class ViewExportTask(ServerTask):
         if self.view_type == ViewType.TWEET:
             storage_stream_function = self.storage.query_tweets_stream
         elif self.view_type == ViewType.MEDIA:
-            storage_stream_function = self.storage.query_count_medias
+            storage_stream_function = self.storage.query_medias_stream
         else:
             raise ValueError(f'<<{self.view_type}>> view is not valid')
 
@@ -48,12 +48,12 @@ class ViewExportTask(ServerTask):
             elif self.view_type == ViewType.MEDIA:
                 count = len(res.medias)
 
-            view = coll.build_view(self.view_type)
+            view = coll.build_view(self.view_type, self.query.fields)
             datas = [CustomData(key=self.key, id=d.id(), data=d) for d in view.view]
             await self.exporter.save_custom_datas(datas)
 
             self._progress += count
-            await asyncio.sleep(0)
+            # await asyncio.sleep(0)
 
     def get_info(self):
         info = super().get_info()

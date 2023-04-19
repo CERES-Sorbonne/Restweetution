@@ -16,6 +16,7 @@ class TaskInfo(BaseModel):
     started_at: datetime
     is_running: bool
     progress: int
+    max_progress: int
     result: Dict = {}
     key: str = None
 
@@ -67,4 +68,4 @@ class ServerTask(ABC):
 
     def get_info(self):
         return TaskInfo(id=self.id, name=self.name, started_at=self.started_at, is_running=self.is_running(),
-                        progress=self.get_progress(), result=self.result)
+                        progress=self._progress, result=self.result, max_progress=self._max_progress)

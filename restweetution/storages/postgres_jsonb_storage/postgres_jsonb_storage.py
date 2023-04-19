@@ -599,7 +599,6 @@ class PostgresJSONBStorage(SystemStorage):
         async with self._engine.begin() as conn:
             if not tweet_filter:
                 tweet_filter = TweetFilter()
-
             stmt = stmt_query_tweets(query, tweet_filter)
             conn = await conn.stream(stmt)
             async for res in conn.partitions(chunk_size):

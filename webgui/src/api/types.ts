@@ -10,6 +10,7 @@ export interface TaskInfo {
     started_at: Date;
     is_running: boolean;
     progress: number;
+    max_progress: number
     result: any;
     key: string
 }

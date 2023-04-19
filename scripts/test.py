@@ -18,15 +18,21 @@ async def main():
     storage = conf.build_storage()
 
     query = CollectionQuery()
-    query.rule_ids = [47]
-    query.limit = 10
+    query.direct_hit = False
+    # query.rule_ids = [47]
+    # query.limit = 10
 
-    coll = StorageCollection(storage)
-    medias = await coll.load_media_from_query(query)
+    res = await storage.query_tweets(query)
+    print(len(res.tweets.keys()))
 
-    print(medias[0].get_tweets()[0].get_rules()[0].query)
-    print(medias[0].get_tweets()[0].tweet.text)
-    print(len(medias))
+    return
+
+    # coll = StorageCollection(storage)
+    # medias = await coll.load_media_from_query(query)
+    #
+    # print(medias[0].get_tweets()[0].get_rules()[0].query)
+    # print(medias[0].get_tweets()[0].tweet.text)
+    # print(len(medias))
 
     # res = await storage.get_tweets_stream(query)
 

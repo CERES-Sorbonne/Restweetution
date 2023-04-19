@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useStorageStore } from '@/stores/storageStore';
+import Progress from './Progress.vue';
 
 const store = useStorageStore()
 
@@ -16,27 +17,32 @@ function pathFolder(path: string) {
     <div class="text-center">
         <button type="button" @click="store.loadTasks" class="btn btn-outline-primary">Reload</button>
     </div>
-    <div class="row">
-        <div v-for="task in store.tasksReversed" class="col-3 m-3">
-                <ul class="list-group">
-                    <li class="list-group-item text-center">{{task.name}}</li>
-                    <li class="list-group-item">Running: {{task.is_running}}</li>
-                    <li class="list-group-item">Key: {{task.key}}</li>
-                    <li class="list-group-item">
-                        Progress: {{task.progress}}
-                        <div class="progress">
-                            <div class="progress-bar progress-bar-striped" :class="task.is_running ? ' progress-bar-animated' : '' + (Number(task.progress == 100) ? 'bg_success' : '')" role="progressbar" :aria-valuenow="task.progress" aria-valuemin="0" aria-valuemax="100" :style="'width: ' + task.progress +'%'">
-                            </div>
-                        
-                        </div>
-                    </li>
-                    <li v-if="task.result.path" class="list-group-item text-break">
-                        <a :href="task.result.path" class="btn btn-outline-primary" ><i class="bi bi-download"></i> Download</a>
-                        <a :href="pathFolder(task.result.path)" class="btn btn-outline-primary ms-2" ><i class="bi bi-folder2-open"></i>Folder</a>
-                    </li>
-                </ul>
-            <div>
-            </div>
-        </div>
-    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Key</th>
+                <th>Processed</th>
+                <th>Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="task in store.tasksReversed">
+                <td>{{ task.name }}</td>
+                <td>{{ task.is_running ? 'Running' : 'Stopped' }}</td>
+                <td>{{ task.key }}</td>
+                <td>
+                    <div>
+                        <Progress :total="task.max_progress" :current="task.progress" />
+                    </div>
+                </td>
+                <td v-if="task.result.path" class="">
+                    <a :href="task.result.path" class="btn btn-outline-primary"><i class="bi bi-download"></i> Download</a>
+                    <a :href="pathFolder(task.result.path)" class="btn btn-outline-primary ms-2"><i
+                            class="bi bi-folder2-open"></i>Folder</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 </template>
