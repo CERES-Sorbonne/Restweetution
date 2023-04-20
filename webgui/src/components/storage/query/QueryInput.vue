@@ -20,10 +20,10 @@ const emits = defineEmits(['discover', 'count', 'reset', 'change'])
 
 
 
-const timeWindow = <TimeWindow>reactive({})
+const timeWindow = reactive({}) as TimeWindow
 
 const query = reactive({ 
-    collection: <CollectionDescription>{}
+    collection: {} as  CollectionDescription
 })
 
 const viewTypes = [
