@@ -19,12 +19,12 @@ const filter = ref('')
 
 
 
-function includeAllTag(filter:string, target:string) {
+function containsTag(filter:string, target:string) {
     let t1 = filter.toUpperCase().split(',').map(v => v.replace(' ', ''))
     console.log(t1)
     let t2 = target.toUpperCase().split(',').map(v => v.replace(' ', ''))
-    console.log(t2)
-    return t1.filter(t => !t2.includes(t)).length == 0
+    // console.log(t2)
+    return t1.some(tag => t2.some(tag2 => tag2.match(tag)))
 }
 
 const filteredRules = computed(() => {
@@ -34,7 +34,7 @@ const filteredRules = computed(() => {
     if(filter.value == '') {
         return props.rules
     }
-    let filtered = props.rules.filter(r => includeAllTag(filter.value, r.tag))
+    let filtered = props.rules.filter(r => containsTag(filter.value, r.tag))
     return filtered
 })
 
