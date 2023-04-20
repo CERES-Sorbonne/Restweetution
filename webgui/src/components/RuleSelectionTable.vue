@@ -21,7 +21,7 @@ const filter = ref('')
 
 function containsTag(filter:string, target:string) {
     let t1 = filter.toUpperCase().split(',').map(v => v.replace(' ', ''))
-    console.log(t1)
+    // console.log(t1)
     let t2 = target.toUpperCase().split(',').map(v => v.replace(' ', ''))
     // console.log(t2)
     return t1.some(tag => t2.some(tag2 => tag2.match(tag)))

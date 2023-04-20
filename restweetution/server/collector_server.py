@@ -21,7 +21,7 @@ from restweetution.models.instance_update import InstanceUpdate
 from restweetution.models.rule import Rule
 from restweetution.models.searcher import CountUnit
 from restweetution.server.connection_manager import ConnectionManager
-from restweetution.utils import chunks
+from restweetution.utils import chunks, fire_and_forget, global_task_list
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -90,7 +90,7 @@ async def launch():
     await restweet.load_user_configs()
     restweet.event.add(send_updates)
 
-    asyncio.create_task(send_downloader_update(2))
+    fire_and_forget(send_downloader_update(2))
 
 
 loop.create_task(launch())
@@ -139,6 +139,11 @@ async def del_users(names: List[str]):
     except Exception as e:
         print(e)
         raise HTTPException(400, e.__str__())
+
+
+@app.get('/debug/tasks')
+async def get_tasks_nb():
+    return json.dumps(global_task_list, default=str)
 
 
 # @app.get("/downloader")
@@ -436,6 +441,23 @@ async def downloader_info():
     except Exception as e:
         print(e)
         raise HTTPException(400, e.__str__())
+
+
+@app.post("/download/medias")
+async def download_medias(media_keys: List[str]):
+    if not media_keys:
+        return HTTPException(400, 'No media_keys given')
+    storage = restweet.storage_instance.storage
+    downloader = restweet.storage_instance.media_downloader
+
+    medias = await storage.get_medias(media_keys=media_keys)
+    if not medias:
+        return HTTPException(400, 'No medias found in DB with given media_keys')
+
+    downloader.download_medias(medias)
+
+    return f'Trigger download for {len(medias)} medias'
+
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")

@@ -1,4 +1,4 @@
-from restweetution.data_view.tweet_view import TweetView
+from restweetution.data_view import TweetView2
 from restweetution.data_view.view_exporter import ViewExporter
 from restweetution.downloaders.media_downloader import MediaDownloader
 from restweetution.models.config.system_config import SystemConfig
@@ -13,4 +13,4 @@ class StorageInstance:
             self.media_downloader = MediaDownloader(root=config.media_dir_path, storage=self.storage)
         if config.elastic:
             self.elastic = ElasticStorage('elastic', **config.elastic.dict())
-            self.elastic_dashboard = ViewExporter(view=TweetView(), exporter=self.elastic)
+            self.elastic_dashboard = ViewExporter(view=TweetView2(), exporter=self.elastic)

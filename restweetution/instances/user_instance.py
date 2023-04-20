@@ -9,8 +9,9 @@ from restweetution.instances.storage_instance import StorageInstance
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.user_config import UserConfig, RuleConfig, CollectorConfig, CollectOptions
 from restweetution.models.instance_update import InstanceUpdate
+from restweetution.models.linked.linked_bulk_data import LinkedBulkData
 from restweetution.models.storage.downloaded_media import DownloadedMedia
-from restweetution.utils import AsyncEvent
+from restweetution.utils import AsyncEvent, fire_and_forget
 
 logger = logging.getLogger('UserInterface')
 
@@ -110,7 +111,9 @@ class UserInstance:
                 if not elastic_dashboard:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
                 else:
-                    elastic_dashboard.export(bulk_data, collect_options.elastic_dashboard_name)
+                    linked = LinkedBulkData()
+                    linked += bulk_data
+                    elastic_dashboard.export(collect_options.elastic_dashboard_name, linked.get_linked_tweets())
 
         return on_collect_event
 
@@ -227,13 +230,13 @@ class UserInstance:
     async def _searcher_update(self):
         self.write_config()
         update = InstanceUpdate(source='searcher', user_id=self.user_config.name)
-        asyncio.create_task(self.event(update))
+        fire_and_forget(self.event(update))
         await self.storage_instance.storage.update_restweet_user([self.user_config])
 
     async def _streamer_update(self):
         self.write_config()
         update = InstanceUpdate(source='streamer', user_id=self.user_config.name)
-        asyncio.create_task(self.event(update))
+        fire_and_forget(self.event(update))
 
     async def save_user_config(self):
         self.write_config()

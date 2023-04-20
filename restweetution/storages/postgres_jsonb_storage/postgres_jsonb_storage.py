@@ -29,7 +29,7 @@ from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_
 from restweetution.storages.postgres_jsonb_storage.utils import res_to_dicts, update_dict, where_in_builder, \
     select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
 from restweetution.storages.system_storage import SystemStorage
-from restweetution.utils import clean_dict, safe_dict
+from restweetution.utils import clean_dict, safe_dict, fire_and_forget
 
 STORAGE_TYPE = 'postgres'
 logger = logging.getLogger('PostgresJSONBStorage')
@@ -227,7 +227,7 @@ class PostgresJSONBStorage(SystemStorage):
             #     await self._save_downloaded_medias(conn, data.get_downloaded_medias())
 
             if callback:
-                asyncio.create_task(callback(data))
+                fire_and_forget(callback(data))
 
     @staticmethod
     async def _save_rule_match(conn, matches: List[RuleMatch]):

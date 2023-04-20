@@ -176,3 +176,8 @@ export async function downloaderInfo() {
     const res = await axios.get(BASE_URL + '/downloader/info')
     return res.data as MediaDownloaderStatus
 }
+
+export async function downloadMedias(media_keys: Array<string>) {
+    const res = await axios.post(BASE_URL + '/download/medias', media_keys)
+    return res.data
+}

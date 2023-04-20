@@ -14,7 +14,7 @@ from restweetution.models.twitter.place import Place
 from restweetution.models.twitter.poll import Poll
 from restweetution.models.twitter.tweet import User, Tweet
 from restweetution.storages.exporter.exporter import Exporter
-from restweetution.utils import AsyncEvent
+from restweetution.utils import AsyncEvent, fire_and_forget
 
 
 class Storage(Exporter, ABC):
@@ -200,7 +200,7 @@ class Storage(Exporter, ABC):
         """
         data = copy.deepcopy(self._buffer_bulk_data)
         self._clear_buffer()
-        asyncio.create_task(self.save_bulk(data))
+        fire_and_forget(self.save_bulk(data))
         self._last_buffer_flush = time.time()
 
     def _clear_buffer(self):

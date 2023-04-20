@@ -11,6 +11,7 @@ from restweetution.downloaders.url_downloader import UrlDownloader
 from restweetution.models.storage.downloaded_media import DownloadedMedia
 from restweetution.models.twitter import Media
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
+from restweetution.utils import fire_and_forget
 
 logger = logging.getLogger('DownloadQueue')
 
@@ -122,7 +123,7 @@ class DownloadQueue(ABC):
                 res = await self._download_media(task.media)
                 # trigger callback
                 if task.callback:
-                    asyncio.create_task(task.callback(res))
+                    fire_and_forget(task.callback(res))
                 # end downloading state
                 self.actual_download = None
             except Exception as e:

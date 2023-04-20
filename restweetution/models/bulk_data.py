@@ -26,8 +26,8 @@ class BulkData:
         self.timestamp: datetime | None = None
 
     def __add__(self, other):
-        for k in other.tweets:
-            self.tweets[k] = other.tweets[k]
+        if other.tweets:
+            self.add_tweets(other.tweets.values())
         for k in other.users:
             self.users[k] = other.users[k]
         for k in other.places:
