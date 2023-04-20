@@ -3,17 +3,12 @@ import Menu from "../components/Menu.vue"
 
 import { computed, reactive, ref } from "@vue/reactivity";
 import { useStore } from "@/stores/store";
-import CollectionList from "@/components/storage/query/CollectionList.vue";
-import TimeWindowStorage from "@/components/storage/query/TimeWindowStorage.vue";
-import Dropdown from "@/components/storage/query/Dropdown.vue";
 import Exporter from "@/components/Exporter.vue";
 import CountView from "@/components/CountResult.vue";
-import StorageError from "@/components/storage/StorageError.vue";
 import DataView from "@/components/storage/discover/DataView.vue";
-import type { ViewCountResult, ViewQuery, ViewResult } from "@/api/types";
+import type { ViewQuery, ViewResult } from "@/api/types";
 import QueryInput from "@/components/storage/query/QueryInput.vue";
 import * as storage_api from '@/api/storage'
-import type { CountResult } from "@/api/collector";
 
 import Paginator from '@/components/storage/discover/Paginator.vue'
 
@@ -37,7 +32,7 @@ function discover(query: ViewQuery) {
         storageResult.query = query
         storageResult.view = res
     })
-    // count(query)
+    count(query)
 }
 
 function count(query: ViewQuery) {
