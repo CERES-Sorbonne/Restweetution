@@ -117,7 +117,7 @@ class UserInstance:
 
         return on_collect_event
 
-    def _on_download_media(self, collect_config: CollectorConfig, bulk_data: BulkData, media_to_tweet: Dict[str, str]):
+    def _on_download_media(self, collect_config: CollectorConfig, bulk_data: BulkData, media_to_tweet: Dict[str, set]):
         async def on_download_event(d_media: DownloadedMedia):
             collect_tasks = collect_config.collect_options
             elastic_dashboard = self.storage_instance.elastic_dashboard
@@ -127,7 +127,9 @@ class UserInstance:
                     logger.warning('No elastic dashboard: Tried to send data to elastic dashboard')
                 bulk_data.add_downloaded_medias([d_media])
                 only_ids = media_to_tweet[d_media.media_key]
-                elastic_dashboard.export(bulk_data, collect_tasks.elastic_dashboard_name, only_ids=only_ids)
+                linked = LinkedBulkData()
+                linked += bulk_data
+                elastic_dashboard.export(collect_tasks.elastic_dashboard_name, linked.get_linked_tweets(list(only_ids)))
 
         return on_download_event
 
