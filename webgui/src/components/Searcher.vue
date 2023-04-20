@@ -93,7 +93,7 @@ function getRuleFromStore() {
     if(searcher.value.rule == undefined) {
         return
     }
-    Object.assign(localActiveRule, store.ruleFromId[searcher.value.rule.id])
+    Object.assign(localActiveRule, store.ruleFromId[parseInt(searcher.value.rule.id)])
     Object.assign(timeWindow, searcher.value.time_window)
 }
 
