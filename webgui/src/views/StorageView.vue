@@ -16,8 +16,8 @@ interface StorageResult { query?: ViewQuery, view?: ViewResult, count?: number}
 
 const store = useStore()
 
-const query = <ViewQuery>reactive({})
-const storageResult = <StorageResult>reactive({})
+const query = reactive({}) as ViewQuery
+const storageResult = reactive({}) as StorageResult
 const selectedFields: string[] = reactive([]) 
 
 const hasCount = computed(() => storageResult.count && storageResult.count >= 0)
