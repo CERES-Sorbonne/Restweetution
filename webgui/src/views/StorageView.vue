@@ -37,7 +37,7 @@ function discover(query: ViewQuery) {
         storageResult.query = query
         storageResult.view = res
     })
-    count(query)
+    // count(query)
 }
 
 function count(query: ViewQuery) {

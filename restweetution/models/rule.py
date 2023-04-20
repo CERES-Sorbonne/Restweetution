@@ -23,6 +23,7 @@ class RuleMatch(BaseModel):
     tweet: Optional[Tweet]
 
 
+
 class Rule(BaseModel):
     id: Optional[int]  # database given
     tag: Optional[str]  # Tag that can be shared with other rules
