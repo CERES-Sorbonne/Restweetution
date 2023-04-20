@@ -61,7 +61,12 @@ class SystemInstance:
 
     async def get_all_rule_info(self):
         # rules = await self.get_all_rules()
-        res = await self.storage_instance.storage.get_rules_tweet_count()
+        # res = await self.storage_instance.storage.get_rules_tweet_count()
+        res = await self.storage_instance.storage.get_rules()
+        res = [r.dict() for r in res]
+        for r in res:
+            r['tweet_count'] = 0
+
         #
         # res = []
         # for rule in rules:
