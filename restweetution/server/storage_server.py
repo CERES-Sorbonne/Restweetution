@@ -16,7 +16,6 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from restweetution import config_loader
 from restweetution.data_view.media_view2 import MediaView2
-from restweetution.data_view.tweet_view import TweetView
 from restweetution.data_view.tweet_view2 import TweetView2
 from restweetution.models.linked.storage_collection import StorageCollection
 from restweetution.models.storage.queries import TweetRowQuery, CollectedTweetQuery, CollectionQuery, \
@@ -101,25 +100,6 @@ def register_exception(app_: FastAPI):
         logger.error(request, exc_str)
         content = {'status_code': 10422, 'message': exc_str, 'data': None}
         return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
-
-
-@app.post("/tweets")
-async def get_tweets(query: TweetRowQuery):
-    if not query.limit or query.limit > 100 or query.limit < 1:
-        query.limit = 100
-    old = time()
-
-    t_query = CollectedTweetQuery(**query.dict())
-    tweets = await storage.get_collected_tweets(**t_query.dict())
-    logger.info(f'get_collected_tweets: {time() - old} seconds')
-    if tweets:
-        inter = time()
-        bulk_data = await extractor.expand_collected_tweets(tweets)
-        logger.info(f'expand_collected_tweets: {time() - inter} seconds')
-        res = TweetView.compute(bulk_data, only_ids=[t.tweet_id for t in tweets], fields=query.row_fields)
-        logger.info(f'get_tweets: {time() - old} seconds')
-        return res
-    return []
 
 
 @app.post("/count/")

@@ -64,13 +64,6 @@ onMounted(() => {
     <!-- <div class="col"> -->
     <!-- <form class="row justify-content-md-center"> -->
     <div class="input-group">
-        <button class="btn btn-outline-secondary dropdown-toggle me-2" type="button" data-bs-toggle="dropdown"
-            data-bs-auto-close="outside" aria-expanded="false">
-            Tasks
-        </button>
-        <div class="dropdown-menu" style="min-width: 500px;">
-            <div class="m-4"><TaskList /></div>
-        </div>
         <!-- <label class="input-group-text" for="inputGroupSelect01">Exporter</label> -->
         <select class="form-select" id="inputGroupSelect01" v-model="selectedExporter" style="max-width: 150px;">
             <option value="csv">CSV</option>
@@ -90,8 +83,16 @@ onMounted(() => {
             <input type="text" class="form-control" placeholder="Index" v-model="exportId">
         </template>
         <button :disabled="!canExport" @click="requestExport" type="button" class="btn btn-primary">Export</button>
+        <button class="btn btn-outline-secondary dropdown-toggle ms-2" type="button" data-bs-toggle="dropdown"
+            data-bs-auto-close="outside" aria-expanded="false">
+            Tasks
+        </button>
+        <div class="dropdown-menu" style="min-width: 500px;">
+            <div class="m-4">
+                <TaskList />
+            </div>
+        </div>
     </div>
     <!-- </form> -->
     <!-- </div> -->
-    <!-- </div> -->
-</template>
+    <!-- </div> --></template>

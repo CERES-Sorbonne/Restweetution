@@ -2,8 +2,7 @@ import asyncio
 from typing import Callable
 from typing import List
 
-from restweetution.data_view import TweetView, MediaView2
-from restweetution.data_view.tweet_view2 import TweetView2
+from restweetution.data_view import TweetView2, MediaView2
 from restweetution.models.event_data import BulkIds
 from restweetution.models.linked.linked_bulk_data import LinkedBulkData
 from restweetution.models.linked.linked_media import LinkedMedia

@@ -27,7 +27,7 @@ const selectedFields: string[] = reactive([])
 
 const hasCount = computed(() => storageResult.count && storageResult.count >= 0)
 const hasResult = computed(() => storageResult.view)
-const showExporter = computed(() => hasCount.value || hasResult.value)
+const showExporter = computed(() => hasResult.value)
 const hasCountAndResult = computed(() => hasCount.value && hasResult.value)
 
 
@@ -82,7 +82,7 @@ function reset() {
                 <Paginator :api-fn="storage_api.getView" :storage-result="storageResult" :page-size=20 v-if="hasCountAndResult && storageResult.count" @on-page="setPage"/>
             </div>
             <div class="col-7">
-                <Exporter :query="query" :fields="selectedFields" v-if="showExporter" />
+                <Exporter :query="query" :fields="selectedFields" v-if="showExporter"/>
             </div>
             
         </div>
