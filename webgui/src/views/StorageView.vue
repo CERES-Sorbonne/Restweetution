@@ -49,7 +49,6 @@ function count(query: ViewQuery) {
 }
 
 function setPage(res: ViewResult) {
-    console.log(res)
     storageResult.view = res
 }
 

@@ -42,6 +42,7 @@ WITHHELD_COPYRIGHT = 'withheld_copyright'
 WITHHELD_COUNTRY_CODES = 'withheld_country_codes'
 WITHHELD_SCOPE = 'withheld_scope'
 RULE_TAGS = 'rule_tags'
+DIRECT_HIT = 'direct_hit'
 
 required_tweet_fields = {
     ID: 'id',
@@ -82,7 +83,8 @@ required_tweet_fields = {
     WITHHELD_COPYRIGHT: 'withheld',
     WITHHELD_COUNTRY_CODES: 'withheld',
     WITHHELD_SCOPE: 'withheld',
-    RULE_TAGS: 'id'
+    RULE_TAGS: '',
+    DIRECT_HIT: '',
 }
 
 tweet_fields = list(required_tweet_fields.keys())
@@ -201,4 +203,16 @@ class TweetView2(DataView2):
             safe_set(WITHHELD_SCOPE, tweet.withheld.scope)
             safe_set(WITHHELD_COUNTRY_CODES, tweet.withheld.country_codes)
 
+        rules = link_tweet.get_rules()
+        if rules and any_(RULE_TAGS, DIRECT_HIT):
+            tags = set()
+            direct_hit = False
+            for r in rules:
+                tags.update(r.tag.split(','))
+            safe_set(RULE_TAGS, list(tags))
+
+            for m in link_tweet.get_rule_matches():
+                direct_hit |= m.direct_hit
+
+            safe_set(DIRECT_HIT, direct_hit)
         return res

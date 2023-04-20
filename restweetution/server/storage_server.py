@@ -149,9 +149,10 @@ async def get_view_tweet(query: CollectionQuery, tweet_filter: TweetFilter = Non
 
     coll = StorageCollection(storage)
     await coll.load_tweet_from_query(query)
+    tweet_ids = [t.id for t in coll.data.get_tweets()]
     await coll.load_all_from_tweets()
 
-    view = TweetView2.compute(coll.data.get_linked_tweets())
+    view = TweetView2.compute(coll.data.get_linked_tweets(tweet_ids))
 
     logger.info(f'tweet_view took {round(time() - old, 2)} seconds')
 
