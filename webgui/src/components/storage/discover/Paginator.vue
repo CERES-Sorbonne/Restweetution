@@ -21,7 +21,7 @@ function prev() {
     let offset = (page.value -1) * props.pageSize
     let limit = props.pageSize
 
-    let query = <ViewQuery>JSON.parse(JSON.stringify(props.storageResult.query))
+    let query = JSON.parse(JSON.stringify(props.storageResult.query)) as ViewQuery
     query.collection.offset = offset
     query.collection.limit = limit
 
@@ -38,7 +38,7 @@ function next() {
     let offset = (page.value + 1) * props.pageSize
     let limit = props.pageSize
 
-    let query = <ViewQuery>JSON.parse(JSON.stringify(props.storageResult.query))
+    let query = JSON.parse(JSON.stringify(props.storageResult.query)) as ViewQuery
     query.collection.offset = offset
     query.collection.limit = limit
 
