@@ -38,7 +38,7 @@ class CollectionCountQuery(BaseModel):
 class CollectionQuery(CollectionCountQuery):
     limit: int = None
     offset: int = None
-    order: int = 1
+    order: int = 0
 
 
 class ViewQuery(BaseModel):
