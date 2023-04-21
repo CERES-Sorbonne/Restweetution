@@ -26,12 +26,10 @@ async def main():
     storage = conf.build_storage()
 
     query = CollectionQuery()
-    query.rule_ids = []
 
     total = 0
 
     async for data in storage.query_tweets_stream(query, chunk_size=1000):
-        print(data.get_rule_matches())
         await storage.save_bulk(data, override=True)
         total += len(data.get_tweets())
         print(f'saved {len(data.get_tweets())}  total[{total}]')
