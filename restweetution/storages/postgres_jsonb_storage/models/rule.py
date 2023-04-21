@@ -18,6 +18,7 @@ RULE_MATCH = Table(
     meta_data,
     Column("rule_id", ForeignKey("rule.id"), primary_key=True),
     Column("tweet_id", ForeignKey("tweet.id"), primary_key=True),
+    Column("tweet_created_at", nullable=False),
 
     Column("collected_at", TIMESTAMP(timezone=True), nullable=False),
     Column("direct_hit", Boolean)

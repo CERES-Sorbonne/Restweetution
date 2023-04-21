@@ -196,7 +196,7 @@ class PostgresJSONBStorage(SystemStorage):
                 res = [DownloadedMedia(**r) for r in res]
             return res
 
-    async def save_bulk(self, data: BulkData, callback: Callable = None):
+    async def save_bulk(self, data: BulkData, callback: Callable = None, override=False):
         async with self._engine.begin() as conn:
 
             if data.tweets:
@@ -222,35 +222,57 @@ class PostgresJSONBStorage(SystemStorage):
 
             matches = data.get_rule_matches()
             if matches:
-                await self._save_rule_match(conn, matches)
+                await self._save_rule_match(conn, matches, data.tweets, override=override)
             # if data.downloaded_medias:
             #     await self._save_downloaded_medias(conn, data.get_downloaded_medias())
 
             if callback:
                 fire_and_forget(callback(data))
 
-    @staticmethod
-    async def _save_rule_match(conn, matches: List[RuleMatch]):
+    async def _save_rule_match(self, conn, matches: List[RuleMatch], tweets: Dict[str, Tweet] = None, override=False):
+        if not matches:
+            return
+        if not tweets:
+            tweets = {}
+        missing_ids = set([m.tweet_id for m in matches]) - set(tweets.keys())
+        if missing_ids:
+            print('missing ids for rule_match (missing tweets in bulkdata)')
+            missing_tweets = await self.get_tweets(ids=list(missing_ids))
+            for tweet in missing_tweets:
+                tweets[tweet.id] = tweet
+
         direct_hits = []
         includes = []
         for match in matches:
+            match_data = match.dict()
+            match_data['tweet_created_at'] = tweets[match.tweet_id].created_at
+            # print(match_data['tweet_created_at'])
             if match.direct_hit:
-                direct_hits.append(match)
+                direct_hits.append(match_data)
             else:
-                includes.append(match)
+                includes.append(match_data)
+        if override:
+            all_matches = [*direct_hits, *includes]
+            if not all_matches:
+                return
+            stmt = insert(RULE_MATCH)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=primary_keys(RULE_MATCH),
+                set_=stmt.excluded)
+            await conn.execute(stmt, all_matches)
+            return
+
         if direct_hits:
             stmt = insert(RULE_MATCH)
             stmt = stmt.on_conflict_do_update(
                 index_elements=primary_keys(RULE_MATCH),
                 set_=dict(direct_hit=stmt.excluded.direct_hit)
             )
-            values = [r.dict() for r in direct_hits]
-            await conn.execute(stmt, values)
+            await conn.execute(stmt, direct_hits)
         if includes:
             stmt = insert(RULE_MATCH)
             stmt = stmt.on_conflict_do_nothing(index_elements=primary_keys(RULE_MATCH))
-            values = [r.dict() for r in includes]
-            await conn.execute(stmt, values)
+            await conn.execute(stmt, includes)
 
     @staticmethod
     async def _upsert_table(conn, table: Table, rows: List[BaseModel]):
