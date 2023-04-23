@@ -39,6 +39,7 @@ class CollectionQuery(CollectionCountQuery):
     limit: int = None
     offset: int = None
     order: int = 0
+    tweet_ids: List[str] = None
 
 
 class ViewQuery(BaseModel):
