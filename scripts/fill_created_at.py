@@ -31,8 +31,8 @@ async def main():
         tweet_ids = [d.tweet_id for d in data]
         bulk_data = await storage.query_tweets(query=CollectionQuery(tweet_ids=tweet_ids))
         await storage.save_bulk(bulk_data, override=True)
-        total += len(data.get_tweets())
-        print(f'saved {len(data.get_tweets())}  total[{total}]')
+        total += len(bulk_data.get_tweets())
+        print(f'saved {len(bulk_data.get_tweets())}  total[{total}]')
 
 
 
