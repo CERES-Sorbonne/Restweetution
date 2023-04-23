@@ -4,14 +4,13 @@ We want to keep most of SQL logic in this file
 """
 from typing import List
 
-from sqlalchemy import func, join, cast, text, distinct
-from sqlalchemy.dialects.postgresql import JSON, array
+from sqlalchemy import func, join, text, distinct
+from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.future import select
 
 from restweetution.models.storage.queries import CollectionQuery, TweetFilter
-from restweetution.storages.postgres_jsonb_storage.utils import date_from_to, offset_limit, select_join_builder, \
-    where_in_builder
 from restweetution.storages.postgres_jsonb_storage.models import TWEET, RULE_MATCH, MEDIA
+from restweetution.storages.postgres_jsonb_storage.utils import date_from_to, offset_limit, where_in_builder
 
 
 def media_keys_stmt(collection: CollectionQuery):
@@ -66,6 +65,26 @@ def stmt_query_tweets(query: CollectionQuery, filter_: TweetFilter):
         stmt = stmt.order_by(TWEET.c.created_at.desc())
     elif query.order > 0:
         stmt = stmt.order_by(TWEET.c.created_at.asc())
+    stmt = stmt.group_by(TWEET.c.id)
+    return stmt
+
+
+def stmt_query_tweets_sample(query: CollectionQuery):
+
+    stmt_matches = select(RULE_MATCH)
+    stmt_matches = where_in_builder(stmt_matches, True, (RULE_MATCH.c.rule_id, query.rule_ids))
+    # stmt_matches = date_from_to(stmt_matches, TWEET.c.created_at, query.date_from, query.date_to)
+    if query.direct_hit and query.rule_ids:
+        stmt_matches = stmt_matches.where(RULE_MATCH.c.direct_hit.is_(True))
+    stmt_matches = offset_limit(stmt_matches, query.offset, query.limit)
+    matches = stmt_matches.alias('matches')
+
+    stmt = select(
+        func.to_json(text('tweet.*')).label('tweet'),
+        func.json_agg(func.to_json(text('matches.*'))).label('rule_match')
+    )
+
+    stmt = stmt.select_from(TWEET.join(matches, matches.c.tweet_id == TWEET.c.id))
     stmt = stmt.group_by(TWEET.c.id)
     return stmt
 

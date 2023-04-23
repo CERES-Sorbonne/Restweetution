@@ -26,7 +26,7 @@ from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, me
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_stmt, media_keys_with_tweet_id_stmt, \
     stmt_query_count_tweets, stmt_tweet_media_ids, stmt_query_tweets, stmt_query_medias, stmt_query_count_medias, \
-    stmt_get_rule_matches
+    stmt_get_rule_matches, stmt_query_tweets_sample
 from restweetution.storages.postgres_jsonb_storage.utils import res_to_dicts, update_dict, where_in_builder, \
     select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
 from restweetution.storages.system_storage import SystemStorage
@@ -638,6 +638,27 @@ class PostgresJSONBStorage(SystemStorage):
 
             stmt = stmt_query_tweets(query, tweet_filter)
             print(stmt)
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+
+            tweets = [Tweet(**r['tweet']) for r in res]
+            matches = [r['rule_match'] for r in res]
+            rule_matches = []
+            for m in matches:
+                rule_matches.extend(m)
+            rule_matches = [RuleMatch(**m) for m in rule_matches]
+
+            res_data = LinkedBulkData()
+            res_data.add_tweets(tweets)
+            res_data.add_rule_matches(rule_matches)
+
+            # linked_tweets = res_data.get_linked_tweets()
+
+            return res_data
+
+    async def query_tweets_sample(self, query: CollectionQuery):
+        async with self._engine.begin() as conn:
+            stmt = stmt_query_tweets_sample(query)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
 

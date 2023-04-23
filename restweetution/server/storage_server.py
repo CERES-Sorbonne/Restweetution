@@ -147,8 +147,9 @@ async def get_view_tweet(query: CollectionQuery, tweet_filter: TweetFilter = Non
     tweet_filter = tweet_filter if tweet_filter else TweetFilter()
     query.limit = query.limit if query.limit and 0 < query.limit < 100 else 100
 
-    coll = StorageCollection(storage)
-    await coll.load_tweet_from_query(query)
+    data = await storage.query_tweets_sample(query=query)
+    coll = StorageCollection(storage, data)
+    # await coll.load_tweet_from_query(query)
     tweet_ids = [t.id for t in coll.data.get_tweets()]
     await coll.load_all_from_tweets()
 
