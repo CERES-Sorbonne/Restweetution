@@ -17,13 +17,13 @@ async def main():
     collection = conf.build_storage_collection()
     storage = conf.build_storage()
 
-    query = CollectionQuery()
-    query.direct_hit = False
-    # query.rule_ids = [47]
-    # query.limit = 10
+    # query = CollectionQuery()
+    # query.direct_hit = False
+    # # query.rule_ids = [47]
+    # # query.limit = 10
 
-    res = await storage.query_tweets(query)
-    print(len(res.tweets.keys()))
+    res = await storage.update_count_estimate()
+    print(res)
 
     return
 

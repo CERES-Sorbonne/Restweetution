@@ -23,7 +23,6 @@ class RuleMatch(BaseModel):
     tweet: Optional[Tweet]
 
 
-
 class Rule(BaseModel):
     id: Optional[int]  # database given
     tag: Optional[str]  # Tag that can be shared with other rules
@@ -31,6 +30,7 @@ class Rule(BaseModel):
     created_at: Optional[datetime]
     # tweet_ids: Set[str] = set()  # Set of collected tweet ids
     matches: Dict[str, RuleMatch] = {}
+    count_estimate: int = 0
 
     def __init__(self, tag: str = None, **kwargs):
         if not tag:

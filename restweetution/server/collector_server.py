@@ -159,7 +159,7 @@ async def get_tasks_nb():
 @app.get("/rules/info")
 async def get_rules():
     try:
-        return await restweet.get_all_rule_info()
+        return await restweet.get_all_rules()
     except Exception as e:
         raise HTTPException(400, e.__str__())
 

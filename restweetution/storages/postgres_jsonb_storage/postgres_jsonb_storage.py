@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import logging
 import time
@@ -12,7 +11,7 @@ from sqlalchemy.future import select
 
 from restweetution.models.bulk_data import BulkData
 from restweetution.models.config.user_config import UserConfig
-from restweetution.models.extended_types import ExtendedMedia, ExtendedTweet
+from restweetution.models.extended_types import ExtendedMedia
 from restweetution.models.linked.linked_bulk_data import LinkedBulkData
 from restweetution.models.rule import Rule, RuleMatch
 from restweetution.models.storage.custom_data import CustomData
@@ -140,15 +139,6 @@ class PostgresJSONBStorage(SystemStorage):
             res = [CustomData(**r) for r in res]
             return res
 
-    async def get_rules_tweet_count(self):
-        async with self._engine.begin() as conn:
-            stmt = select(RULE, func.count(RULE_MATCH.c.tweet_id).label('tweet_count')).select_from(
-                join(RULE, RULE_MATCH, isouter=True))
-            stmt = stmt.group_by(RULE.c.id)
-            res = await conn.execute(stmt)
-            res = res_to_dicts(res)
-            return res
-
     async def del_custom_datas(self, key: str):
         pass
 
@@ -162,6 +152,30 @@ class PostgresJSONBStorage(SystemStorage):
             values = [dict(id=d.id, key=d.key, data=safe_dict(d.data)) for d in datas]
 
             await conn.execute(stmt, values)
+
+    async def update_count_estimate(self, rule_ids: List[int] = None):
+        old = time.time()
+        async with self._engine.begin() as conn:
+            stmt = select(RULE_MATCH.c.rule_id, func.count(RULE_MATCH.c.tweet_id).label('count'))
+            stmt = where_in_builder(stmt, (RULE_MATCH.c.rule_id, rule_ids))
+            stmt = stmt.group_by(RULE_MATCH.c.rule_id)
+
+            res = await conn.execute(stmt)
+            res = res_to_dicts(res)
+
+            if not res:
+                return time.time() - old
+
+            stmt = update(RULE).where(RULE.c.id == bindparam('rule_key'))
+
+            values = [dict(
+                rule_key=estimate['rule_id'],
+                count_estimate=estimate['count']
+            ) for estimate in res]
+
+            await conn.execute(stmt, values)
+
+            return time.time() - old
 
     async def save_downloaded_medias(self, downloaded_medias: List[DownloadedMedia]):
         async with self._engine.begin() as conn:
@@ -649,7 +663,6 @@ class PostgresJSONBStorage(SystemStorage):
                 res = res_to_dicts(res)
                 matches = [RuleMatch(**r) for r in res]
                 yield matches
-
 
     async def get_tweets_stream(self, query: CollectionQuery, tweet_filter: TweetFilter = None, chunk_size=10):
         async with self._engine.begin() as conn:

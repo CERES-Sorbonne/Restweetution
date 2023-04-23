@@ -6,7 +6,7 @@ export interface RuleInfo {
     tag: string
     query: string
     created_at: string
-    tweet_count: number
+    count_estimate: number
 }
 
 export interface CountRequest {
@@ -70,7 +70,7 @@ export async function delUsers(names: string[]) {
 export async function getRules() {
     const res = await axios.get(BASE_URL + '/rules/info');
     const ruleInfos = res.data as RuleInfo[]
-    ruleInfos.forEach(r => r.tweet_count = Number(r.tweet_count))
+    ruleInfos.forEach(r => r.count_estimate = Number(r.count_estimate))
     ruleInfos.forEach(r => r.id = Number(r.id))
     return ruleInfos
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { computed } from '@vue/reactivity';
 import type { RuleInfo } from '@/api/collector';
 
@@ -86,7 +86,7 @@ function expand(id: number) {
                     <tr @click="expand(rule.id)" role='button'>
                         <th scope="row" class="align-middle">{{rule.id}}</th>
                         <td class="align-middle user-select-none" style="width: 100%;">{{rule.tag}}</td>
-                        <td class="align-middle user-select-none text-end">{{ rule.tweet_count }}</td>
+                        <td class="align-middle user-select-none text-end">{{ rule.count_estimate }}</td>
                         <td v-if="props.actionName && showAction" class="text-center"><button @click.stop="$emit('select', rule)" type="button" class="btn btn-light btn-sm">{{actionName}}</button></td>
                     </tr>
                     <tr v-if="(expanded == rule.id)">

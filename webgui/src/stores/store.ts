@@ -133,7 +133,7 @@ export const useStore = defineStore("store", () => {
         rules.push(...res)
     }
 
-    const orderedRules = computed(() => [...rules].sort((a, b) => b.tweet_count - a.tweet_count))
+    const orderedRules = computed(() => [...rules].sort((a, b) => b.count_estimate - a.count_estimate))
     const rulesOrderId = computed(() => [...rules].sort((a, b) => a.id - b.id))
 
 

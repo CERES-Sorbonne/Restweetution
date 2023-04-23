@@ -11,6 +11,7 @@ RULE = Table(
     Column("tag", String),
     Column("query", String, unique=True, nullable=False),
     Column("created_at", TIMESTAMP(timezone=True), default=datetime.datetime.now, nullable=False),
+    Column("count_estimate", Integer, default=0)
 )
 
 RULE_MATCH = Table(
