@@ -1,21 +1,25 @@
 import asyncio
 import datetime
+import logging
 import os
 from collections import defaultdict
-from time import time
 
-import aiohttp
 from tweepy.asynchronous import AsyncClient
 
 from restweetution import config_loader
 from restweetution.models.config.query_fields_preset import ALL_CONFIG
-from restweetution.models.linked.storage_collection import StorageCollection
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.queries import CollectionQuery
 from restweetution.models.twitter import Tweet
 from restweetution.storages.elastic_storage.elastic_storage import ElasticStorage
 
 elastic: ElasticStorage
+
+
+logging.basicConfig()
+logging.root.setLevel(logging.INFO)
+logger = logging.getLogger('Lookup')
+
 
 
 async def main():
@@ -36,6 +40,7 @@ async def main():
     total_missing = 0
 
     async for data in storage.query_tweets_stream(query, chunk_size=100):
+        # print('receive')
         tweet_ids = list(data.tweets.keys())
         raw_res = await client.get_tweets(tweet_ids, **ALL_CONFIG.twitter_format())
         tweets = [Tweet(**d) for d in raw_res['data']]
@@ -55,7 +60,8 @@ async def main():
                     user_to_check[db_tweets[tweet_id].author_id].append(tweet_id)
         user_to_check_ids = list(user_to_check.keys())
         if user_to_check_ids:
-            users_res = await client.get_users(ids=user_to_check_ids, user_fields=ALL_CONFIG.twitter_format()['user_fields'])
+            users_res = await client.get_users(ids=user_to_check_ids,
+                                               user_fields=ALL_CONFIG.twitter_format()['user_fields'])
 
             if 'data' in users_res:
                 for user in users_res['data']:
@@ -79,20 +85,21 @@ async def main():
 
         timestamp = datetime.datetime.now()
         custom_key = "check_missing"
-        deleted_datas = [CustomData(id=t_id, key=custom_key, data={"deleted": True, "reason": tweet_status[t_id], "timestamp": timestamp}) for t_id in missing_ids]
+        deleted_datas = [CustomData(id=t_id, key=custom_key,
+                                    data={"deleted": True, "reason": tweet_status[t_id], "timestamp": timestamp}) for
+                         t_id in missing_ids]
         if deleted_datas:
             await storage.save_custom_datas(deleted_datas, override=False)
 
-        existing_datas = [CustomData(id=t_id, key=custom_key, data={"exist": True, "timestamp": timestamp}) for t_id in existing_ids]
+        existing_datas = [CustomData(id=t_id, key=custom_key, data={"exist": True, "timestamp": timestamp}) for t_id in
+                          existing_ids]
         if existing_datas:
             await storage.save_custom_datas(existing_datas, override=True)
 
         total += 100
         total_found += len(existing_ids)
         total_missing += len(missing_ids)
-        print(f'total: {total}  found[{total_found}]  missing[{total_missing}]')
-
-
+        logger.info(f'total: {total}  found[{total_found}]  missing[{total_missing}]')
 
 
 asyncio.run(main())
