@@ -46,6 +46,7 @@ def media_keys_with_tweet_id_stmt(collection: CollectionQuery):
 
 
 def stmt_query_tweets(query: CollectionQuery, filter_: TweetFilter):
+    print(query.order)
     stmt = select(
         func.to_json(text('tweet.*')).label('tweet'),
         func.json_agg(func.to_json(text('collected_tweet.*'))).label('rule_match')
@@ -68,6 +69,13 @@ def stmt_query_tweets(query: CollectionQuery, filter_: TweetFilter):
     elif query.order > 0:
         stmt = stmt.order_by(TWEET.c.created_at.asc())
     stmt = stmt.group_by(TWEET.c.id)
+    return stmt
+
+
+def stmt_get_rule_matches(rule_ids: List[int]):
+    stmt = select(RULE_MATCH)
+    if rule_ids:
+        stmt = where_in_builder(stmt, False, (RULE_MATCH.c.rule_id, rule_ids))
     return stmt
 
 

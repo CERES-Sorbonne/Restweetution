@@ -25,7 +25,8 @@ from restweetution.storages.postgres_jsonb_storage.models import RULE, ERROR, me
     USER, POLL, PLACE, RULE_MATCH, DOWNLOADED_MEDIA
 from restweetution.storages.postgres_jsonb_storage.models.data import DATA
 from restweetution.storages.postgres_jsonb_storage.subqueries import media_keys_stmt, media_keys_with_tweet_id_stmt, \
-    stmt_query_count_tweets, stmt_tweet_media_ids, stmt_query_tweets, stmt_query_medias, stmt_query_count_medias
+    stmt_query_count_tweets, stmt_tweet_media_ids, stmt_query_tweets, stmt_query_medias, stmt_query_count_medias, \
+    stmt_get_rule_matches
 from restweetution.storages.postgres_jsonb_storage.utils import res_to_dicts, update_dict, where_in_builder, \
     select_builder, primary_keys, offset_limit, date_from_to, select_join_builder
 from restweetution.storages.system_storage import SystemStorage
@@ -637,6 +638,17 @@ class PostgresJSONBStorage(SystemStorage):
                 res_data.add_tweets(tweets)
                 res_data.add_rule_matches(rule_matches)
                 yield res_data
+
+    async def get_rule_matches_stream(self, rule_ids: List[int] = None, chunk_size=100):
+        async with self._engine.begin() as conn:
+            stmt = stmt_get_rule_matches(rule_ids=rule_ids)
+
+            conn = await conn.stream(stmt)
+            async for res in conn.partitions(chunk_size):
+                res = res_to_dicts(res)
+                matches = [RuleMatch(**r) for r in res]
+                yield matches
+
 
     async def get_tweets_stream(self, query: CollectionQuery, tweet_filter: TweetFilter = None, chunk_size=10):
         async with self._engine.begin() as conn:
