@@ -197,10 +197,10 @@ class PostgresJSONBStorage(SystemStorage):
                 res = [DownloadedMedia(**r) for r in res]
             return res
 
-    async def save_bulk(self, data: BulkData, callback: Callable = None, override=False):
+    async def save_bulk(self, data: BulkData, callback: Callable = None, override=False, ignore_tweets=False):
         async with self._engine.begin() as conn:
 
-            if data.tweets:
+            if data.tweets and not ignore_tweets:
                 old = time.time()
                 await self._upsert_table(conn, TWEET, data.get_tweets())
                 logger.debug(f'save tweet: {time.time() - old}')
@@ -600,6 +600,7 @@ class PostgresJSONBStorage(SystemStorage):
                 tweet_filter = TweetFilter()
 
             stmt = stmt_query_tweets(query, tweet_filter)
+            print(stmt)
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
 
