@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 import time
@@ -44,6 +45,28 @@ class PostgresJSONBStorage(SystemStorage):
 
         self._url = url
         self._engine = create_async_engine(url, echo=False)
+        self._count_estimate_task: asyncio.Task | None = None
+        self._count_estimate_continue_flag = False
+
+    def _count_estimate_is_running(self):
+        return self._count_estimate_task and not self._count_estimate_task.done()
+
+    def _count_estimate_task_start(self):
+        self._count_estimate_continue_flag = True
+        if self._count_estimate_is_running():
+            return
+        self._count_estimate_task = asyncio.create_task(self._count_estimate_task_routine())
+
+    async def _count_estimate_task_routine(self):
+        while self._count_estimate_continue_flag:
+            print('start loop')
+            self._count_estimate_continue_flag = False
+            elapsed_time = await self.update_count_estimate()
+            sleep_time = max(10, int(elapsed_time) * 5)
+            print(f'continue: {self._count_estimate_continue_flag}')
+            if not self._count_estimate_continue_flag:
+                return
+            await asyncio.sleep(sleep_time)
 
     def get_engine(self):
         return self._engine
@@ -240,7 +263,7 @@ class PostgresJSONBStorage(SystemStorage):
                 await self._save_rule_match(conn, matches, data.tweets, override=override)
             # if data.downloaded_medias:
             #     await self._save_downloaded_medias(conn, data.get_downloaded_medias())
-
+            self._count_estimate_task_start()
             if callback:
                 fire_and_forget(callback(data))
 
