@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import os
 from collections import defaultdict
 from time import time
@@ -17,6 +18,9 @@ from restweetution.storages.elastic_storage.elastic_storage import ElasticStorag
 
 elastic: ElasticStorage
 
+logging.basicConfig()
+logging.root.setLevel(logging.INFO)
+logger = logging.getLogger('FillCreated')
 
 async def main():
     global elastic
@@ -32,7 +36,7 @@ async def main():
         bulk_data = await storage.query_tweets(query=CollectionQuery(tweet_ids=tweet_ids))
         await storage.save_bulk(bulk_data, override=True, ignore_tweets=True)
         total += len(bulk_data.get_tweets())
-        print(f'saved {len(bulk_data.get_tweets())}  total[{total}]')
+        logger.info(f'saved {len(bulk_data.get_tweets())}  total[{total}]')
 
 
 asyncio.run(main())
