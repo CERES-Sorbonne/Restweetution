@@ -15,11 +15,9 @@ from restweetution.storages.elastic_storage.elastic_storage import ElasticStorag
 
 elastic: ElasticStorage
 
-
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 logger = logging.getLogger('Lookup')
-
 
 
 async def main():
@@ -33,7 +31,7 @@ async def main():
     client = AsyncClient(bearer_token=token, return_type=dict, wait_on_rate_limit=True)
 
     query = CollectionQuery()
-    query.rule_ids = [47]
+    query.rule_ids = [428, 483, 553, 482, 405, 413, 415, 404, 414, 392, 403, 406, 412, 566, 700]
 
     total = 0
     total_found = 0
@@ -57,7 +55,8 @@ async def main():
                     tweet_status[tweet_id] = "deleted"
                 else:
                     tweet_status[tweet_id] = "unknown"
-                    user_to_check[db_tweets[tweet_id].author_id].append(tweet_id)
+                    if tweet_id in db_tweets:
+                        user_to_check[db_tweets[tweet_id].author_id].append(tweet_id)
         user_to_check_ids = list(user_to_check.keys())
         if user_to_check_ids:
             users_res = await client.get_users(ids=user_to_check_ids,
