@@ -259,7 +259,8 @@ class StorageCollection:
             self.load_referenced_tweets_from_tweets(tweets),
             self.load_users_from_tweets(tweets),
             self.load_medias_from_tweets(tweets),
-            self.load_polls_from_tweets(tweets)
+            self.load_polls_from_tweets(tweets),
+            self.load_rules_from_tweets(tweets)
         )
         return res
 
