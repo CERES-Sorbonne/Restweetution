@@ -93,6 +93,7 @@ def stmt_get_rule_matches(rule_ids: List[int]):
     stmt = select(RULE_MATCH)
     if rule_ids:
         stmt = where_in_builder(stmt, False, (RULE_MATCH.c.rule_id, rule_ids))
+    stmt = stmt.where(RULE_MATCH.c.tweet_created_at == None)
     return stmt
 
 

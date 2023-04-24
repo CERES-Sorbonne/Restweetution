@@ -35,7 +35,4 @@ async def main():
         print(f'saved {len(bulk_data.get_tweets())}  total[{total}]')
 
 
-
-
-
 asyncio.run(main())
