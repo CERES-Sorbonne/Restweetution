@@ -46,6 +46,8 @@ class BulkData:
                     self.rules[k].matches[c] = other.rules[k].matches[c]
         for k in other.downloaded_medias:
             self.downloaded_medias[k] = other.downloaded_medias[k]
+        for m in other.rule_matches:
+            self.rule_matches[m] = other.rule_matches[m]
 
         return self
 

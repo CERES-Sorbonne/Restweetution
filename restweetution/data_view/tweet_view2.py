@@ -83,8 +83,8 @@ required_tweet_fields = {
     WITHHELD_COPYRIGHT: 'withheld',
     WITHHELD_COUNTRY_CODES: 'withheld',
     WITHHELD_SCOPE: 'withheld',
-    RULE_TAGS: '',
-    DIRECT_HIT: '',
+    RULE_TAGS: 'id',
+    DIRECT_HIT: 'id',
 }
 
 tweet_fields = list(required_tweet_fields.keys())
@@ -103,6 +103,7 @@ class TweetView2(DataView2):
     @classmethod
     def compute(cls, tweets: List[LinkedTweet], fields: List[str] = None) -> ViewResult:
         fields = cls.all_if_empty(fields)
+        print('start with fields: ', fields)
 
         res_tweets = []
         for tweet in tweets:
@@ -113,6 +114,7 @@ class TweetView2(DataView2):
     @classmethod
     def _tweet_to_view(cls, link_tweet: LinkedTweet, fields: List[str]):
         tweet = link_tweet.tweet
+        print(link_tweet.get_rules())
         res = ViewDict(id_=tweet.id)
 
         # utility functions to avoid writing if statement in front of every assignement
