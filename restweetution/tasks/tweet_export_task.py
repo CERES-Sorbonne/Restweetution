@@ -41,7 +41,7 @@ class ViewExportTask(ServerTask):
         else:
             raise ValueError(f'<<{self.view_type}>> view is not valid')
 
-        async for res in storage_stream_function(self.query.query.collection):
+        async for res in storage_stream_function(self.query.query.collection, chunk_size=1000):
             try:
                 coll = StorageCollection(self.storage, res)
                 # view specific steps
