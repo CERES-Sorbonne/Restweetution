@@ -25,8 +25,12 @@ async def main():
     rule_ids = []
     old = time.time()
     print(f'start at {old}')
-    async for tweets in storage.get_rule_matches_stream(rule_ids=rule_ids, chunk_size=1000):
-        print(f'reveived {len(tweets)} [{round(time.time()-old)}] sec')
+    async for matches in storage.get_rule_matches_stream(rule_ids=rule_ids, chunk_size=1000):
+        print(f'reveived {len(matches)} [{round(time.time()-old)}] sec')
+        tweet_ids = {m.tweet_id for m in matches}
+        tweets = await storage.get_tweets(tweet_ids=list(tweet_ids))
+        print(f'fetch {len(tweets)} tweets: [{round(time.time()-old)}] sec')
+
         old = time.time()
 
     return
