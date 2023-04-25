@@ -22,11 +22,11 @@ async def main():
     # query.direct_hit = False
     # # query.rule_ids = [47]
     # # query.limit = 10
-
+    rule_ids = []
     old = time.time()
     print(f'start at {old}')
-    async for tweets in storage.get_tweets_stream():
-        print(f'reveived {len(tweets)} [{time.time()-old}]sec')
+    async for tweets in storage.get_rule_matches_stream(rule_ids=rule_ids, chunk_size=1000):
+        print(f'reveived {len(tweets)} [{round(time.time()-old)}] sec')
         old = time.time()
 
     return
