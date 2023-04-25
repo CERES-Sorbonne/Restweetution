@@ -678,7 +678,7 @@ class PostgresJSONBStorage(SystemStorage):
             return res_data
 
     async def query_tweets_stream(self, query: CollectionQuery, tweet_filter: TweetFilter = None, chunk_size=10):
-        async with self._engine.begin() as conn:
+        async with self._engine.connect() as conn:
             if not tweet_filter:
                 tweet_filter = TweetFilter()
             stmt = stmt_query_tweets(query, tweet_filter)
@@ -708,28 +708,17 @@ class PostgresJSONBStorage(SystemStorage):
                 matches = [RuleMatch(**r) for r in res]
                 yield matches
 
-    async def get_tweets_stream(self, query: CollectionQuery, tweet_filter: TweetFilter = None, chunk_size=10):
-        async with self._engine.begin() as conn:
-            if not tweet_filter:
-                tweet_filter = TweetFilter()
+    async def get_tweets_stream(self, date_from: datetime = None, date_to: datetime = None, chunk_size=100):
+        async with self._engine.connect() as conn:
+            stmt = select(TWEET)
+            stmt = date_from_to(stmt, date_from, date_to)
 
-            stmt = stmt_query_tweets(query, tweet_filter)
             conn = await conn.stream(stmt)
             async for res in conn.partitions(chunk_size):
                 res = res_to_dicts(res)
 
-                tweets = [Tweet(**r['tweet']) for r in res]
-                matches = [r['rule_match'] for r in res]
-                rule_matches = []
-                for m in matches:
-                    rule_matches.extend(m)
-                rule_matches = [RuleMatch(**m) for m in rule_matches]
-
-                res_data = LinkedBulkData()
-                res_data.add_tweets(tweets)
-                res_data.add_rule_matches(rule_matches)
-
-                yield res_data
+                tweets = [Tweet(**r) for r in res]
+                yield tweets
 
     async def query_medias(self, query: CollectionQuery, downloaded=True):
         async with self._engine.begin() as conn:

@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 
 from restweetution import config_loader
 from restweetution.models.linked.storage_collection import StorageCollection
@@ -22,8 +23,11 @@ async def main():
     # # query.rule_ids = [47]
     # # query.limit = 10
 
-    res = await storage.update_count_estimate()
-    print(res)
+    old = time.time()
+    print(f'start at {old}')
+    async for tweets in storage.get_tweets_stream():
+        print(f'reveived {len(tweets)} [{time.time()-old}]sec')
+        old = time.time()
 
     return
 
