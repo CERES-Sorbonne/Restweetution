@@ -37,68 +37,77 @@ async def main():
     total_found = 0
     total_missing = 0
 
+    ignore = await storage.get_custom_datas("missing")
+    ignore_ids = {i.id for i in ignore}
+
     async for data in storage.query_tweets_stream(query, chunk_size=100):
-        # print('receive')
-        tweet_ids = list(data.tweets.keys())
-        raw_res = await client.get_tweets(tweet_ids, **ALL_CONFIG.twitter_format())
-        tweets = [Tweet(**d) for d in raw_res['data']]
-        existing_ids = {t.id for t in tweets}
-        missing_ids = set(tweet_ids) - existing_ids
-        user_to_check = defaultdict(list)
-        tweet_status = {t.id: 'alive' for t in tweets}
-        db_tweets = {t.id: t for t in data.get_tweets()}
+        try:
+            # print('receive')
+            tweet_ids = list(data.tweets.keys())
+            raw_res = await client.get_tweets(tweet_ids, **ALL_CONFIG.twitter_format())
+            tweets = [Tweet(**d) for d in raw_res['data']]
+            tweets = [t for t in tweets if t.id not in ignore_ids]
+            if not tweets:
+                continue
+            existing_ids = {t.id for t in tweets}
+            missing_ids = set(tweet_ids) - existing_ids
+            user_to_check = defaultdict(list)
+            tweet_status = {t.id: 'alive' for t in tweets}
+            db_tweets = {t.id: t for t in data.get_tweets()}
 
-        if 'errors' in raw_res:
-            for error in raw_res['errors']:
-                tweet_id = error['resource_id']
-                if 'not-found' in error['type']:
-                    tweet_status[tweet_id] = "deleted"
-                else:
-                    tweet_status[tweet_id] = "unknown"
-                    if tweet_id in db_tweets:
-                        user_to_check[db_tweets[tweet_id].author_id].append(tweet_id)
-        user_to_check_ids = list(user_to_check.keys())
-        if user_to_check_ids:
-            users_res = await client.get_users(ids=user_to_check_ids,
-                                               user_fields=ALL_CONFIG.twitter_format()['user_fields'])
-
-            if 'data' in users_res:
-                for user in users_res['data']:
-                    user_id = user['id']
-                    if 'protected' in user and user['protected']:
-                        for t in user_to_check[user_id]:
-                            tweet_status[t] = 'protected'
-
-            if 'errors' in users_res:
-                for error in users_res['errors']:
-                    user_id = error['resource_id']
-                    detail = error['detail']
-                    if 'suspended' in detail:
-                        for t in user_to_check[user_id]:
-                            tweet_status[t] = 'suspended'
+            if 'errors' in raw_res:
+                for error in raw_res['errors']:
+                    tweet_id = error['resource_id']
+                    if 'not-found' in error['type']:
+                        tweet_status[tweet_id] = "deleted"
                     else:
-                        for t in user_to_check[user_id]:
-                            tweet_status[t] = 'deleted_account'
+                        tweet_status[tweet_id] = "unknown"
+                        if tweet_id in db_tweets:
+                            user_to_check[db_tweets[tweet_id].author_id].append(tweet_id)
+            user_to_check_ids = list(user_to_check.keys())
+            if user_to_check_ids:
+                users_res = await client.get_users(ids=user_to_check_ids,
+                                                   user_fields=ALL_CONFIG.twitter_format()['user_fields'])
 
-        await storage.save_tweets(tweets)
+                if 'data' in users_res:
+                    for user in users_res['data']:
+                        user_id = user['id']
+                        if 'protected' in user and user['protected']:
+                            for t in user_to_check[user_id]:
+                                tweet_status[t] = 'protected'
 
-        timestamp = datetime.datetime.now()
-        custom_key = "check_missing"
-        deleted_datas = [CustomData(id=t_id, key=custom_key,
-                                    data={"deleted": True, "reason": tweet_status[t_id], "timestamp": timestamp}) for
-                         t_id in missing_ids]
-        if deleted_datas:
-            await storage.save_custom_datas(deleted_datas, override=False)
+                if 'errors' in users_res:
+                    for error in users_res['errors']:
+                        user_id = error['resource_id']
+                        detail = error['detail']
+                        if 'suspended' in detail:
+                            for t in user_to_check[user_id]:
+                                tweet_status[t] = 'suspended'
+                        else:
+                            for t in user_to_check[user_id]:
+                                tweet_status[t] = 'deleted_account'
 
-        existing_datas = [CustomData(id=t_id, key=custom_key, data={"exist": True, "timestamp": timestamp}) for t_id in
-                          existing_ids]
-        if existing_datas:
-            await storage.save_custom_datas(existing_datas, override=True)
+            await storage.save_tweets(tweets)
 
-        total += 100
-        total_found += len(existing_ids)
-        total_missing += len(missing_ids)
-        logger.info(f'total: {total}  found[{total_found}]  missing[{total_missing}]')
+            timestamp = datetime.datetime.now()
+            custom_key = "check_missing"
+            deleted_datas = [CustomData(id=t_id, key=custom_key,
+                                        data={"deleted": True, "reason": tweet_status[t_id], "timestamp": timestamp}) for
+                             t_id in missing_ids]
+            if deleted_datas:
+                await storage.save_custom_datas(deleted_datas, override=False)
+
+            existing_datas = [CustomData(id=t_id, key=custom_key, data={"exist": True, "timestamp": timestamp}) for t_id in
+                              existing_ids]
+            if existing_datas:
+                await storage.save_custom_datas(existing_datas, override=True)
+
+            total += 100
+            total_found += len(existing_ids)
+            total_missing += len(missing_ids)
+            logger.info(f'total: {total}  found[{total_found}]  missing[{total_missing}]')
+        except Exception as e:
+            logger.error(e)
 
 
 asyncio.run(main())
