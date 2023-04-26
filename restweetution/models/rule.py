@@ -105,4 +105,4 @@ class RuleResponseMeta(BaseModel):
 
 class StreamRuleResponse(BaseModel):
     data: List[StreamAPIRule]
-    meta: RuleResponseMeta
+    meta: RuleResponseMeta | None
