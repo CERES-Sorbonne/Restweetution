@@ -93,7 +93,7 @@ async def launch():
     fire_and_forget(send_downloader_update(2))
 
 
-loop.create_task(launch())
+launch_task = loop.create_task(launch())
 
 
 @app.websocket("/ws")

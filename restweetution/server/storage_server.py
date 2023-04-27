@@ -64,7 +64,7 @@ async def launch():
     asyncio.create_task(sendUpdate(2))
 
 
-async_loop.create_task(launch())
+launch_task = async_loop.create_task(launch())
 
 
 def convert_path(info: ServerTask):
