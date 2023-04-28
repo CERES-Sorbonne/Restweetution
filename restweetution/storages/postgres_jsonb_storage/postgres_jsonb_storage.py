@@ -154,9 +154,12 @@ class PostgresJSONBStorage(SystemStorage):
             res = [r['bearer_token'] for r in res]
             return res[0]
 
-    async def get_custom_datas(self, key: str) -> List[CustomData]:
+    async def get_custom_datas(self, key: str, ids: List[str] = None) -> List[CustomData]:
         async with self._engine.begin() as conn:
             stmt = select(DATA).where(DATA.c.key == key)
+            if ids:
+                stmt = stmt.where(DATA.c.id.in_(ids))
+
             res = await conn.execute(stmt)
             res = res_to_dicts(res)
             res = [CustomData(**r) for r in res]

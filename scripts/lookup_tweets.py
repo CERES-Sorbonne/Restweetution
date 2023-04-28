@@ -37,16 +37,20 @@ async def main():
     total_found = 0
     total_missing = 0
 
-    ignore = await storage.get_custom_datas("missing")
-    ignore_ids = {i.id for i in ignore}
-
     async for data in storage.query_tweets_stream(query, chunk_size=100):
         try:
             # print('receive')
             tweet_ids = list(data.tweets.keys())
+
+            to_ignore = await storage.get_custom_datas('check_missing', ids=tweet_ids)
+            ignore_ids = {d.id for d in to_ignore}
+            tweet_ids = [t for t in tweet_ids if t not in ignore_ids]
+            if not tweet_ids:
+                logger.info('already checked; continue')
+                continue
+
             raw_res = await client.get_tweets(tweet_ids, **ALL_CONFIG.twitter_format())
             tweets = [Tweet(**d) for d in raw_res['data']]
-            tweets = [t for t in tweets if t.id not in ignore_ids]
             if not tweets:
                 continue
             existing_ids = {t.id for t in tweets}
@@ -105,7 +109,7 @@ async def main():
             total += 100
             total_found += len(existing_ids)
             total_missing += len(missing_ids)
-            logger.info(f'total: {total}  found[{total_found}]  missing[{total_missing}]')
+            logger.info(f'total: {total}  found[{total_found}]  missing[{total_missing}]  ignored[{len(ignore_ids)}]')
         except Exception as e:
             logger.error(e)
 

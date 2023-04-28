@@ -459,5 +459,4 @@ async def download_medias(media_keys: List[str]):
     return f'Trigger download for {len(medias)} medias'
 
 
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
