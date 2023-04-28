@@ -3,12 +3,13 @@ import datetime
 import logging
 import os
 from collections import defaultdict
+from typing import List
 
 from tweepy.asynchronous import AsyncClient
 
 from restweetution import config_loader
 from restweetution.models.config.query_fields_preset import ALL_CONFIG
-from restweetution.models.linked.linked_bulk_data import LinkedBulkData
+from restweetution.models.rule import RuleMatch
 from restweetution.models.storage.custom_data import CustomData
 from restweetution.models.storage.queries import CollectionQuery
 from restweetution.models.twitter import Tweet
@@ -43,9 +44,9 @@ async def main():
     client_running_status = {c.bearer_token: False for c in clients}
 
     query = CollectionQuery()
-    query.rule_ids = [428, 483, 553, 482, 405, 413, 415, 404, 414, 392, 403, 406, 412, 566, 700]
-
-    async for data in storage.query_tweets_stream(query, chunk_size=100):
+    # query.rule_ids = [428, 483, 553, 482, 405, 413, 415, 404, 414, 392, 403, 406, 412, 566, 700]
+    query.rule_ids = []
+    async for data in storage.get_rule_matches_stream(query.rule_ids, chunk_size=100):
         try:
             while True:
                 available_clients = [c for c in clients if not client_running_status[c.bearer_token]]
@@ -61,10 +62,11 @@ async def main():
             logger.error(e)
 
 
-async def check_tweets(client: AsyncClient, storage, data: LinkedBulkData, status):
+async def check_tweets(client: AsyncClient, storage, data: List[RuleMatch], status):
     global total, total_found, total_missing
     try:
-        tweet_ids = list(data.tweets.keys())
+        tweet_ids = list({m.tweet_id for m in data})
+        db_tweets = await storage.get_tweets(ids=tweet_ids)
 
         to_ignore = await storage.get_custom_datas('check_missing', ids=tweet_ids)
         ignore_ids = {d.id for d in to_ignore}
@@ -83,7 +85,7 @@ async def check_tweets(client: AsyncClient, storage, data: LinkedBulkData, statu
         missing_ids = set(tweet_ids) - existing_ids
         user_to_check = defaultdict(list)
         tweet_status = {t.id: 'alive' for t in tweets}
-        db_tweets = {t.id: t for t in data.get_tweets()}
+        # db_tweets = {t.id: t for t in data.get_tweets()}
 
         if 'errors' in raw_res:
             for error in raw_res['errors']:
