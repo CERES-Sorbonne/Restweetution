@@ -11,8 +11,8 @@ from restweetution.storages.exporter.exporter import Exporter, FileExporter
 from restweetution.storages.postgres_jsonb_storage.postgres_jsonb_storage import PostgresJSONBStorage
 from restweetution.tasks.server_task import ServerTask
 
-
 logger = logging.getLogger('ViewExportTask')
+
 
 class ViewExportTask(ServerTask):
     def __init__(self,
@@ -58,7 +58,7 @@ class ViewExportTask(ServerTask):
 
                 self._progress += count
             except Exception as e:
-                logger.error(e)
+                logger.error(e, exc_info=True)
 
             await asyncio.sleep(0)
 
@@ -80,5 +80,8 @@ class ViewExportFileTask(ViewExportTask):
 
     async def _task_routine(self):
         await self.exporter.clear_key(self.key)
+        fields = self.query.fields
+        data = CustomData(key=self.key, id='id', data={f: f for f in fields})
+        await self.exporter.save_custom_datas([data])
         await super()._task_routine()
         self.result['path'] = (self.exporter.get_root() / self.key).__str__()

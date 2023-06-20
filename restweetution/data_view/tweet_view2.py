@@ -115,6 +115,8 @@ class TweetView2(DataView2):
         tweet = link_tweet.tweet
         res = ViewDict(id_=tweet.id)
 
+        # set default value
+        [res.update({f: None}) for f in fields]
         # utility functions to avoid writing if statement in front of every assignement
         # safe_set only sets value if the field is present in the arguments
         # any_ tests if any of the fields are present in the arguments
