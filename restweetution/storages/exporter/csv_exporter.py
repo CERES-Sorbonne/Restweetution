@@ -42,10 +42,9 @@ class CSVExporter(FileExporter):
             filename = key
             await self._root.mkdir(parents=True, exist_ok=True)
             path = self._root / filename
-
             async with aiofiles.open(path, mode="a", encoding="utf-8", newline="") as afp:
                 writer = AsyncWriter(afp, dialect="excel")
-                await writer.writerows([[value for value in row.data.values()] for row in rows])
+                await writer.writerows([[row.data[key] for key in row.data.keys() if not key.startswith('_')] for row in rows])
 
     @staticmethod
     def uniquify(path):
